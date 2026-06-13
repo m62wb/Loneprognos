@@ -395,6 +395,30 @@ function updateUI(){
     const sickNetLoss=f2(sickDeduct100-sickPay80);
     const totalSickLoss=f2(karensDeduction+sickNetLoss);
     
+    const vabParentalHours=totalVABParental*VAB_HPD;
+    const vabParentalDeduction=f2(vabParentalHours*sickRate100);
+    
+    // FK-ersättning
+    const sgiForVAB=Math.min(sgiInputVal,SGI_TAK_VAB);
+    const sgiVabDay=f2(sgiForVAB/365*0.8);
+    let fkVabTotal = f2(vabD * sgiVabDay);
+    
+    const sgiForParental=Math.min(sgiInputVal,SGI_TAK_PARENTAL);
+    const fpDayAmt=Math.min(1259, f2(sgiForParental/365*0.776));
+    const fkFpTotal=f2(parentalD*fpDayAmt);
+    
+    const fptDayAmt=f2(baseSalary/30*0.10);
+    const fkFptTotal=f2(ftpD*fptDayAmt);
+    
+    const fkVabTax = f2(fkVabTotal * FK_SKATT);
+    const fkFpTax  = f2(fkFpTotal * FK_SKATT);
+    const fkFptTax = f2(fkFptTotal * FK_SKATT);
+    
+    const fkVabNet = f2(fkVabTotal - fkVabTax);
+    const fkFpNet  = f2(fkFpTotal - fkFpTax);
+    const fkFptNet = f2(fkFptTotal - fkFptTax);
+    const totalErsattningNetto = f2(fkVabNet + fkFpNet + fkFptNet);
+    
     let obYear=selectedYear,obMonth=selectedMonth-1;if(obMonth===0){obMonth=12;obYear--;}
     let obData;const months=['Januari','Februari','Mars','April','Maj','Juni','Juli','Augusti','September','Oktober','November','December'];
     
@@ -464,51 +488,9 @@ function updateUI(){
     const otH=p(otHours.value);
     const ob1Amount=Math.round(obData.ob1*ob1RatePerHour),ob2Amount=Math.round(obData.ob2*ob2RatePerHour),ob3Amount=Math.round(obData.ob3*ob3RatePerHour),otAmount=Math.round(otH*otRatePerHour);
     const totalOBOnly=ob1Amount+ob2Amount+ob3Amount,totalOBOnlyHours=obData.ob1+obData.ob2+obData.ob3,totalOB=totalOBOnly+otAmount;
-
-    // --- VIKTIGT: löneavdrag och semestertillägg ska ENDAST påverka den månad som frånvaron faktiskt inträffar ---
-    // Om schemat vi visar (obMonth) är en annan månad än lönemånaden (selectedMonth), ignorera löneeffekterna
-    const fromvaroMonth = obMonth; // månaden för schemat (där frånvaron klickades)
-    const salaryMonth = selectedMonth; // månaden vi räknar lön för
-
-    let effectiveVabD = vabD;
-    let effectiveParentalD = parentalD;
-    let effectiveVacationCount = vacationCount;
-
-    // Om schemat är från en annan månad än lönemånaden, nollställ avdrag och tillägg
-    if (fromvaroMonth !== salaryMonth) {
-        effectiveVabD = 0;
-        effectiveParentalD = 0;
-        effectiveVacationCount = 0;
-    }
-    const effectiveTotalVABParental = effectiveVabD + effectiveParentalD;
-
-    const vabParentalHours = effectiveTotalVABParental * VAB_HPD;
-    const vabParentalDeduction = f2(vabParentalHours * sickRate100);
-    
-    // FK-ersättning – baseras fortfarande på det totala antalet dagar (oavsett månad, eftersom FK betalar ut snabbt)
-    // Men för enkelhetens skull låter vi FK-ersättningen också följa effective, så att det stämmer med löneavdraget
-    const sgiForVAB = Math.min(sgiInputVal, SGI_TAK_VAB);
-    const sgiVabDay = f2(sgiForVAB/365*0.8);
-    let fkVabTotal = f2(effectiveVabD * sgiVabDay);
-    
-    const sgiForParental = Math.min(sgiInputVal, SGI_TAK_PARENTAL);
-    const fpDayAmt = Math.min(1259, f2(sgiForParental/365*0.776));
-    const fkFpTotal = f2(effectiveParentalD * fpDayAmt);
-    
-    const fptDayAmt = f2(baseSalary/30*0.10);
-    const fkFptTotal = f2(ftpD * fptDayAmt);
-    
-    const fkVabTax = f2(fkVabTotal * FK_SKATT);
-    const fkFpTax  = f2(fkFpTotal * FK_SKATT);
-    const fkFptTax = f2(fkFptTotal * FK_SKATT);
-    
-    const fkVabNet = f2(fkVabTotal - fkVabTax);
-    const fkFpNet  = f2(fkFpTotal - fkFpTax);
-    const fkFptNet = f2(fkFptTotal - fkFptTax);
-    const totalErsattningNetto = f2(fkVabNet + fkFpNet + fkFptNet);
     
     const semesterSupplementPerDay = parseFloat(semesterSupplement.value)||0;
-    const semesterTillagg = f2(effectiveVacationCount * semesterSupplementPerDay);
+    const semesterTillagg = f2(vacationCount * semesterSupplementPerDay);
     
     const sjukOb1H=karensDays>0||extraSickHours>0?p(sjukOb1Hours.value):0;
     const sjukOb2H=karensDays>0||extraSickHours>0?p(sjukOb2Hours.value):0;
@@ -539,9 +521,9 @@ function updateUI(){
     let karensHTML='';if(karensDays>0)karensHTML='<div class="detail-chip danger"><span>Karens</span><span>'+karensDays+' dag'+(karensDays>1?'ar':'')+'</span></div>';
     let extraSickHTML='';if(extraSickHours>0)extraSickHTML='<div class="detail-chip danger"><span>Sjuktimmar</span><span>'+fd(extraSickHours,1)+'h (netto -20%)</span></div>';
     let sjukObHTML='';if(totalSjukOB>0)sjukObHTML='<div class="detail-chip danger"><span>Sjuk-OB förlust</span><span>-'+fc(totalSjukOB)+' kr</span></div>';
-    let vabHTML='';if(effectiveTotalVABParental>0)vabHTML='<div class="detail-chip danger"><span>VAB/F-ledig avdrag</span><span>-'+fc(vabParentalDeduction)+' kr</span></div>';
-    let semesterHTML='';if(effectiveVacationCount>0)semesterHTML='<div class="detail-chip info"><span>Semestertillägg ('+effectiveVacationCount+' dgr, '+fd(semesterSupplementPerDay,2)+' kr/d)</span><span>+'+fc(semesterTillagg)+' kr</span></div>';
-    let bidragHTML='';if(effectiveTotalVABParental>0||ftpD>0)bidragHTML='<div class="detail-chip success"><span>FK/AFA netto</span><span>+'+fc(totalErsattningNetto)+' kr</span></div>';
+    let vabHTML='';if(totalVABParental>0)vabHTML='<div class="detail-chip danger"><span>VAB/F-ledig avdrag</span><span>-'+fc(vabParentalDeduction)+' kr</span></div>';
+    let semesterHTML='';if(vacationCount>0)semesterHTML='<div class="detail-chip info"><span>Semestertillägg ('+vacationCount+' dgr, '+fd(semesterSupplementPerDay,2)+' kr/d)</span><span>+'+fc(semesterTillagg)+' kr</span></div>';
+    let bidragHTML='';if(totalVABParental>0||ftpD>0)bidragHTML='<div class="detail-chip success"><span>FK/AFA netto</span><span>+'+fc(totalErsattningNetto)+' kr</span></div>';
     
     detailGrid.innerHTML='<div class="detail-chip"><span>Grundlön</span><span>'+fc(baseSalary)+' kr</span></div><div class="detail-chip"><span>OB-grundande</span><span>'+fc(obGroundingBase)+' kr</span></div>'+obOTHTML+semesterHTML+karensHTML+extraSickHTML+sjukObHTML+vabHTML+bidragHTML+'<div class="detail-chip"><span>Bruttolön jobb</span><span>'+fc(jobbBrutto)+' kr</span></div><div class="detail-chip"><span>Skatt (tabell 33)</span><span>-'+fc(taxAmount)+' kr</span></div><div class="detail-chip"><span>Nettolön före fack</span><span>'+fc(netSalaryBeforeFack)+' kr</span></div><div class="detail-chip"><span>IF Metall</span><span>-'+fc(unionFee)+' kr</span></div><div class="detail-chip"><span>Nettolön jobb</span><span>'+fc(jobbNetto)+' kr</span></div>';
     if(totalErsattningNetto>0)detailGrid.innerHTML+='<div class="detail-chip success"><span>Nettolön bidrag</span><span>+'+fc(totalErsattningNetto)+' kr</span></div>';
