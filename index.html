@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Löneprognos 2026-2036 | Uppsala - IKEM</title>
     
+    <!-- PWA meta tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Lön IKEM">
@@ -25,6 +26,7 @@
             --shadow-lg: 0 20px 40px rgba(0,0,0,0.1); --input-bg: #f5f7fa;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        html, body { width: 100%; max-width: 100vw; overflow-x: hidden; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 12px; color: var(--text); }
         .container { width: 100%; max-width: 600px; display: grid; gap: 16px; padding-bottom: 80px; }
         .header { background: var(--card-bg); border-radius: var(--radius); padding: 16px 20px; box-shadow: var(--shadow); display: flex; justify-content: space-between; align-items: center; }
@@ -71,9 +73,9 @@
         .sjuk-ob-title { font-size: 0.8rem; font-weight: 700; color: var(--danger); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
         .sjuk-ob-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
         .table-container { overflow-x: auto; overflow-y: auto; max-height: 350px; border-radius: var(--radius-sm); -webkit-overflow-scrolling: touch; }
-        table { width: 100%; min-width: 750px; border-collapse: collapse; font-size: 0.78rem; background: var(--card-bg); }
-        th { background: var(--primary); color: white; padding: 10px 6px; font-weight: 700; position: sticky; top: 0; z-index: 10; font-size: 0.6rem; white-space: nowrap; }
-        td { padding: 8px 5px; border-bottom: 1px solid var(--border); color: var(--text); text-align: right; font-size: 0.78rem; white-space: nowrap; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.68rem; background: var(--card-bg); table-layout: auto; }
+        th { background: var(--primary); color: white; padding: 8px 4px; font-weight: 700; position: sticky; top: 0; z-index: 10; font-size: 0.6rem; white-space: nowrap; }
+        td { padding: 6px 4px; border-bottom: 1px solid var(--border); color: var(--text); text-align: right; font-size: 0.68rem; white-space: nowrap; }
         td:first-child { text-align: left; font-weight: 600; position: sticky; left: 0; background: var(--card-bg); z-index: 5; }
         th:first-child { position: sticky; left: 0; z-index: 11; }
         .row-active { background: rgba(16, 185, 129, 0.15) !important; }
@@ -263,9 +265,8 @@ function calcUnion(s){const f=Math.round(s*UPCT);if(f<UMIN)return UMIN;if(f>UMAX
 
 const fromvaroMap = new Map();
 
-// NY ENKEL KLICKLOGIK – använder data-attribut från tabellraden
 function toggleFromvaro(dateStr, shift, perm) {
-    if (shift === 0 || perm) return;  // blockera ledig/permission
+    if (shift === 0 || perm) return;
     const current = fromvaroMap.get(dateStr) || 0;
     if (current === 0) {
         fromvaroMap.set(dateStr, 1);
@@ -549,7 +550,6 @@ function updateUI(){
             if(fromvaro===1) rowClass += ' row-vacation';
             else if(fromvaro===2) rowClass += ' row-vab';
             else if(fromvaro===3) rowClass += ' row-parental';
-            // Viktigt: vi skickar med shift och perm direkt till onclick
             tableHTML+='<tr class="'+rowClass+'" data-shift="'+shift+'" data-perm="'+isPerm+'" onclick="toggleFromvaro(\''+dateStr+'\', '+shift+', '+isPerm+')">'+
                 '<td>'+d+' '+dayName+'</td>'+
                 '<td>'+shiftText+'</td>'+
