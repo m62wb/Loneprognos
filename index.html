@@ -12,10 +12,7 @@
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' style='stop-color:%234a6cf7'/><stop offset='100%' style='stop-color:%2310b981'/></linearGradient></defs><circle cx='50' cy='50' r='48' fill='url(%23g)'/><text x='50' y='68' font-size='50' font-weight='bold' text-anchor='middle' fill='white' font-family='Arial'>L</text></svg>">
     
     <style>
-        :root html, body {
-    width: 100%;
-    overflow-x: hidden;
-}{
+        :root {
             --bg: #1a202c; --card-bg: #2d3748; --text: #e2e8f0; --text-secondary: #a0aec0;
             --primary: #4a6cf7; --accent: #10b981; --danger: #ef4444; --warning: #f59e0b;
             --border: #4a5568; --shadow: 0 4px 6px rgba(0,0,0,0.3);
@@ -274,21 +271,64 @@ function calcOB(date,shift,lag){
 function getOBForMonth(year,month,lag){let to1=0,to2=0,to3=0;const dim=new Date(year,month,0).getDate();for(let d=1;d<=dim;d++){const date=new Date(year,month-1,d);const sh=getShift(date,lag);const ob=calcOB(date,sh,lag);to1+=ob.ob1;to2+=ob.ob2;to3+=ob.ob3}return{ob1:to1,ob2:to2,ob3:to3};}
 function calcUnion(s){const f=Math.round(s*UPCT);if(f<UMIN)return UMIN;if(f>UMAX)return UMAX;return f;}
 
-// Kombinerad frånvaro-state: 0 = none, 1 = semester, 2 = VAB, 3 = parental
-const fromvaroMap = new Map();
+// --- NYTT: månadsbaserade överstyrningar för löneavdrag/semestertillägg ---
+const monthlyOverrides = {}; // key: "YYYY-MM", value: { vab: Set, parental: Set, semester: Set }
+
+function getMonthKey(year, month) {
+    return `${year}-${String(month).padStart(2,'0')}`;
+}
 
 function toggleFromvaro(dateStr) {
-    const current = fromvaroMap.get(dateStr) || 0;
-    if (current === 0) {
-        fromvaroMap.set(dateStr, 1);
-    } else if (current === 1) {
-        fromvaroMap.set(dateStr, 2);
-    } else if (current === 2) {
-        fromvaroMap.set(dateStr, 3);
-    } else {
-        fromvaroMap.delete(dateStr);
+    // dateStr är "YYYY-MM-DD"
+    const [y, m] = dateStr.split('-').map(Number);
+    const key = getMonthKey(y, m);
+    if (!monthlyOverrides[key]) {
+        monthlyOverrides[key] = { vab: new Set(), parental: new Set(), semester: new Set() };
     }
+    const sets = monthlyOverrides[key];
+
+    // Rensa dagen från alla kategorier först
+    const inVab = sets.vab.has(dateStr);
+    const inParental = sets.parental.has(dateStr);
+    const inSemester = sets.semester.has(dateStr);
+
+    if (!inVab && !inParental && !inSemester) {
+        // Första klick: semester
+        sets.semester.add(dateStr);
+    } else if (inSemester) {
+        sets.semester.delete(dateStr);
+        sets.vab.add(dateStr);
+    } else if (inVab) {
+        sets.vab.delete(dateStr);
+        sets.parental.add(dateStr);
+    } else if (inParental) {
+        sets.parental.delete(dateStr);
+    }
+
     updateUI();
+}
+
+function getFromvaroForMonth(year, month) {
+    const key = getMonthKey(year, month);
+    const sets = monthlyOverrides[key] || { vab: new Set(), parental: new Set(), semester: new Set() };
+    return {
+        vabCount: sets.vab.size,
+        parentalCount: sets.parental.size,
+        semesterCount: sets.semester.size,
+        allDates: new Set([...sets.vab, ...sets.parental, ...sets.semester])
+    };
+}
+
+// Hjälp för att synka schemats färger (från fromvaroMap är nu borta, vi använder monthlyOverrides direkt)
+function getFromvaroDisplay(dateStr) {
+    const [y, m] = dateStr.split('-').map(Number);
+    const key = getMonthKey(y, m);
+    const sets = monthlyOverrides[key];
+    if (!sets) return 0;
+    if (sets.semester.has(dateStr)) return 1;
+    if (sets.vab.has(dateStr)) return 2;
+    if (sets.parental.has(dateStr)) return 3;
+    return 0;
 }
 
 const lagSelect=document.getElementById('lagSelect'),salaryInput=document.getElementById('salaryInput'),yearSelect=document.getElementById('yearSelect'),monthSelect=document.getElementById('monthSelect'),karensSelect=document.getElementById('karensSelect'),otHours=document.getElementById('otHours'),ob1Hours=document.getElementById('ob1Hours'),ob2Hours=document.getElementById('ob2Hours'),ob3Hours=document.getElementById('ob3Hours'),sjukOb1Hours=document.getElementById('sjukOb1Hours'),sjukOb2Hours=document.getElementById('sjukOb2Hours'),sjukOb3Hours=document.getElementById('sjukOb3Hours'),sickHours=document.getElementById('sickHours'),ftpDays=document.getElementById('ftpDays'),sgiInput=document.getElementById('sgiInput'),ob1Rate=document.getElementById('ob1Rate'),ob2Rate=document.getElementById('ob2Rate'),ob3Rate=document.getElementById('ob3Rate'),otRate=document.getElementById('otRate'),selectedPeriod=document.getElementById('selectedPeriod'),finalNetSalary=document.getElementById('finalNetSalary'),detailGrid=document.getElementById('detailGrid'),tableBody=document.querySelector('#salaryTable tbody'),tableMonthLabel=document.getElementById('tableMonthLabel'),obGroundingDisplay=document.getElementById('obGroundingDisplay'),sjukOBContainer=document.getElementById('sjukOBContainer'),sickHoursContainer=document.getElementById('sickHoursContainer'),lockBadge=document.getElementById('lockBadge'),ob1Badge=document.getElementById('ob1Badge'),ob2Badge=document.getElementById('ob2Badge'),ob3Badge=document.getElementById('ob3Badge'),vabSummary=document.getElementById('vabSummary'),vabInfo=document.getElementById('vabInfo'),yearSummaryYear=document.getElementById('yearSummaryYear'),yearSummaryGrid=document.getElementById('yearSummaryGrid'),obLockToggle=document.getElementById('obLockToggle'),overviewTotalNet=document.getElementById('overviewTotalNet'),overviewArrow=document.getElementById('overviewArrow'),overviewContent=document.getElementById('overviewContent'),semesterSupplement=document.getElementById('semesterSupplement');
@@ -314,7 +354,8 @@ function resetOB(){
         ob2Hours.value = '0';
         ob3Hours.value = '0';
     }
-    fromvaroMap.clear();
+    // Rensa alla overrides
+    for (const key in monthlyOverrides) delete monthlyOverrides[key];
     updateUI();
 }
 
@@ -362,11 +403,13 @@ function getStationE(date, shift, lag) {
 function updateUI(){
     const baseSalary=parseFloat(salaryInput.value)||0,selectedYear=parseInt(yearSelect.value),selectedMonth=parseInt(monthSelect.value),karensDays=parseInt(karensSelect.value),lag=lagSelect.value,isAuto=(lag==='A'||lag==='B'||lag==='C'||lag==='D'||lag==='E');
     
-    const vabD = [...fromvaroMap.values()].filter(v => v === 2).length;
-    const parentalD = [...fromvaroMap.values()].filter(v => v === 3).length;
+    // Hämta frånvaro för DEN MÅNAD VI VISAR LÖN FÖR (selectedMonth/selectedYear)
+    const fromvaro = getFromvaroForMonth(selectedYear, selectedMonth);
+    const vabD = fromvaro.vabCount;
+    const parentalD = fromvaro.parentalCount;
     const totalVABParental = vabD + parentalD;
-    const vacationCount = [...fromvaroMap.values()].filter(v => v === 1).length;
-    
+    const vacationCount = fromvaro.semesterCount;
+
     const ftpD = parseInt(ftpDays.value);
     const sgiInputVal = Math.min(parseFloat(sgiInput.value)||0, SGI_TAK_PARENTAL);
     const extraSickHours = karensDays>0||p(sickHours.value)>0 ? p(sickHours.value) : 0;
@@ -398,6 +441,7 @@ function updateUI(){
     const sickNetLoss=f2(sickDeduct100-sickPay80);
     const totalSickLoss=f2(karensDeduction+sickNetLoss);
     
+    // Löneavdrag baserat på frånvaron i DEN MÅNAD VI VISAR LÖN FÖR
     const vabParentalHours=totalVABParental*VAB_HPD;
     const vabParentalDeduction=f2(vabParentalHours*sickRate100);
     
@@ -469,14 +513,16 @@ function updateUI(){
         }
     }
     
-    // Justera OB för alla frånvarodagar
+    // Justera OB för frånvaron i schemat (föregående månad)
     if (isAuto && !manualOBOverride && lockEnabled) {
         let adjOB1 = autoOB.ob1, adjOB2 = autoOB.ob2, adjOB3 = autoOB.ob3;
         const daysInMonth = new Date(obYear, obMonth, 0).getDate();
+        // Hämta alla frånvarodatum för den månad som visas i schemat (obMonth/obYear)
+        const fromvaroSchema = getFromvaroForMonth(obYear, obMonth);
         for (let d = 1; d <= daysInMonth; d++) {
             const date = new Date(obYear, obMonth-1, d);
             const dateStr = date.toISOString().split('T')[0];
-            if (fromvaroMap.has(dateStr)) {
+            if (fromvaroSchema.allDates.has(dateStr)) {
                 const sh = getShift(date, lag);
                 const ob = calcOB(date, sh, lag);
                 adjOB1 -= ob.ob1;
@@ -540,25 +586,25 @@ function updateUI(){
         for(let d=1;d<=daysInMonth;d++){
             const date=new Date(obYear,obMonth-1,d);
             const dateStr = date.toISOString().split('T')[0];
-            const fromvaro = fromvaroMap.get(dateStr) || 0;
+            const fromvaroDisplay = getFromvaroDisplay(dateStr);
             const shift=getShift(date,lag);
             const ob=calcOB(date,shift,lag);
             const isPerm=isPermissionDay(date,lag);
             const dayName=['Sön','Mån','Tis','Ons','Tor','Fre','Lör'][date.getDay()];
             const shiftText=isPerm?'Perm':shiftNames[shift];
             let note=isPerm?'Perm':(isStorhelg(date)?'Storhelg':'');
-            if(fromvaro===1) note = 'Semester';
-            else if(fromvaro===2) note = 'VAB';
-            else if(fromvaro===3) note = 'F-ledig';
+            if(fromvaroDisplay===1) note = 'Semester';
+            else if(fromvaroDisplay===2) note = 'VAB';
+            else if(fromvaroDisplay===3) note = 'F-ledig';
             const dst=getDSTAdjustment(date);
             if(dst===1)note=(note?note+', +1h':'+1h');
             if(dst===-1)note=(note?note+', -1h':'-1h');
             const station = (lag==='E') ? getStationE(date, shift, lag) : '-';
             let rowClass = '';
             if(shift>0) rowClass += ' row-active';
-            if(fromvaro===1) rowClass += ' row-vacation';
-            else if(fromvaro===2) rowClass += ' row-vab';
-            else if(fromvaro===3) rowClass += ' row-parental';
+            if(fromvaroDisplay===1) rowClass += ' row-vacation';
+            else if(fromvaroDisplay===2) rowClass += ' row-vab';
+            else if(fromvaroDisplay===3) rowClass += ' row-parental';
             tableHTML+='<tr class="'+rowClass+'" onclick="toggleFromvaro(\''+dateStr+'\')">'+
                 '<td>'+d+' '+dayName+'</td>'+
                 '<td>'+shiftText+'</td>'+
