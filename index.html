@@ -398,13 +398,13 @@ function updateUI(){
     const vabParentalHours=totalVABParental*VAB_HPD;
     const vabParentalDeduction=f2(vabParentalHours*sickRate100);
     
-    // FK-ersättning
+    // FK-ersättning – separata tak och procentsatser
     const sgiForVAB=Math.min(sgiInputVal,SGI_TAK_VAB);
-    const sgiVabDay=f2(sgiForVAB/365*0.8);
+    const sgiVabDay=f2(sgiForVAB/365*0.8);          // VAB: 80% av SGI/dag
     let fkVabTotal = f2(vabD * sgiVabDay);
     
     const sgiForParental=Math.min(sgiInputVal,SGI_TAK_PARENTAL);
-    const fpDayAmt=Math.min(1259, f2(sgiForParental/365*0.776));
+    const fpDayAmt=Math.min(1259, f2(sgiForParental/365*0.776)); // F-ledig: 77.6% av SGI/dag, max 1259 kr
     const fkFpTotal=f2(parentalD*fpDayAmt);
     
     const fptDayAmt=f2(baseSalary/30*0.10);
