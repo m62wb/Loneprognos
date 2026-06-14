@@ -2,7 +2,7 @@
 <html lang="sv" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=0.5, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=0.7, user-scalable=yes">
     <title>Löneprognos 2026-2036 | Uppsala - IKEM</title>
     <style>
         /* Göm scrollbar i Safari */
@@ -143,16 +143,15 @@
         .badge-ikem { background: #f59e0b; color: black; padding: 2px 6px; border-radius: 12px; }
         .badge-local { background: var(--accent); color: white; padding: 2px 6px; border-radius: 12px; }
         .lön-summary { display: flex; justify-content: space-between; background: rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 12px; margin-top: 8px; }
-        /* Lås‑container med mer luft */
         .toggle-container { 
             display: flex; 
             align-items: center; 
-            gap: 16px;  /* ökat mellanrum */
+            gap: 16px;
             margin-bottom: 12px; 
             justify-content: flex-end;
         }
         .toggle-container .reset-btn {
-            margin-left: 8px; /* extra luft före reset */
+            margin-left: 8px;
         }
         .toggle-switch { position: relative; display: inline-block; width: 44px; height: 24px; }
         .toggle-switch input { opacity: 0; width: 0; height: 0; }
@@ -186,7 +185,7 @@
     
     <div class="card">
         <div class="card-title">Grundlön & Karens</div>
-        <div class="input-group"><label>Månadslön (brutto)</label><input type="number" id="salaryInput" value="0" step="100"></div>
+        <div class="input-group"><label>Månadslön (brutto)</label><input type="number" id="salaryInput" value="37664" step="100"></div>
         <div class="lön-summary"><span>OB-grundande (+4%)</span><span><strong id="obGroundingDisplay">38 182 kr</strong></span></div>
         <div class="input-group"><label>Karensdagar</label><select id="karensSelect"><option value="0">0 dagar</option><option value="1">1 dag</option><option value="2">2 dagar</option><option value="3">3 dagar</option><option value="4">4 dagar</option><option value="5">5 dagar</option></select></div>
         <div class="sick-hours-container" id="sickHoursContainer"><div class="input-group"><label>Sjuktimmar totalt</label><input type="text" id="sickHours" placeholder="0"></div></div>
@@ -207,7 +206,6 @@
             OB & Övertid <span id="obArrow">▼</span>
         </div>
         <div class="collapsible-content" id="obContent">
-            <!-- Lås‑container med dynamisk text och inget extra badge -->
             <div class="toggle-container">
                 <span id="lockLabel">Lås</span>
                 <label class="toggle-switch"><input type="checkbox" id="obLockToggle" checked onchange="updateUI()"><span class="slider"></span></label>
@@ -284,7 +282,8 @@ function getMidsummer(year){ let d=new Date(year,5,20); while(d.getDay()!==6) d.
 function getAllHelgons(year){ let d=new Date(year,9,31); while(d.getDay()!==6) d.setDate(d.getDate()+1); return d; }
 function isPermissionDay(date,lag){ let m=date.getMonth(),d=date.getDate(),shift=getShift(date,lag); if(m===11&&d===24) return true; if(m===11&&d===25&&shift===1) return true; if(m===11&&d===31&&shift===2) return true; if(m===0&&d===1&&shift===1) return true; let mid=getMidsummer(date.getFullYear()),eve=new Date(mid); eve.setDate(mid.getDate()-1); if(date.toDateString()===eve.toDateString()) return true; if(date.toDateString()===mid.toDateString()) return true; let mids=new Date(mid); mids.setDate(mid.getDate()+1); if(date.toDateString()===mids.toDateString()&&shift===1) return true; return false; }
 function calcOB(date,shift,lag){ if(isPermissionDay(date,lag)||shift===0) return {ob1:0,ob2:0,ob3:0}; let w=date.getDay(),isWeekend=(w===0||w===6),ob1=0,ob2=0,ob3=0; if(isStorhelg(date)) ob3=12.25; else if(shift===1){ if(isWeekend) ob2=12.25; else ob2=1.25; } else if(shift===2){ if(isWeekend) ob2=12.25; else { ob1=6; ob2=6; } } let dst=getDSTAdjustment(date); if(dst!==0&&shift===2){ if(ob2>=6) ob2+=dst; else if(ob1>=6) ob1+=dst; } return {ob1,ob2,ob3}; }
-function getOBForMonth(year,month,lag){ let to1=0,to2=0,to3=0, dim=new Date(year,month,0).getDate(); for(let d=1;d<=dim;d++){ let date=new Date(year,month-1,d); let shift=getShift(date,lag); let ob=calcOB(date,shift,lag); to1+=ob.ob1; to2+=ob.ob2; to3+=ob.ob3; } return {ob1:to1,ob2:to2,ob3:to3}; }
+// Uppdaterad getOBForMonth som tar hänsyn till frånvaro
+function getOBForMonth(year,month,lag){ let to1=0,to2=0,to3=0, dim=new Date(year,month,0).getDate(); for(let d=1;d<=dim;d++){ let date=new Date(year,month-1,d); let dateStr=date.toISOString().split('T')[0]; let shift=getShift(date,lag); // Om dagen har frånvaro (värde i fromvaroMap) → ingen OB if(fromvaroMap.has(dateStr)){ continue; } let ob=calcOB(date,shift,lag); to1+=ob.ob1; to2+=ob.ob2; to3+=ob.ob3; } return {ob1:to1,ob2:to2,ob3:to3}; }
 function calcUnion(s){ let f=Math.round(s*UPCT); if(f<UMIN) return UMIN; if(f>UMAX) return UMAX; return f; }
 
 // ---------- Frånvaro och pass ----------
@@ -333,7 +332,6 @@ function updateUI(){
     
     let autoOB=null; if(isAuto){ autoOB=getOBForMonth(obYear,obMonth,lag); if(lag!==lastAutoLag||obYear!==lastAutoYear||obMonth!==lastAutoMonth) manualOBOverride=false; lastAutoLag=lag; lastAutoYear=obYear; lastAutoMonth=obMonth; lastAutoOB=autoOB; } else manualOBOverride=false;
     let lockEnabled=obLockToggle.checked, obData;
-    // Uppdatera lås‑text
     document.getElementById('lockLabel').innerText = lockEnabled ? 'Låst' : 'Lås';
     
     if(isAuto&&lockEnabled&&!manualOBOverride){ ob1Hours.value=fd(autoOB.ob1,2); ob2Hours.value=fd(autoOB.ob2,2); ob3Hours.value=fd(autoOB.ob3,2); ob1Hours.disabled=ob2Hours.disabled=ob3Hours.disabled=true; obData=autoOB; }
@@ -391,6 +389,10 @@ function updateUI(){
             let shift=getShift(date,lag);
             let ob=calcOB(date,shift,lag);
             let isPerm=isPermissionDay(date,lag);
+            // Nollställ OB om frånvaro finns
+            if (fromvaroVal !== 0) {
+                ob = {ob1:0, ob2:0, ob3:0};
+            }
             let dayName=['Sön','Mån','Tis','Ons','Tor','Fre','Lör'][date.getDay()];
             let shiftText=isPerm?'Perm':shiftNames[shift];
             if(shiftOverrideMap.has(dateStr)&&!isPerm) shiftText+='*';
