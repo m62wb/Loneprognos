@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=0.5, user-scalable=yes">
     <title>Löneprognos 2026-2036 | Uppsala - IKEM</title>
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Lön IKEM">
-    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' style='stop-color:%234a6cf7'/><stop offset='100%' style='stop-color:%2310b981'/></linearGradient></defs><circle cx='50' cy='50' r='48' fill='url(%23g)'/><text x='50' y='68' font-size='50' font-weight='bold' text-anchor='middle' fill='white' font-family='Arial'>L</text></svg>">
     <style>
+        /* Göm scrollbar i Safari */
+        body, .table-container { scrollbar-width: none; -ms-overflow-style: none; }
+        body::-webkit-scrollbar, .table-container::-webkit-scrollbar { width: 0; height: 0; background: transparent; display: none; }
+
         :root {
             --bg: #1a202c; --card-bg: #2d3748; --text: #e2e8f0; --text-secondary: #a0aec0;
             --primary: #4a6cf7; --accent: #10b981; --danger: #ef4444; --warning: #f59e0b;
@@ -22,106 +22,97 @@
             --border: #e2e8f0; --shadow: 0 4px 6px rgba(0,0,0,0.07);
             --shadow-lg: 0 20px 40px rgba(0,0,0,0.1); --input-bg: #f5f7fa;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; 
             background: var(--bg); 
             display: flex; 
             justify-content: center; 
-            align-items: flex-start; 
+            align-items: flex-start;
             min-height: 100vh; 
-            padding: 16px; 
+            padding: 20px; 
             color: var(--text);
-            overflow-x: hidden;
         }
         .container { 
             width: 100%; 
-            max-width: 800px; 
+            max-width: 850px; 
             margin: 0 auto;
-            display: grid; 
-            gap: 16px; 
-            padding-bottom: 80px; 
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
         }
-        .header { background: var(--card-bg); border-radius: var(--radius); padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
-        .logo { font-size: 1.3rem; font-weight: 800; background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .theme-toggle { background: var(--border); border: none; border-radius: 30px; padding: 8px 14px; cursor: pointer; font-size: 0.9rem; color: var(--text); font-weight: 600; }
-        .card { background: var(--card-bg); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
-        .card-title { font-size: 1rem; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .card, .header, .result-card, .year-summary-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+        }
+        .header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+        .logo { font-size: 1.4rem; font-weight: 800; background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .theme-toggle { background: var(--border); border: none; border-radius: 30px; padding: 6px 12px; cursor: pointer; color: var(--text); }
+        .card-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
         .input-group { margin-bottom: 14px; }
-        .input-group label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
-        select, input[type="number"], input[type="text"] { width: 100%; padding: 14px 16px; font-size: 1rem; border: 2px solid var(--border); border-radius: var(--radius-sm); background: var(--input-bg); color: var(--text); font-family: inherit; -webkit-appearance: none; }
-        select:focus, input:focus { border-color: var(--primary); outline: none; }
-        select { cursor: pointer; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234a6cf7' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 14px center; background-size: 18px; padding-right: 40px; }
-        input:disabled { opacity: 0.6; cursor: not-allowed; }
-        .ob-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        @media (min-width: 480px) { .ob-grid { grid-template-columns: 1fr 1fr 1fr 1fr; } }
+        .input-group label { display: block; font-size: 0.7rem; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 4px; }
+        select, input[type="number"], input[type="text"] {
+            width: 100%; padding: 12px 14px; font-size: 1rem;
+            border: 1px solid var(--border); border-radius: var(--radius-sm);
+            background: var(--input-bg); color: var(--text);
+        }
+        .ob-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-top: 8px; }
         .ob-input { position: relative; }
-        .ob-input input { text-align: right; font-weight: 600; }
-        .ob-badge { position: absolute; top: -8px; right: 12px; background: var(--primary); color: white; padding: 2px 10px; border-radius: 10px; font-size: 0.7rem; font-weight: 700; z-index: 2; }
-        .ob-badge.ot { background: var(--warning); color: #000; }
-        .ob-badge.sjuk { background: var(--danger); }
-        .ob-badge.locked { background: var(--accent); }
+        .ob-badge { position: absolute; top: -10px; right: 8px; background: var(--primary); color: white; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem; }
+        .ob-badge.ot { background: var(--warning); color: black; }
         .ob-rate { font-size: 0.7rem; color: var(--text-secondary); margin-top: 4px; text-align: right; }
-        .result-card { background: var(--gradient); border-radius: var(--radius); padding: 24px 20px; color: white; text-align: center; }
-        .result-amount { font-size: 2.8rem; font-weight: 900; margin: 12px 0; }
-        .detail-grid { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 12px; }
-        @media (min-width: 480px) { .detail-grid { grid-template-columns: 1fr 1fr; } }
-        .detail-chip { background: rgba(255,255,255,0.15); padding: 10px 14px; border-radius: var(--radius-sm); display: flex; justify-content: space-between; align-items: center; font-weight: 500; font-size: 0.85rem; }
-        .detail-chip.danger { background: rgba(239, 68, 68, 0.3); }
-        .detail-chip.success { background: rgba(16, 185, 129, 0.3); }
-        .detail-chip.info { background: rgba(59, 130, 246, 0.3); }
-        .expandable-chip { background: rgba(255,255,255,0.15); padding: 10px 14px; border-radius: var(--radius-sm); cursor: pointer; }
-        .expandable-header { display: flex; justify-content: space-between; align-items: center; font-weight: 500; }
-        .expandable-arrow { font-size: 0.7rem; transition: transform 0.2s; opacity: 0.7; }
+        .result-card { background: var(--gradient); color: white; text-align: center; }
+        .result-amount { font-size: 2.5rem; font-weight: 900; margin: 12px 0; }
+        .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+        .detail-chip { background: rgba(255,255,255,0.15); padding: 8px 12px; border-radius: 12px; display: flex; justify-content: space-between; }
+        .detail-chip.danger { background: rgba(239,68,68,0.3); }
+        .detail-chip.success { background: rgba(16,185,129,0.3); }
+        .expandable-chip { background: rgba(255,255,255,0.15); padding: 8px 12px; border-radius: 12px; cursor: pointer; }
+        .expandable-header { display: flex; justify-content: space-between; }
+        .expandable-arrow { transition: transform 0.2s; }
         .expandable-arrow.open { transform: rotate(180deg); }
-        .expandable-details { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.2); font-size: 0.8rem; line-height: 1.8; }
+        .expandable-details { display: none; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); }
         .expandable-details.open { display: block; }
-        .tax-detail-row { display: flex; justify-content: space-between; padding: 3px 0; color: rgba(255,255,255,0.85); }
+        .tax-detail-row { display: flex; justify-content: space-between; padding: 4px 0; }
         .sjuk-ob-container, .sick-hours-container { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
         .sjuk-ob-container.visible, .sick-hours-container.visible { display: block; }
         .sjuk-ob-title { font-size: 0.8rem; font-weight: 700; color: var(--danger); margin-bottom: 10px; }
         .sjuk-ob-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
         .table-container { overflow-x: auto; max-height: 450px; border-radius: var(--radius-sm); }
-        table { width: 100%; min-width: 800px; border-collapse: collapse; font-size: 0.78rem; background: var(--card-bg); }
-        th { background: var(--primary); color: white; padding: 10px 6px; position: sticky; top: 0; z-index: 10; font-size: 0.65rem; white-space: nowrap; }
-        td { padding: 8px 5px; border-bottom: 1px solid var(--border); color: var(--text); text-align: right; white-space: nowrap; }
-        td:first-child { text-align: left; font-weight: 600; position: sticky; left: 0; background: var(--card-bg); z-index: 5; }
-        th:first-child { position: sticky; left: 0; z-index: 11; }
-        .row-active { background: rgba(16, 185, 129, 0.15) !important; }
-        .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.65rem; font-weight: 700; }
-        .badge-ikem { background: #f59e0b; color: #000; }
-        .badge-local { background: var(--accent); color: #fff; }
-        .lön-summary { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 8px; margin-top: 4px; font-size: 0.8rem; }
+        table { width: 100%; min-width: 800px; border-collapse: collapse; background: var(--card-bg); }
+        th { background: var(--primary); color: white; padding: 10px 6px; position: sticky; top: 0; font-size: 0.7rem; }
+        td { padding: 8px 5px; border-bottom: 1px solid var(--border); text-align: right; }
+        td:first-child { text-align: left; font-weight: 600; position: sticky; left: 0; background: var(--card-bg); }
+        .row-active { background: rgba(16,185,129,0.15) !important; }
+        .row-vacation td:first-child::after { content: " 🏖️"; }
+        .row-vab td:first-child::after { content: " 👶"; }
+        .row-parental td:first-child::after { content: " 🍼"; }
+        .badge-ikem { background: #f59e0b; color: black; padding: 2px 6px; border-radius: 12px; }
+        .badge-local { background: var(--accent); color: white; padding: 2px 6px; border-radius: 12px; }
+        .lön-summary { display: flex; justify-content: space-between; background: rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 12px; margin-top: 8px; }
         .toggle-container { display: flex; align-items: center; gap: 8px; margin-left: auto; }
-        .toggle-label { font-size: 0.7rem; font-weight: 600; color: var(--text-secondary); }
         .toggle-switch { position: relative; display: inline-block; width: 44px; height: 24px; }
         .toggle-switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--border); transition: 0.2s; border-radius: 24px; }
-        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: 0.2s; border-radius: 50%; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--border); border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; border-radius: 50%; transition: 0.2s; }
         input:checked + .slider { background-color: var(--accent); }
         input:checked + .slider:before { transform: translateX(20px); }
-        .reset-btn { background: none; border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 1rem; margin-left: 8px; }
-        .reset-btn:hover { background: var(--border); }
-        .collapsible-section { margin-top: 16px; }
-        .collapsible-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-weight: 700; }
-        .collapsible-content { display: none; margin-top: 16px; }
+        .reset-btn { background: none; border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 4px 8px; cursor: pointer; }
+        .collapsible-header { display: flex; justify-content: space-between; cursor: pointer; font-weight: 700; margin-bottom: 8px; }
+        .collapsible-content { display: none; margin-top: 12px; }
         .collapsible-content.open { display: block; }
-        .year-summary-card { background: var(--card-bg); border-radius: var(--radius); padding: 20px; cursor: pointer; }
-        .year-summary-header { display: flex; justify-content: space-between; align-items: center; }
         .year-summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
-        .shift-select, .fromvaro-select { background: var(--input-bg); color: var(--text); border: 1px solid var(--border); border-radius: 16px; padding: 4px 6px; font-size: 0.7rem; cursor: pointer; width: 85px; }
-        .fromvaro-select:disabled { opacity: 0.5; cursor: not-allowed; }
+        .shift-select, .fromvaro-select { background: var(--input-bg); border: 1px solid var(--border); border-radius: 20px; padding: 4px 8px; color: var(--text); width: 80px; font-size: 0.7rem; }
         .swipe-hint { font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 8px; }
     </style>
 </head>
 <body>
 <div class="container">
     <div class="header">
-        <div class="logo">Lön <span class="badge badge-ikem">IKEM</span><span class="badge badge-local">LOKAL</span></div>
-        <div style="display: flex; gap: 8px;">
-            <span style="background: var(--gradient); color: white; padding: 4px 12px; border-radius: 20px; font-weight: 700;">2026–2036</span>
-            <button class="theme-toggle" onclick="toggleTheme()">Byt tema</button>
-        </div>
+        <div class="logo">Lön <span class="badge-ikem">IKEM</span> <span class="badge-local">LOKAL</span></div>
+        <button class="theme-toggle" onclick="toggleTheme()">Byt tema</button>
     </div>
     <div class="card"><div class="card-title">Lagval</div><select id="lagSelect"><option value="A">Lag A - Ekwall</option><option value="B">Lag B - Swärd</option><option value="C">Lag C - Samer</option><option value="D">Lag D - Isaac</option><option value="E" selected>Lag E - Benji</option><option value="manual">Manuell</option></select></div>
     
@@ -131,11 +122,11 @@
         <div class="lön-summary"><span>OB-grundande (+4%)</span><span><strong id="obGroundingDisplay">38 182 kr</strong></span></div>
         <div class="input-group"><label>Karensdagar</label><select id="karensSelect"><option value="0">0 dagar</option><option value="1">1 dag</option><option value="2">2 dagar</option><option value="3">3 dagar</option><option value="4">4 dagar</option><option value="5">5 dagar</option></select></div>
         <div class="sick-hours-container" id="sickHoursContainer"><div class="input-group"><label>Sjuktimmar totalt</label><input type="text" id="sickHours" placeholder="0"></div></div>
-        <div class="sjuk-ob-container" id="sjukOBContainer"><div class="sjuk-ob-title">Sjuk-OB</div><div class="sjuk-ob-grid"><div><span class="ob-badge sjuk">OB1</span><input type="text" id="sjukOb1Hours" placeholder="0"></div><div><span class="ob-badge sjuk">OB2</span><input type="text" id="sjukOb2Hours" placeholder="0"></div><div><span class="ob-badge sjuk">OB3</span><input type="text" id="sjukOb3Hours" placeholder="0"></div></div></div>
+        <div class="sjuk-ob-container" id="sjukOBContainer"><div class="sjuk-ob-title">Sjuk-OB</div><div class="sjuk-ob-grid"><div><span class="ob-badge sjuk" style="background:var(--danger)">OB1</span><input type="text" id="sjukOb1Hours" placeholder="0"></div><div><span class="ob-badge sjuk" style="background:var(--danger)">OB2</span><input type="text" id="sjukOb2Hours" placeholder="0"></div><div><span class="ob-badge sjuk" style="background:var(--danger)">OB3</span><input type="text" id="sjukOb3Hours" placeholder="0"></div></div></div>
     </div>
     
     <div class="card collapsible-section">
-        <div class="collapsible-header" onclick="toggleVAB()">VAB & Föräldraledighet <span class="expandable-arrow" id="vabArrow">▼</span></div>
+        <div class="collapsible-header" onclick="toggleVAB()">VAB & Föräldraledighet <span id="vabArrow">▼</span></div>
         <div class="collapsible-content" id="vabContent">
             <div class="input-group"><label>SGI (kr/år, max 592 000)</label><input type="number" id="sgiInput" value="592000"></div>
             <div class="input-group"><label>FTP-dagar (AFA)</label><select id="ftpDays"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></div>
@@ -144,56 +135,52 @@
     </div>
 
     <div class="card">
-        <div class="card-title">OB & Övertid <span class="badge badge-local">LOKAL</span>
-            <div class="toggle-container"><span class="toggle-label">Lås</span><label class="toggle-switch"><input type="checkbox" id="obLockToggle" checked><span class="slider"></span></label><button class="reset-btn" onclick="resetOB()">⟳</button><span id="lockBadge" style="display:none;"><span class="lock-indicator">Låst</span></span></div>
+        <div class="card-title">OB & Övertid <span class="badge-local">LOKAL</span>
+            <div class="toggle-container"><span>Lås</span><label class="toggle-switch"><input type="checkbox" id="obLockToggle" checked><span class="slider"></span></label><button class="reset-btn" onclick="resetOB()">⟳</button><span id="lockBadge" style="display:none;">Låst</span></div>
         </div>
         <div class="ob-grid">
-            <div class="ob-input"><span class="ob-badge" id="ob1Badge">OB1</span><input type="text" id="ob1Hours" placeholder="0"><div class="ob-rate" id="ob1Rate">/460</div></div>
-            <div class="ob-input"><span class="ob-badge" id="ob2Badge">OB2</span><input type="text" id="ob2Hours" placeholder="0"><div class="ob-rate" id="ob2Rate">/260</div></div>
-            <div class="ob-input"><span class="ob-badge" id="ob3Badge">OB3</span><input type="text" id="ob3Hours" placeholder="0"><div class="ob-rate" id="ob3Rate">/150</div></div>
+            <div class="ob-input"><span class="ob-badge">OB1</span><input type="text" id="ob1Hours" placeholder="0"><div class="ob-rate" id="ob1Rate">/460</div></div>
+            <div class="ob-input"><span class="ob-badge">OB2</span><input type="text" id="ob2Hours" placeholder="0"><div class="ob-rate" id="ob2Rate">/260</div></div>
+            <div class="ob-input"><span class="ob-badge">OB3</span><input type="text" id="ob3Hours" placeholder="0"><div class="ob-rate" id="ob3Rate">/150</div></div>
             <div class="ob-input"><span class="ob-badge ot">ÖT</span><input type="text" id="otHours" placeholder="0"><div class="ob-rate" id="otRate">/72</div></div>
         </div>
     </div>
     <div class="card"><div class="card-title">Löneperiod</div><select id="monthSelect"></select><select id="yearSelect"></select></div>
-    <div class="result-card"><div class="result-label" id="selectedPeriod">Februari 2026</div><div class="result-amount" id="finalNetSalary">26 522 kr</div><div>Totalt netto (jobb + bidrag)</div></div>
+    <div class="result-card"><div id="selectedPeriod">Februari 2026</div><div class="result-amount" id="finalNetSalary">0 kr</div><div>Totalt netto (jobb + bidrag)</div></div>
     
-    <div class="card overview-collapsible">
-        <div class="collapsible-header" onclick="toggleOverview()">Översikt: <strong id="overviewTotalNet">26 522 kr</strong> <span class="expandable-arrow" id="overviewArrow">▼</span></div>
-        <div class="collapsible-content" id="overviewContent"><div class="detail-grid" id="detailGrid"></div></div>
+    <div class="card">
+        <div class="card-title">Översikt: <strong id="overviewTotalNet">0 kr</strong> <span onclick="toggleOverview()" style="cursor:pointer;">▼</span></div>
+        <div id="overviewContent" style="display:none;"><div class="detail-grid" id="detailGrid"></div></div>
     </div>
     
-    <div class="card" style="padding: 16px;">
+    <div class="card">
         <div class="card-title">Dagschema – <span id="tableMonthLabel"></span>
-            <div style="margin-left: auto; display: flex; gap: 8px;">
-                <label style="font-size:0.7rem;">Sem.tillägg/dag</label><input type="number" id="semesterSupplement" value="0" step="0.01" style="width:80px;" onchange="updateUI()">
-                <button class="reset-btn" onclick="resetSchema()">↺ Schema</button>
-                <button class="reset-btn" onclick="resetAllShifts()">↺ Pass</button>
-            </div>
+            <div style="margin-left: auto; display: flex; gap: 8px;"><button class="reset-btn" onclick="resetSchema()">↺ Schema</button><button class="reset-btn" onclick="resetAllShifts()">↺ Pass</button></div>
         </div>
-        <div class="swipe-hint">⬅️ Svep för fler kolumner • Välj frånvaro och pass i listorna</div>
+        <div class="swipe-hint">⬅️ Svep → Välj frånvaro (Ingen/Semester/VAB/F-ledig) och pass (Ledig/Dag/Natt)</div>
         <div class="table-container"><table id="salaryTable"><thead><tr><th>Dag</th><th>Skift</th><th>OB1</th><th>OB2</th><th>OB3</th><th>Frånvaro</th><th>Station</th><th>Pass</th></tr></thead><tbody></tbody></table></div>
     </div>
-    <div class="year-summary-card" onclick="toggleYearSummary()"><div class="year-summary-header">Årsöversikt <span id="yearSummaryYear">2026</span><span class="expandable-arrow" id="yearArrow">▼</span></div><div class="expandable-details" id="yearDetails"><div class="year-summary-grid" id="yearSummaryGrid"></div></div></div>
+    <div class="year-summary-card" onclick="toggleYearSummary()"><div class="card-title">Årsöversikt <span id="yearSummaryYear">2026</span> <span id="yearArrow">▼</span></div><div id="yearDetails" style="display:none"><div class="year-summary-grid" id="yearSummaryGrid"></div></div></div>
 </div>
 
 <script>
-// ========== HJÄLPFUNKTIONER ==========
+// ---------- Hjälpfunktioner ----------
 function p(v){ if(!v) return 0; let n=String(v).replace(',','.'); let x=parseFloat(n); return isNaN(x)?0:x; }
 function fc(v){ return new Intl.NumberFormat('sv-SE').format(Math.round(v)); }
 function fd(v,d){ return v.toFixed(d).replace('.',','); }
 function f2(n){ return Math.round((n+Number.EPSILON)*100)/100; }
 
-// ========== KONSTANTER ==========
-const DRIFT=4.0, KHPD=6.8, VAB_HPD=12.25, UPCT=0.0165, UMAX=701, UMIN=255, HDIV=141.667;
+// ---------- Konstanter ----------
+const DRIFT=4.0, VAB_HPD=12.25, UPCT=0.0165, UMAX=701, UMIN=255, HDIV=141.667;
 const O1D=460, O2D=260, O3D=150, OTD=72, SY=2026, EY=2036;
 const PBB=59200, SGI_TAK_PARENTAL=10*PBB, SGI_TAK_VAB=7.5*PBB, FK_SKATT=0.30;
 
-// ========== SKATTETABELL ==========
-const table33col1=[[2000,0],[2100,150],[2200,152],[2300,162],[2400,173],[2500,183],[2600,194],[2700,204],[2800,215],[2900,217],[3000,227],[3100,238],[3200,248],[3300,259],[3400,269],[3500,272],[3600,282],[3700,293],[3800,303],[3900,314],[4000,324],[4100,326],[4200,337],[4300,347],[4400,358],[4500,368],[4600,379],[4700,381],[4800,391],[4900,402],[5000,412],[5100,422],[5200,432],[5300,442],[5400,444],[5500,454],[5600,464],[5700,474],[5800,484],[5900,494],[6000,496],[6100,506],[6200,516],[6300,526],[6400,536],[6500,546],[6600,548],[6700,558],[6800,568],[6900,578],[7000,588],[7100,598],[7200,619],[7300,639],[7400,660],[7500,681],[7600,701],[7700,722],[7800,743],[7900,763],[8000,784],[8100,804],[8200,825],[8300,846],[8400,866],[8500,887],[8600,908],[8700,928],[8800,949],[8900,970],[9000,990],[9100,1011],[9200,1032],[9300,1052],[9400,1073],[9500,1093],[9600,1114],[9700,1135],[9800,1155],[9900,1176],[10000,1196],[10100,1217],[10200,1238],[10300,1258],[10400,1279],[10500,1300],[10600,1320],[10700,1341],[10800,1362],[10900,1382],[11000,1403],[11100,1423],[11200,1444],[11300,1465],[11400,1485],[11500,1506],[11600,1527],[11700,1547],[11800,1568],[11900,1589],[12000,1609],[12100,1630],[12200,1650],[12300,1671],[12400,1692],[12500,1712],[12600,1733],[12700,1754],[12800,1774],[12900,1795],[13000,1815],[13100,1836],[13200,1857],[13300,1877],[13400,1898],[13500,1919],[13600,1940],[13700,1960],[13800,1980],[13900,2000],[14000,2020],[14100,2040],[14200,2060],[14300,2080],[14400,2100],[14500,2120],[14600,2140],[14700,2159],[14800,2179],[14900,2199],[15000,2219],[15100,2239],[15200,2259],[15300,2279],[15400,2299],[15500,2319],[15600,2339],[15700,2359],[15800,2379],[15900,2399],[16000,2419],[16100,2443],[16200,2467],[16300,2492],[16400,2516],[16500,2540],[16600,2565],[16700,2589],[16800,2613],[16900,2637],[17000,2662],[17100,2686],[17200,2710],[17300,2735],[17400,2759],[17500,2783],[17600,2808],[17700,2832],[17800,2856],[17900,2880],[18000,2905],[18100,2929],[18200,2953],[18300,2978],[18400,3002],[18500,3026],[18600,3051],[18700,3075],[18800,3099],[18900,3123],[19000,3148],[19100,3172],[19200,3196],[19300,3221],[19400,3245],[19500,3269],[19600,3294],[19700,3318],[19800,3342],[19900,3366],[20000,3391],[20200,3439],[20400,3488],[20600,3537],[20800,3585],[21000,3634],[21200,3682],[21400,3731],[21600,3780],[21800,3828],[22000,3877],[22200,3925],[22400,3974],[22600,4023],[22800,4071],[23000,4120],[23200,4170],[23400,4220],[23600,4270],[23800,4320],[24000,4371],[24200,4421],[24400,4471],[24600,4521],[24800,4572],[25000,4622],[25200,4672],[25400,4722],[25600,4773],[25800,4823],[26000,4873],[26200,4923],[26400,4974],[26600,5024],[26800,5074],[27000,5124],[27200,5175],[27400,5225],[27600,5275],[27800,5325],[28000,5376],[28200,5426],[28400,5476],[28600,5526],[28800,5577],[29000,5627],[29200,5677],[29400,5727],[29600,5778],[29800,5828],[30000,5878],[30200,5928],[30400,5979],[30600,6029],[30800,6079],[31000,6129],[31200,6180],[31400,6230],[31600,6280],[31800,6330],[32000,6381],[32200,6431],[32400,6481],[32600,6531],[32800,6582],[33000,6632],[33200,6682],[33400,6732],[33600,6783],[33800,6833],[34000,6883],[34200,6933],[34400,6984],[34600,7034],[34800,7084],[35000,7134],[35200,7185],[35400,7235],[35600,7285],[35800,7335],[36000,7386],[36200,7436],[36400,7486],[36600,7536],[36800,7587],[37000,7637],[37200,7687],[37400,7737],[37600,7788],[37800,7838],[38000,7888],[38200,7938],[38400,7989],[38600,8039],[38800,8089],[39000,8139],[39200,8189],[39400,8239],[39600,8289],[39800,8339],[40000,8402],[40200,8468],[40400,8534],[40600,8600],[40800,8666],[41000,8732],[41200,8798],[41400,8864],[41600,8930],[41800,8996],[42000,9062],[42200,9128],[42400,9194],[42600,9260],[42800,9326],[43000,9392],[43200,9458],[43400,9524],[43600,9590],[43800,9656],[44000,9722],[44200,9788],[44400,9854],[44600,9920],[44800,9986],[45000,10052],[45200,10118],[45400,10184],[45600,10250],[45800,10316],[46000,10382],[46200,10448],[46400,10514],[46600,10580],[46800,10646],[47000,10712],[47200,10778],[47400,10844],[47600,10910],[47800,10976],[48000,11042],[48200,11108],[48400,11174],[48600,11240],[48800,11306],[49000,11372],[49200,11438],[49400,11504],[49600,11570],[49800,11636],[50000,11702],[50200,11768],[50400,11834],[50600,11900],[50800,11966],[51000,12032],[51200,12098],[51400,12164],[51600,12230],[51800,12296],[52000,12362],[52200,12428],[52400,12494],[52600,12560],[52800,12626],[53000,12692],[53200,12758],[53400,12824],[53600,12890],[53800,12956],[54000,13022],[54200,13088],[54400,13154],[54600,13220],[54800,13286],[55000,13352],[55200,13451],[55400,13557],[55600,13663],[55800,13769],[56000,13875],[56200,13981],[56400,14087],[56600,14193],[56800,14299],[57000,14405],[57200,14511],[57400,14617],[57600,14723],[57800,14829],[58000,14935],[58200,15041],[58400,15147],[58600,15253],[58800,15359],[59000,15465],[59200,15571],[59400,15677],[59600,15783],[59800,15889],[60000,15995],[60200,16101],[60400,16207],[60600,16313],[60800,16419],[61000,16525],[61200,16631],[61400,16737],[61600,16843],[61800,16949],[62000,17055],[62200,17161],[62400,17267],[62600,17373],[62800,17479],[63000,17585],[63200,17691],[63400,17797],[63600,17903],[63800,18009],[64000,18115],[64200,18221],[64400,18327],[64600,18433],[64800,18539],[65000,18645],[65200,18751],[65400,18857],[65600,18963],[65800,19069],[66000,19175],[66200,19281],[66400,19387],[66600,19493],[66800,19599],[67000,19705],[67200,19811],[67400,19917],[67600,20023],[67800,20129],[68000,20235],[68200,20341],[68400,20447],[68600,20553],[68800,20659],[69000,20765],[69200,20871],[69400,20977],[69600,21083],[69800,21189],[70000,21295],[70200,21401],[70400,21507],[70600,21613],[70800,21719],[71000,21825],[71200,21931],[71400,22037],[71600,22143],[71800,22249],[72000,22355],[72200,22461],[72400,22567],[72600,22673],[72800,22779],[73000,22885],[73200,22991],[73400,23097],[73600,23203],[73800,23309],[74000,23415],[74200,23521],[74400,23627],[74600,23733],[74800,23839],[75000,23945],[75200,24051],[75400,24157],[75600,24263],[75800,24369],[76000,24475],[76200,24581],[76400,24687],[76600,24793],[76800,24899],[77000,25005],[77200,25111],[77400,25217],[77600,25323],[77800,25429],[78000,25535],[78200,25641],[78400,25747],[78600,25853],[78800,25959],[79000,26065],[79200,26171],[79400,26277],[79600,26383],[79800,26489],[80000,26595]];
-const table33col1Pct=[[81000,33],[81200,34],[81600,34],[84600,34],[85200,34],[85400,34],[86000,35],[86800,35],[88400,35],[90200,35],[91000,36],[92000,36],[92800,36],[93400,36],[95600,36],[96400,37],[97600,37],[100000,37],[100800,37],[101800,37],[102600,38],[102800,38],[108600,38],[108800,38],[109600,39],[109800,39],[115200,39],[117000,39],[118000,40],[120000,40],[121000,40],[122800,40],[126400,40],[127400,41],[131200,41],[132600,41],[135400,41],[137400,41],[138400,42],[141000,42],[148200,42],[150400,42],[151600,43],[152200,43],[153400,43],[165400,43],[166200,43],[167600,44],[168000,44],[177000,44],[181200,44],[185800,44],[187400,45],[193800,45],[200200,45],[209200,45],[210600,45],[212400,46],[223800,46],[229000,46],[243000,46],[245000,47],[253800,47],[255800,47],[279800,47],[287200,47],[289600,48],[292800,48],[328800,48],[346000,48],[351200,48],[354000,49],[359600,49],[423000,49],[451400,49],[455200,50],[460400,50],[503000,50],[543800,50],[632000,50],[637200,51],[761400,51],[767400,51],[836600,51],[1053600,51],[1062000,52],[1269000,52],[999999999,52]];
-function taxFromTable33Col1(gross){ let r=Math.floor(gross); if(r<=80000){ for(let [max,tax] of table33col1) if(r<=max) return tax; return 0; } let tax=26595, prev=80000; for(let [max,pct] of table33col1Pct){ if(r<=max){ tax+=(r-prev)*pct/100; return f2(tax); } else { tax+=(max-prev)*pct/100; prev=max; } } let last=table33col1Pct[table33col1Pct.length-1]; tax+=(r-prev)*last[1]/100; return f2(tax); }
+// ---------- Skattetabell 33 (kolumn 1) ----------
+const t33=[[2000,0],[2100,150],[2200,152],[2300,162],[2400,173],[2500,183],[2600,194],[2700,204],[2800,215],[2900,217],[3000,227],[3100,238],[3200,248],[3300,259],[3400,269],[3500,272],[3600,282],[3700,293],[3800,303],[3900,314],[4000,324],[4100,326],[4200,337],[4300,347],[4400,358],[4500,368],[4600,379],[4700,381],[4800,391],[4900,402],[5000,412],[5100,422],[5200,432],[5300,442],[5400,444],[5500,454],[5600,464],[5700,474],[5800,484],[5900,494],[6000,496],[6100,506],[6200,516],[6300,526],[6400,536],[6500,546],[6600,548],[6700,558],[6800,568],[6900,578],[7000,588],[7100,598],[7200,619],[7300,639],[7400,660],[7500,681],[7600,701],[7700,722],[7800,743],[7900,763],[8000,784],[8100,804],[8200,825],[8300,846],[8400,866],[8500,887],[8600,908],[8700,928],[8800,949],[8900,970],[9000,990],[9100,1011],[9200,1032],[9300,1052],[9400,1073],[9500,1093],[9600,1114],[9700,1135],[9800,1155],[9900,1176],[10000,1196],[10100,1217],[10200,1238],[10300,1258],[10400,1279],[10500,1300],[10600,1320],[10700,1341],[10800,1362],[10900,1382],[11000,1403],[11100,1423],[11200,1444],[11300,1465],[11400,1485],[11500,1506],[11600,1527],[11700,1547],[11800,1568],[11900,1589],[12000,1609],[12100,1630],[12200,1650],[12300,1671],[12400,1692],[12500,1712],[12600,1733],[12700,1754],[12800,1774],[12900,1795],[13000,1815],[13100,1836],[13200,1857],[13300,1877],[13400,1898],[13500,1919],[13600,1940],[13700,1960],[13800,1980],[13900,2000],[14000,2020],[14100,2040],[14200,2060],[14300,2080],[14400,2100],[14500,2120],[14600,2140],[14700,2159],[14800,2179],[14900,2199],[15000,2219],[15100,2239],[15200,2259],[15300,2279],[15400,2299],[15500,2319],[15600,2339],[15700,2359],[15800,2379],[15900,2399],[16000,2419],[16100,2443],[16200,2467],[16300,2492],[16400,2516],[16500,2540],[16600,2565],[16700,2589],[16800,2613],[16900,2637],[17000,2662],[17100,2686],[17200,2710],[17300,2735],[17400,2759],[17500,2783],[17600,2808],[17700,2832],[17800,2856],[17900,2880],[18000,2905],[18100,2929],[18200,2953],[18300,2978],[18400,3002],[18500,3026],[18600,3051],[18700,3075],[18800,3099],[18900,3123],[19000,3148],[19100,3172],[19200,3196],[19300,3221],[19400,3245],[19500,3269],[19600,3294],[19700,3318],[19800,3342],[19900,3366],[20000,3391],[20200,3439],[20400,3488],[20600,3537],[20800,3585],[21000,3634],[21200,3682],[21400,3731],[21600,3780],[21800,3828],[22000,3877],[22200,3925],[22400,3974],[22600,4023],[22800,4071],[23000,4120],[23200,4170],[23400,4220],[23600,4270],[23800,4320],[24000,4371],[24200,4421],[24400,4471],[24600,4521],[24800,4572],[25000,4622],[25200,4672],[25400,4722],[25600,4773],[25800,4823],[26000,4873],[26200,4923],[26400,4974],[26600,5024],[26800,5074],[27000,5124],[27200,5175],[27400,5225],[27600,5275],[27800,5325],[28000,5376],[28200,5426],[28400,5476],[28600,5526],[28800,5577],[29000,5627],[29200,5677],[29400,5727],[29600,5778],[29800,5828],[30000,5878],[30200,5928],[30400,5979],[30600,6029],[30800,6079],[31000,6129],[31200,6180],[31400,6230],[31600,6280],[31800,6330],[32000,6381],[32200,6431],[32400,6481],[32600,6531],[32800,6582],[33000,6632],[33200,6682],[33400,6732],[33600,6783],[33800,6833],[34000,6883],[34200,6933],[34400,6984],[34600,7034],[34800,7084],[35000,7134],[35200,7185],[35400,7235],[35600,7285],[35800,7335],[36000,7386],[36200,7436],[36400,7486],[36600,7536],[36800,7587],[37000,7637],[37200,7687],[37400,7737],[37600,7788],[37800,7838],[38000,7888],[38200,7938],[38400,7989],[38600,8039],[38800,8089],[39000,8139],[39200,8189],[39400,8239],[39600,8289],[39800,8339],[40000,8402],[40200,8468],[40400,8534],[40600,8600],[40800,8666],[41000,8732],[41200,8798],[41400,8864],[41600,8930],[41800,8996],[42000,9062],[42200,9128],[42400,9194],[42600,9260],[42800,9326],[43000,9392],[43200,9458],[43400,9524],[43600,9590],[43800,9656],[44000,9722],[44200,9788],[44400,9854],[44600,9920],[44800,9986],[45000,10052],[45200,10118],[45400,10184],[45600,10250],[45800,10316],[46000,10382],[46200,10448],[46400,10514],[46600,10580],[46800,10646],[47000,10712],[47200,10778],[47400,10844],[47600,10910],[47800,10976],[48000,11042],[48200,11108],[48400,11174],[48600,11240],[48800,11306],[49000,11372],[49200,11438],[49400,11504],[49600,11570],[49800,11636],[50000,11702],[50200,11768],[50400,11834],[50600,11900],[50800,11966],[51000,12032],[51200,12098],[51400,12164],[51600,12230],[51800,12296],[52000,12362],[52200,12428],[52400,12494],[52600,12560],[52800,12626],[53000,12692],[53200,12758],[53400,12824],[53600,12890],[53800,12956],[54000,13022],[54200,13088],[54400,13154],[54600,13220],[54800,13286],[55000,13352],[55200,13451],[55400,13557],[55600,13663],[55800,13769],[56000,13875],[56200,13981],[56400,14087],[56600,14193],[56800,14299],[57000,14405],[57200,14511],[57400,14617],[57600,14723],[57800,14829],[58000,14935],[58200,15041],[58400,15147],[58600,15253],[58800,15359],[59000,15465],[59200,15571],[59400,15677],[59600,15783],[59800,15889],[60000,15995],[60200,16101],[60400,16207],[60600,16313],[60800,16419],[61000,16525],[61200,16631],[61400,16737],[61600,16843],[61800,16949],[62000,17055],[62200,17161],[62400,17267],[62600,17373],[62800,17479],[63000,17585],[63200,17691],[63400,17797],[63600,17903],[63800,18009],[64000,18115],[64200,18221],[64400,18327],[64600,18433],[64800,18539],[65000,18645],[65200,18751],[65400,18857],[65600,18963],[65800,19069],[66000,19175],[66200,19281],[66400,19387],[66600,19493],[66800,19599],[67000,19705],[67200,19811],[67400,19917],[67600,20023],[67800,20129],[68000,20235],[68200,20341],[68400,20447],[68600,20553],[68800,20659],[69000,20765],[69200,20871],[69400,20977],[69600,21083],[69800,21189],[70000,21295],[70200,21401],[70400,21507],[70600,21613],[70800,21719],[71000,21825],[71200,21931],[71400,22037],[71600,22143],[71800,22249],[72000,22355],[72200,22461],[72400,22567],[72600,22673],[72800,22779],[73000,22885],[73200,22991],[73400,23097],[73600,23203],[73800,23309],[74000,23415],[74200,23521],[74400,23627],[74600,23733],[74800,23839],[75000,23945],[75200,24051],[75400,24157],[75600,24263],[75800,24369],[76000,24475],[76200,24581],[76400,24687],[76600,24793],[76800,24899],[77000,25005],[77200,25111],[77400,25217],[77600,25323],[77800,25429],[78000,25535],[78200,25641],[78400,25747],[78600,25853],[78800,25959],[79000,26065],[79200,26171],[79400,26277],[79600,26383],[79800,26489],[80000,26595]];
+const t33pct=[[81000,33],[81200,34],[81600,34],[84600,34],[85200,34],[85400,34],[86000,35],[86800,35],[88400,35],[90200,35],[91000,36],[92000,36],[92800,36],[93400,36],[95600,36],[96400,37],[97600,37],[100000,37],[100800,37],[101800,37],[102600,38],[102800,38],[108600,38],[108800,38],[109600,39],[109800,39],[115200,39],[117000,39],[118000,40],[120000,40],[121000,40],[122800,40],[126400,40],[127400,41],[131200,41],[132600,41],[135400,41],[137400,41],[138400,42],[141000,42],[148200,42],[150400,42],[151600,43],[152200,43],[153400,43],[165400,43],[166200,43],[167600,44],[168000,44],[177000,44],[181200,44],[185800,44],[187400,45],[193800,45],[200200,45],[209200,45],[210600,45],[212400,46],[223800,46],[229000,46],[243000,46],[245000,47],[253800,47],[255800,47],[279800,47],[287200,47],[289600,48],[292800,48],[328800,48],[346000,48],[351200,48],[354000,49],[359600,49],[423000,49],[451400,49],[455200,50],[460400,50],[503000,50],[543800,50],[632000,50],[637200,51],[761400,51],[767400,51],[836600,51],[1053600,51],[1062000,52],[1269000,52],[999999999,52]];
+function taxFromTable33Col1(gross){ let r=Math.floor(gross); if(r<=80000){ for(let [max,tax] of t33) if(r<=max) return tax; return 0; } let tax=26595, prev=80000; for(let [max,pct] of t33pct){ if(r<=max){ tax+=(r-prev)*pct/100; return f2(tax); } else { tax+=(max-prev)*pct/100; prev=max; } } let last=t33pct[t33pct.length-1]; tax+=(r-prev)*last[1]/100; return f2(tax); }
 
-// ========== SCHEMA ==========
+// ---------- Schema för alla lag ----------
 function daysBetween(d1,d2){ return Math.floor((Date.UTC(d2.getFullYear(),d2.getMonth(),d2.getDate())-Date.UTC(d1.getFullYear(),d1.getMonth(),d1.getDate()))/(86400000)); }
 function getDSTAdjustment(date){ let y=date.getFullYear(), se=new Date(y,2,31); while(se.getDay()!==0) se.setDate(se.getDate()-1); let we=new Date(y,9,31); while(we.getDay()!==0) we.setDate(we.getDate()-1); if(date.getDate()===se.getDate()&&date.getMonth()===se.getMonth()) return -1; if(date.getDate()===we.getDate()&&date.getMonth()===we.getMonth()) return 1; return 0; }
 const startA=new Date(2025,11,29), cycleA=[0,0,0,0,2,2,2,0,0,0,1,1,0,0,2,2,0,0,0,1,1,0,0,2,2,0,0,0,1,1,1,0,0,0,0]; let scheduleA={}; for(let i=0;i<365*15;i++) scheduleA[i]=cycleA[i%cycleA.length];
@@ -218,25 +205,29 @@ function calcOB(date,shift,lag){ if(isPermissionDay(date,lag)||shift===0) return
 function getOBForMonth(year,month,lag){ let to1=0,to2=0,to3=0, dim=new Date(year,month,0).getDate(); for(let d=1;d<=dim;d++){ let date=new Date(year,month-1,d); let shift=getShift(date,lag); let ob=calcOB(date,shift,lag); to1+=ob.ob1; to2+=ob.ob2; to3+=ob.ob3; } return {ob1:to1,ob2:to2,ob3:to3}; }
 function calcUnion(s){ let f=Math.round(s*UPCT); if(f<UMIN) return UMIN; if(f>UMAX) return UMAX; return f; }
 
-// ========== FRÅNVARO ==========
-const fromvaroMap=new Map(); // 1=Semester, 2=VAB, 3=F-ledig
-function setFromvaro(dateStr, value){ // value: "" (ingen), "Semester", "VAB", "F-ledig"
-    if(value==="") fromvaroMap.delete(dateStr);
-    else if(value==="Semester") fromvaroMap.set(dateStr,1);
-    else if(value==="VAB") fromvaroMap.set(dateStr,2);
-    else if(value==="F-ledig") fromvaroMap.set(dateStr,3);
-    updateUI();
-}
+// ---------- Frånvaro och pass ----------
+const fromvaroMap=new Map();
+function setFromvaro(dateStr, value){ if(value==="") fromvaroMap.delete(dateStr); else if(value==="Semester") fromvaroMap.set(dateStr,1); else if(value==="VAB") fromvaroMap.set(dateStr,2); else if(value==="F-ledig") fromvaroMap.set(dateStr,3); updateUI(); }
 function resetSchema(){ fromvaroMap.clear(); updateUI(); }
 function resetAllShifts(){ shiftOverrideMap.clear(); updateUI(); }
-function changeShift(dateStr,val,lag){ let ordinary=getOrdinaryShift(new Date(dateStr),lag); let nv=parseInt(val); if(nv===ordinary) shiftOverrideMap.delete(dateStr); else shiftOverrideMap.set(dateStr,nv); if(nv===0) fromvaroMap.delete(dateStr); updateUI(); }
+function changeShift(dateStr,val,lag){ 
+    let nv = parseInt(val, 10);
+    console.log(`changeShift: datum=${dateStr}, val=${val}, nv=${nv}`);
+    // VIKTIG ÄNDRING: Ta inte bort override även om det är samma som ordinärt.
+    // Alltid spara override (så att användarens val består).
+    shiftOverrideMap.set(dateStr, nv);
+    // Om användaren väljer ledigt (0), ta bort eventuell frånvaro.
+    if(nv === 0) fromvaroMap.delete(dateStr);
+    console.log("OverrideMap efter:", Array.from(shiftOverrideMap.entries()));
+    updateUI(); 
+}
 
-// ========== STATION LAG E ==========
+// ---------- Stationer för lag E ----------
 const stationsE=['Reaktorn','Dian','Spray'], initials=['B','Y','M'], refStation=new Date(2026,5,9);
 function countWorkShiftsUntil(date,lag){ let cnt=0, d=new Date(refStation); while(daysBetween(d,date)>0){ let sh=getShift(d,lag); if(sh>0 && !isPermissionDay(d,lag)) cnt++; d.setDate(d.getDate()+1); } return cnt; }
 function getStationE(date,shift,lag){ if(shift===0||isPermissionDay(date,lag)) return '-'; let ws=countWorkShiftsUntil(date,lag), idx=ws%3, yidx=(idx+1)%3, midx=(idx+2)%3; let bp=stationsE[idx]+'('+initials[0]+')', yp=stationsE[yidx]+'('+initials[1]+')', mp=stationsE[midx]+'('+initials[2]+')'; let day=date.getDay(); if((day===6 && shift===1 && idx===2)||(day===0 && shift===1 && idx===1)) bp+='🧹'; return bp+' '+yp+' '+mp; }
 
-// ========== UI-UPPDATERING ==========
+// ---------- Huvudlogik ----------
 let manualOBOverride=false, lastAutoOB={ob1:0,ob2:0,ob3:0}, lastAutoLag='', lastAutoYear=0, lastAutoMonth=0;
 function updateUI(){
     let baseSalary=p(salaryInput.value)||0, selectedYear=parseInt(yearSelect.value), selectedMonth=parseInt(monthSelect.value), karensDays=parseInt(karensSelect.value), lag=lagSelect.value, isAuto=(lag!=='manual');
@@ -249,7 +240,8 @@ function updateUI(){
     let ob1RatePerHour=obGroundingBase/O1D, ob2RatePerHour=obGroundingBase/O2D, ob3RatePerHour=obGroundingBase/O3D, otRatePerHour=obGroundingBase/OTD;
     let sickRate100=baseSalary/141.667, sickRate80=baseSalary/177.0837;
     ob1Rate.innerText='/460 = '+fd(ob1RatePerHour,2)+' kr/h'; ob2Rate.innerText='/260 = '+fd(ob2RatePerHour,2)+' kr/h'; ob3Rate.innerText='/150 = '+fd(ob3RatePerHour,2)+' kr/h'; otRate.innerText='/72 = '+fd(otRatePerHour,2)+' kr/h';
-    let calculatedSupplement=(baseSalary+driftAddition)/125; semesterSupplement.value=calculatedSupplement.toFixed(2);
+    let semesterSupplementPerDay = (baseSalary + driftAddition) / 125;
+    let semesterTillagg = f2(vacationCount * semesterSupplementPerDay);
     let karensHours=karensDays*6.8, karensDeduction=karensDays>0?f2(karensHours*sickRate100):0;
     let sickDeduct100=f2(extraSick*sickRate100), sickPay80=f2(extraSick*sickRate80), sickNetLoss=f2(sickDeduct100-sickPay80), totalSickLoss=f2(karensDeduction+sickNetLoss);
     let vabParentalHours=totalVABParental*VAB_HPD, vabParentalDeduction=f2(vabParentalHours*sickRate100);
@@ -258,21 +250,38 @@ function updateUI(){
     let fptDayAmt=f2(baseSalary/30*0.10), fkFptTotal=f2(ftpD*fptDayAmt);
     let fkVabTax=f2(fkVabTotal*FK_SKATT), fkFpTax=f2(fkFpTotal*FK_SKATT), fkFptTax=f2(fkFptTotal*FK_SKATT);
     let fkVabNet=f2(fkVabTotal-fkVabTax), fkFpNet=f2(fkFpTotal-fkFpTax), fkFptNet=f2(fkFptTotal-fkFptTax), totalErsattningNetto=f2(fkVabNet+fkFpNet+fkFptNet);
-    let obYear=selectedYear, obMonth=selectedMonth-1; if(obMonth===0){ obMonth=12; obYear--; }
+    
+    let obYear = selectedYear, obMonth = selectedMonth - 1;
+    if(obMonth === 0) { obMonth = 12; obYear--; }
+    
     let autoOB=null; if(isAuto){ autoOB=getOBForMonth(obYear,obMonth,lag); if(lag!==lastAutoLag||obYear!==lastAutoYear||obMonth!==lastAutoMonth) manualOBOverride=false; lastAutoLag=lag; lastAutoYear=obYear; lastAutoMonth=obMonth; lastAutoOB=autoOB; } else manualOBOverride=false;
     let lockEnabled=obLockToggle.checked, obData;
-    if(isAuto&&lockEnabled&&!manualOBOverride){ ob1Hours.value=fd(autoOB.ob1,2); ob2Hours.value=fd(autoOB.ob2,2); ob3Hours.value=fd(autoOB.ob3,2); ob1Hours.disabled=ob2Hours.disabled=ob3Hours.disabled=true; lockBadge.style.display='inline'; ob1Badge.classList.add('locked'); ob2Badge.classList.add('locked'); ob3Badge.classList.add('locked'); obData=autoOB; }
-    else if(isAuto&&lockEnabled&&manualOBOverride){ ob1Hours.disabled=ob2Hours.disabled=ob3Hours.disabled=true; lockBadge.style.display='inline'; ob1Badge.classList.add('locked'); ob2Badge.classList.add('locked'); ob3Badge.classList.add('locked'); obData={ob1:p(ob1Hours.value),ob2:p(ob2Hours.value),ob3:p(ob3Hours.value)}; }
-    else{ ob1Hours.disabled=ob2Hours.disabled=ob3Hours.disabled=false; lockBadge.style.display='none'; ob1Badge.classList.remove('locked'); ob2Badge.classList.remove('locked'); ob3Badge.classList.remove('locked'); if(isAuto&&!lockEnabled){ let c1=p(ob1Hours.value),c2=p(ob2Hours.value),c3=p(ob3Hours.value); if(Math.abs(c1-lastAutoOB.ob1)>0.001||Math.abs(c2-lastAutoOB.ob2)>0.001||Math.abs(c3-lastAutoOB.ob3)>0.001) manualOBOverride=true; if(!manualOBOverride){ ob1Hours.value=fd(autoOB.ob1,2); ob2Hours.value=fd(autoOB.ob2,2); ob3Hours.value=fd(autoOB.ob3,2); } obData={ob1:p(ob1Hours.value),ob2:p(ob2Hours.value),ob3:p(ob3Hours.value)}; } else obData={ob1:p(ob1Hours.value),ob2:p(ob2Hours.value),ob3:p(ob3Hours.value)}; }
+    if(isAuto&&lockEnabled&&!manualOBOverride){ ob1Hours.value=fd(autoOB.ob1,2); ob2Hours.value=fd(autoOB.ob2,2); ob3Hours.value=fd(autoOB.ob3,2); ob1Hours.disabled=ob2Hours.disabled=ob3Hours.disabled=true; lockBadge.style.display='inline'; obData=autoOB; }
+    else if(isAuto&&lockEnabled&&manualOBOverride){ ob1Hours.disabled=ob2Hours.disabled=ob3Hours.disabled=true; lockBadge.style.display='inline'; obData={ob1:p(ob1Hours.value),ob2:p(ob2Hours.value),ob3:p(ob3Hours.value)}; }
+    else{ ob1Hours.disabled=ob2Hours.disabled=ob3Hours.disabled=false; lockBadge.style.display='none'; if(isAuto&&!lockEnabled){ let c1=p(ob1Hours.value),c2=p(ob2Hours.value),c3=p(ob3Hours.value); if(Math.abs(c1-lastAutoOB.ob1)>0.001||Math.abs(c2-lastAutoOB.ob2)>0.001||Math.abs(c3-lastAutoOB.ob3)>0.001) manualOBOverride=true; if(!manualOBOverride){ ob1Hours.value=fd(autoOB.ob1,2); ob2Hours.value=fd(autoOB.ob2,2); ob3Hours.value=fd(autoOB.ob3,2); } obData={ob1:p(ob1Hours.value),ob2:p(ob2Hours.value),ob3:p(ob3Hours.value)}; } else obData={ob1:p(ob1Hours.value),ob2:p(ob2Hours.value),ob3:p(ob3Hours.value)}; }
     let otH=p(otHours.value), ob1Amount=Math.round(obData.ob1*ob1RatePerHour), ob2Amount=Math.round(obData.ob2*ob2RatePerHour), ob3Amount=Math.round(obData.ob3*ob3RatePerHour), otAmount=Math.round(otH*otRatePerHour), totalOBOnly=ob1Amount+ob2Amount+ob3Amount, totalOBOnlyHours=obData.ob1+obData.ob2+obData.ob3, totalOB=totalOBOnly+otAmount;
-    let semesterSupplementPerDay=p(semesterSupplement.value)||0, semesterTillagg=f2(vacationCount*semesterSupplementPerDay);
-    let sjukOb1H=(karensDays>0||extraSick>0)?p(sjukOb1Hours.value):0, sjukOb2H=(karensDays>0||extraSick>0)?p(sjukOb2Hours.value):0, sjukOb3H=(karensDays>0||extraSick>0)?p(sjukOb3Hours.value):0;
+    
+    let sjukOb1H=(karensDays>0||extraSick>0)?p(sjukOb1Hours.value):0;
+    let sjukOb2H=(karensDays>0||extraSick>0)?p(sjukOb2Hours.value):0;
+    let sjukOb3H=(karensDays>0||extraSick>0)?p(sjukOb3Hours.value):0;
     let sjukOb1Loss=f2(sjukOb1H*ob1RatePerHour*0.2), sjukOb2Loss=f2(sjukOb2H*ob2RatePerHour*0.2), sjukOb3Loss=f2(sjukOb3H*ob3RatePerHour*0.2), totalSjukOB=f2(sjukOb1Loss+sjukOb2Loss+sjukOb3Loss);
-    let totalBeforeKarens=obGroundingBase+totalOB+semesterTillagg, jobbBrutto=f2(totalBeforeKarens-totalSickLoss-totalSjukOB-vabParentalDeduction), tax=taxFromTable33Col1(jobbBrutto), netBeforeFack=f2(jobbBrutto-tax), unionFee=calcUnion(jobbBrutto), jobbNetto=f2(netBeforeFack-unionFee), netSalary=f2(jobbNetto+totalErsattningNetto);
-    let months=['Jan','Feb','Mar','Apr','Maj','Jun','Jul','Aug','Sep','Okt','Nov','Dec'], lagName={A:'Lag A',B:'Lag B',C:'Lag C',D:'Lag D',E:'Lag E'}[lag]||'Manuell';
-    selectedPeriod.innerText=months[selectedMonth-1]+' '+selectedYear+' · '+karensDays+' karensdag'+(karensDays!==1?'ar':'')+(extraSick>0?' +'+fd(extraSick,1)+'h sjuk':'')+' · '+lagName;
-    if(isAuto) tableMonthLabel.innerText=months[obMonth-1]+' '+obYear+' (OB-underlag)'; else tableMonthLabel.innerText='—';
-    finalNetSalary.innerText=fc(netSalary)+' kr'; overviewTotalNet.innerText=fc(netSalary)+' kr';
+    
+    let totalBeforeKarens=obGroundingBase+totalOB+semesterTillagg;
+    let jobbBrutto=f2(totalBeforeKarens-totalSickLoss-totalSjukOB-vabParentalDeduction);
+    let tax=taxFromTable33Col1(jobbBrutto);
+    let netBeforeFack=f2(jobbBrutto-tax);
+    let unionFee=calcUnion(jobbBrutto);
+    let jobbNetto=f2(netBeforeFack-unionFee);
+    let netSalary=f2(jobbNetto+totalErsattningNetto);
+    
+    let months=['Jan','Feb','Mar','Apr','Maj','Jun','Jul','Aug','Sep','Okt','Nov','Dec'];
+    let lagName={A:'Lag A',B:'Lag B',C:'Lag C',D:'Lag D',E:'Lag E'}[lag]||'Manuell';
+    document.getElementById('selectedPeriod').innerText=months[selectedMonth-1]+' '+selectedYear+' · '+karensDays+' karensdag'+(karensDays!==1?'ar':'')+(extraSick>0?' +'+fd(extraSick,1)+'h sjuk':'')+' · '+lagName;
+    if(isAuto) document.getElementById('tableMonthLabel').innerText=months[obMonth-1]+' '+obYear+' (OB-underlag för '+months[selectedMonth-1]+'s lön)'; else document.getElementById('tableMonthLabel').innerText='—';
+    document.getElementById('finalNetSalary').innerText=fc(netSalary)+' kr';
+    document.getElementById('overviewTotalNet').innerText=fc(netSalary)+' kr';
+    
+    // Översikt (förenklad)
     let obOTHTML='<div class="expandable-chip" onclick="toggleExpand(this)"><div class="expandable-header"><span>Totalt OB</span><span>'+fd(totalOBOnlyHours,2)+'h / +'+fc(totalOBOnly)+' kr <span class="expandable-arrow">▼</span></span></div><div class="expandable-details"><div class="tax-detail-row">OB1 ('+fd(obData.ob1,2)+'h x '+fd(ob1RatePerHour,2)+' kr): +'+fc(ob1Amount)+' kr</div><div class="tax-detail-row">OB2 ('+fd(obData.ob2,2)+'h x '+fd(ob2RatePerHour,2)+' kr): +'+fc(ob2Amount)+' kr</div><div class="tax-detail-row">OB3 ('+fd(obData.ob3,2)+'h x '+fd(ob3RatePerHour,2)+' kr): +'+fc(ob3Amount)+' kr</div><div class="tax-detail-row total">Summa OB: '+fd(totalOBOnlyHours,2)+'h / +'+fc(totalOBOnly)+' kr</div></div></div>';
     if(otH>0) obOTHTML+='<div class="detail-chip"><span>Övertid ('+fd(otH,2)+'h x '+fd(otRatePerHour,2)+' kr)</span><span>+'+fc(otAmount)+' kr</span></div>';
     let karensHTML='', extraSickHTML='', sjukObHTML='', vabHTML='', semesterHTML='', bidragHTML='';
@@ -282,26 +291,44 @@ function updateUI(){
     if(totalVABParental>0) vabHTML='<div class="detail-chip danger"><span>VAB/F-ledig avdrag</span><span>-'+fc(vabParentalDeduction)+' kr</span></div>';
     if(vacationCount>0) semesterHTML='<div class="detail-chip info"><span>Semestertillägg ('+vacationCount+' dgr, '+fd(semesterSupplementPerDay,2)+' kr/d)</span><span>+'+fc(semesterTillagg)+' kr</span></div>';
     if(totalVABParental>0||ftpD>0) bidragHTML='<div class="detail-chip success"><span>FK/AFA netto</span><span>+'+fc(totalErsattningNetto)+' kr</span></div>';
-    detailGrid.innerHTML='<div class="detail-chip"><span>Grundlön</span><span>'+fc(baseSalary)+' kr</span></div><div class="detail-chip"><span>OB-grundande</span><span>'+fc(obGroundingBase)+' kr</span></div>'+obOTHTML+semesterHTML+karensHTML+extraSickHTML+sjukObHTML+vabHTML+bidragHTML+'<div class="detail-chip"><span>Bruttolön jobb</span><span>'+fc(jobbBrutto)+' kr</span></div><div class="detail-chip"><span>Skatt (tabell 33)</span><span>-'+fc(tax)+' kr</span></div><div class="detail-chip"><span>Nettolön före fack</span><span>'+fc(netBeforeFack)+' kr</span></div><div class="detail-chip"><span>IF Metall</span><span>-'+fc(unionFee)+' kr</span></div><div class="detail-chip"><span>Nettolön jobb</span><span>'+fc(jobbNetto)+' kr</span></div>';
-    if(totalErsattningNetto>0) detailGrid.innerHTML+='<div class="detail-chip success"><span>Nettolön bidrag</span><span>+'+fc(totalErsattningNetto)+' kr</span></div>';
-    detailGrid.innerHTML+='<div class="detail-chip" style="background:rgba(16,185,129,0.4);"><span>Totalt netto</span><span><strong>'+fc(netSalary)+' kr</strong></span></div>';
+    let detailHTML='<div class="detail-chip"><span>Grundlön</span><span>'+fc(baseSalary)+' kr</span></div><div class="detail-chip"><span>OB-grundande</span><span>'+fc(obGroundingBase)+' kr</span></div>'+obOTHTML+semesterHTML+karensHTML+extraSickHTML+sjukObHTML+vabHTML+bidragHTML+'<div class="detail-chip"><span>Bruttolön jobb</span><span>'+fc(jobbBrutto)+' kr</span></div><div class="detail-chip"><span>Skatt (tabell 33)</span><span>-'+fc(tax)+' kr</span></div><div class="detail-chip"><span>Nettolön före fack</span><span>'+fc(netBeforeFack)+' kr</span></div><div class="detail-chip"><span>IF Metall</span><span>-'+fc(unionFee)+' kr</span></div><div class="detail-chip"><span>Nettolön jobb</span><span>'+fc(jobbNetto)+' kr</span></div>';
+    if(totalErsattningNetto>0) detailHTML+='<div class="detail-chip success"><span>Nettolön bidrag</span><span>+'+fc(totalErsattningNetto)+' kr</span></div>';
+    detailHTML+='<div class="detail-chip success"><strong>Totalt netto: '+fc(netSalary)+' kr</strong></div>';
+    document.getElementById('detailGrid').innerHTML=detailHTML;
+    
+    // Dagsschema (visar föregående månad)
     if(isAuto){
-        let daysInMonth=new Date(obYear,obMonth,0).getDate(), shiftNames=['Ledig','Dag','Natt'], tbody='';
+        let daysInMonth=new Date(obYear,obMonth,0).getDate();
+        let shiftNames=['Ledig','Dag','Natt'];
+        let tbody='';
         for(let d=1;d<=daysInMonth;d++){
-            let date=new Date(obYear,obMonth-1,d), dateStr=date.toISOString().split('T')[0], fromvaroVal=fromvaroMap.get(dateStr)||0, shift=getShift(date,lag), ob=calcOB(date,shift,lag), isPerm=isPermissionDay(date,lag), dayName=['Sön','Mån','Tis','Ons','Tor','Fre','Lör'][date.getDay()];
-            let shiftText=isPerm?'Perm':shiftNames[shift]; if(shiftOverrideMap.has(dateStr)&&!isPerm) shiftText+='*';
-            let fromvaroText=""; if(fromvaroVal===1) fromvaroText="Semester"; else if(fromvaroVal===2) fromvaroText="VAB"; else if(fromvaroVal===3) fromvaroText="F-ledig"; else fromvaroText="";
+            let date=new Date(obYear,obMonth-1,d);
+            let dateStr=date.toISOString().split('T')[0];
+            let fromvaroVal=fromvaroMap.get(dateStr)||0;
+            let shift=getShift(date,lag);
+            let ob=calcOB(date,shift,lag);
+            let isPerm=isPermissionDay(date,lag);
+            let dayName=['Sön','Mån','Tis','Ons','Tor','Fre','Lör'][date.getDay()];
+            let shiftText=isPerm?'Perm':shiftNames[shift];
+            if(shiftOverrideMap.has(dateStr)&&!isPerm) shiftText+='*';
+            let fromvaroText="";
+            if(fromvaroVal===1) fromvaroText="Semester";
+            else if(fromvaroVal===2) fromvaroText="VAB";
+            else if(fromvaroVal===3) fromvaroText="F-ledig";
             let station=(lag==='E')?getStationE(date,shift,lag):'-';
-            let rowClass=(shift>0 && !isPerm && fromvaroVal===0)?'row-active':'';
-            // Frånvaro-select
-            let disabledAttr=(shift===0||isPerm) ? 'disabled' : '';
-            let fromvaroSelect=`<select class="fromvaro-select" ${disabledAttr} onchange="setFromvaro('${dateStr}',this.value)" onclick="event.stopPropagation()">
+            let rowClass="";
+            if(shift>0 && !isPerm && fromvaroVal===0) rowClass="row-active";
+            if(fromvaroVal===1) rowClass+=" row-vacation";
+            else if(fromvaroVal===2) rowClass+=" row-vab";
+            else if(fromvaroVal===3) rowClass+=" row-parental";
+            let disabledFromvaro = (shift===0) ? 'disabled' : '';
+            let fromvaroSelect=`<select class="fromvaro-select" ${disabledFromvaro} onchange="setFromvaro('${dateStr}',this.value)" onclick="event.stopPropagation()">
                 <option value="" ${fromvaroText===""?'selected':''}>Ingen</option>
                 <option value="Semester" ${fromvaroText==="Semester"?'selected':''}>Semester</option>
                 <option value="VAB" ${fromvaroText==="VAB"?'selected':''}>VAB</option>
                 <option value="F-ledig" ${fromvaroText==="F-ledig"?'selected':''}>F-ledig</option>
             </select>`;
-            // Pass-select
+            // Pass-select - alltid aktiv, visar aktuellt shift
             let passSelect=`<select class="shift-select" onchange="changeShift('${dateStr}',this.value,'${lag}')" onclick="event.stopPropagation()">
                 <option value="0" ${shift===0?'selected':''}>Ledig</option>
                 <option value="1" ${shift===1?'selected':''}>Dag</option>
@@ -310,18 +337,21 @@ function updateUI(){
             tbody+=`<tr class="${rowClass}"><td>${d} ${dayName}</td><td>${shiftText}</td><td>${fd(ob.ob1,2)}h</td><td>${fd(ob.ob2,2)}h</td><td>${fd(ob.ob3,2)}h</td><td>${fromvaroSelect}</td><td>${station}</td><td>${passSelect}</td></tr>`;
         }
         document.querySelector('#salaryTable tbody').innerHTML=tbody;
-    } else document.querySelector('#salaryTable tbody').innerHTML='<tr><td colspan="8">Välj ett lag</td></tr>';
+    } else {
+        document.querySelector('#salaryTable tbody').innerHTML='<tr><td colspan="8">Välj ett lag</td></tr>';
+    }
 }
-function updateYearSummary(){ let y=parseInt(yearSelect.value), lag=lagSelect.value; if(lag==='manual'){ yearSummaryGrid.innerHTML='Välj lag'; return; } yearSummaryYear.innerText=y; let bs=p(salaryInput.value)||0, da=Math.round(bs*DRIFT/100), obBase=bs+da, o1r=obBase/O1D, o2r=obBase/O2D, o3r=obBase/O3D, totBrutto=0, totNetto=0, totSkatt=0, totFack=0, totOB=0; for(let m=1;m<=12;m++){ let om=m-1, oy=y; if(om===0){ om=12; oy--; } let obData=getOBForMonth(oy,om,lag), ob1Amt=Math.round(obData.ob1*o1r), ob2Amt=Math.round(obData.ob2*o2r), ob3Amt=Math.round(obData.ob3*o3r), mOB=ob1Amt+ob2Amt+ob3Amt; totOB+=mOB; let jb=obBase+mOB, tax=taxFromTable33Col1(jb), uf=calcUnion(jb), net=jb-tax-uf; totBrutto+=jb; totNetto+=net; totSkatt+=tax; totFack+=uf; } yearSummaryGrid.innerHTML=`<div class="tax-detail-row"><span>Total bruttolön</span><span>${fc(totBrutto)} kr</span></div><div class="tax-detail-row"><span>Total nettolön</span><span>${fc(totNetto)} kr</span></div><div class="tax-detail-row"><span>Total skatt</span><span>-${fc(totSkatt)} kr</span></div><div class="tax-detail-row"><span>Fackavgift</span><span>-${fc(totFack)} kr</span></div><div class="tax-detail-row"><span>Totalt OB</span><span>+${fc(totOB)} kr</span></div><div class="tax-detail-row"><span>Intjänad inkomst</span><span>${fc(totBrutto)} kr</span></div>`; }
-function resetOB(){ manualOBOverride=false; let lag=lagSelect.value; if(lag!=='manual'){ let y=parseInt(yearSelect.value), m=parseInt(monthSelect.value), om=m-1; if(om===0){ om=12; y--; } let ob=getOBForMonth(y,om,lag); ob1Hours.value=fd(ob.ob1,2); ob2Hours.value=fd(ob.ob2,2); ob3Hours.value=fd(ob.ob3,2); } else { ob1Hours.value='0'; ob2Hours.value='0'; ob3Hours.value='0'; } fromvaroMap.clear(); shiftOverrideMap.clear(); updateUI(); }
+function updateYearSummary(){ let y=parseInt(yearSelect.value), lag=lagSelect.value; if(lag==='manual'){ document.getElementById('yearSummaryGrid').innerHTML='Välj lag'; return; } document.getElementById('yearSummaryYear').innerText=y; let bs=p(salaryInput.value)||0, da=Math.round(bs*DRIFT/100), obBase=bs+da, o1r=obBase/O1D, o2r=obBase/O2D, o3r=obBase/O3D, totBrutto=0, totNetto=0, totSkatt=0, totFack=0, totOB=0; for(let m=1;m<=12;m++){ let obData=getOBForMonth(y,m,lag), ob1Amt=Math.round(obData.ob1*o1r), ob2Amt=Math.round(obData.ob2*o2r), ob3Amt=Math.round(obData.ob3*o3r), mOB=ob1Amt+ob2Amt+ob3Amt; totOB+=mOB; let jb=obBase+mOB, tax=taxFromTable33Col1(jb), uf=calcUnion(jb), net=jb-tax-uf; totBrutto+=jb; totNetto+=net; totSkatt+=tax; totFack+=uf; } document.getElementById('yearSummaryGrid').innerHTML=`<div>Total bruttolön: ${fc(totBrutto)} kr</div><div>Total nettolön: ${fc(totNetto)} kr</div><div>Total skatt: -${fc(totSkatt)} kr</div><div>Fackavgift: -${fc(totFack)} kr</div><div>Totalt OB: +${fc(totOB)} kr</div>`; }
+function resetOB(){ manualOBOverride=false; let lag=lagSelect.value; if(lag!=='manual'){ let y=parseInt(yearSelect.value), m=parseInt(monthSelect.value); let om=m-1; if(om===0){ om=12; y--; } let ob=getOBForMonth(y,om,lag); ob1Hours.value=fd(ob.ob1,2); ob2Hours.value=fd(ob.ob2,2); ob3Hours.value=fd(ob.ob3,2); } else { ob1Hours.value='0'; ob2Hours.value='0'; ob3Hours.value='0'; } fromvaroMap.clear(); shiftOverrideMap.clear(); updateUI(); }
 function toggleExpand(el){ let d=el.querySelector('.expandable-details'), a=el.querySelector('.expandable-arrow'); d.classList.toggle('open'); a.classList.toggle('open'); }
-function toggleYearSummary(){ let d=document.getElementById('yearDetails'), a=document.getElementById('yearArrow'); d.classList.toggle('open'); a.classList.toggle('open'); updateYearSummary(); }
-function toggleVAB(){ let c=document.getElementById('vabContent'), a=document.getElementById('vabArrow'); c.classList.toggle('open'); a.classList.toggle('open'); }
-function toggleOverview(){ let c=document.getElementById('overviewContent'), a=document.getElementById('overviewArrow'); c.classList.toggle('open'); a.classList.toggle('open'); }
+function toggleTheme(){ let html=document.documentElement; if(html.getAttribute('data-theme')==='dark') html.setAttribute('data-theme','light'); else html.setAttribute('data-theme','dark'); }
+function toggleVAB(){ let c=document.getElementById('vabContent'), a=document.getElementById('vabArrow'); c.classList.toggle('open'); a.innerText=c.classList.contains('open')?'▲':'▼'; }
+function toggleOverview(){ let c=document.getElementById('overviewContent'); if(c.style.display==='none') c.style.display='block'; else c.style.display='none'; }
+function toggleYearSummary(){ let d=document.getElementById('yearDetails'), a=document.getElementById('yearArrow'); if(d.style.display==='none'){ d.style.display='block'; a.innerText='▲'; updateYearSummary(); } else { d.style.display='none'; a.innerText='▼'; } }
 function populateSelectors(){ for(let y=SY;y<=EY;y++){ let o=document.createElement('option'); o.value=y; o.textContent=y; yearSelect.appendChild(o); } let now=new Date(); yearSelect.value=Math.max(SY,Math.min(EY,now.getFullYear())); let months=['Jan','Feb','Mar','Apr','Maj','Jun','Jul','Aug','Sep','Okt','Nov','Dec']; months.forEach((m,i)=>{ let o=document.createElement('option'); o.value=i+1; o.textContent=m; monthSelect.appendChild(o); }); monthSelect.value=now.getMonth()+1; }
-window.toggleTheme=function(){ let h=document.documentElement; if(h.getAttribute('data-theme')==='dark') h.setAttribute('data-theme','light'); else h.setAttribute('data-theme','dark'); };
-let lagSelect=document.getElementById('lagSelect'), salaryInput=document.getElementById('salaryInput'), yearSelect=document.getElementById('yearSelect'), monthSelect=document.getElementById('monthSelect'), karensSelect=document.getElementById('karensSelect'), otHours=document.getElementById('otHours'), ob1Hours=document.getElementById('ob1Hours'), ob2Hours=document.getElementById('ob2Hours'), ob3Hours=document.getElementById('ob3Hours'), sjukOb1Hours=document.getElementById('sjukOb1Hours'), sjukOb2Hours=document.getElementById('sjukOb2Hours'), sjukOb3Hours=document.getElementById('sjukOb3Hours'), sickHours=document.getElementById('sickHours'), ftpDays=document.getElementById('ftpDays'), sgiInput=document.getElementById('sgiInput'), ob1Rate=document.getElementById('ob1Rate'), ob2Rate=document.getElementById('ob2Rate'), ob3Rate=document.getElementById('ob3Rate'), otRate=document.getElementById('otRate'), selectedPeriod=document.getElementById('selectedPeriod'), finalNetSalary=document.getElementById('finalNetSalary'), detailGrid=document.getElementById('detailGrid'), tableBody=document.querySelector('#salaryTable tbody'), tableMonthLabel=document.getElementById('tableMonthLabel'), obGroundingDisplay=document.getElementById('obGroundingDisplay'), sjukOBContainer=document.getElementById('sjukOBContainer'), sickHoursContainer=document.getElementById('sickHoursContainer'), lockBadge=document.getElementById('lockBadge'), ob1Badge=document.getElementById('ob1Badge'), ob2Badge=document.getElementById('ob2Badge'), ob3Badge=document.getElementById('ob3Badge'), vabSummary=document.getElementById('vabSummary'), vabInfo=document.getElementById('vabInfo'), yearSummaryYear=document.getElementById('yearSummaryYear'), yearSummaryGrid=document.getElementById('yearSummaryGrid'), obLockToggle=document.getElementById('obLockToggle'), overviewTotalNet=document.getElementById('overviewTotalNet'), overviewArrow=document.getElementById('overviewArrow'), overviewContent=document.getElementById('overviewContent'), semesterSupplement=document.getElementById('semesterSupplement');
-lagSelect.addEventListener('change',updateUI); salaryInput.addEventListener('input',updateUI); yearSelect.addEventListener('change',updateUI); monthSelect.addEventListener('change',updateUI); karensSelect.addEventListener('change',updateUI); otHours.addEventListener('input',updateUI); ob1Hours.addEventListener('input',updateUI); ob2Hours.addEventListener('input',updateUI); ob3Hours.addEventListener('input',updateUI); sjukOb1Hours.addEventListener('input',updateUI); sjukOb2Hours.addEventListener('input',updateUI); sjukOb3Hours.addEventListener('input',updateUI); sickHours.addEventListener('input',updateUI); ftpDays.addEventListener('change',updateUI); sgiInput.addEventListener('input',updateUI); semesterSupplement.addEventListener('input',updateUI); populateSelectors(); updateUI();
+
+let lagSelect=document.getElementById('lagSelect'), salaryInput=document.getElementById('salaryInput'), yearSelect=document.getElementById('yearSelect'), monthSelect=document.getElementById('monthSelect'), karensSelect=document.getElementById('karensSelect'), otHours=document.getElementById('otHours'), ob1Hours=document.getElementById('ob1Hours'), ob2Hours=document.getElementById('ob2Hours'), ob3Hours=document.getElementById('ob3Hours'), sjukOb1Hours=document.getElementById('sjukOb1Hours'), sjukOb2Hours=document.getElementById('sjukOb2Hours'), sjukOb3Hours=document.getElementById('sjukOb3Hours'), sickHours=document.getElementById('sickHours'), ftpDays=document.getElementById('ftpDays'), sgiInput=document.getElementById('sgiInput'), ob1Rate=document.getElementById('ob1Rate'), ob2Rate=document.getElementById('ob2Rate'), ob3Rate=document.getElementById('ob3Rate'), otRate=document.getElementById('otRate'), selectedPeriod=document.getElementById('selectedPeriod'), finalNetSalary=document.getElementById('finalNetSalary'), detailGrid=document.getElementById('detailGrid'), tableBody=document.querySelector('#salaryTable tbody'), tableMonthLabel=document.getElementById('tableMonthLabel'), obGroundingDisplay=document.getElementById('obGroundingDisplay'), sjukOBContainer=document.getElementById('sjukOBContainer'), sickHoursContainer=document.getElementById('sickHoursContainer'), lockBadge=document.getElementById('lockBadge'), vabSummary=document.getElementById('vabSummary'), vabInfo=document.getElementById('vabInfo'), yearSummaryYear=document.getElementById('yearSummaryYear'), yearSummaryGrid=document.getElementById('yearSummaryGrid'), obLockToggle=document.getElementById('obLockToggle'), overviewTotalNet=document.getElementById('overviewTotalNet');
+lagSelect.addEventListener('change',updateUI); salaryInput.addEventListener('input',updateUI); yearSelect.addEventListener('change',updateUI); monthSelect.addEventListener('change',updateUI); karensSelect.addEventListener('change',updateUI); otHours.addEventListener('input',updateUI); ob1Hours.addEventListener('input',updateUI); ob2Hours.addEventListener('input',updateUI); ob3Hours.addEventListener('input',updateUI); sjukOb1Hours.addEventListener('input',updateUI); sjukOb2Hours.addEventListener('input',updateUI); sjukOb3Hours.addEventListener('input',updateUI); sickHours.addEventListener('input',updateUI); ftpDays.addEventListener('change',updateUI); sgiInput.addEventListener('input',updateUI); populateSelectors(); updateUI();
 window.setFromvaro=setFromvaro; window.changeShift=changeShift; window.resetSchema=resetSchema; window.resetAllShifts=resetAllShifts; window.resetOB=resetOB; window.toggleExpand=toggleExpand; window.toggleYearSummary=toggleYearSummary; window.toggleVAB=toggleVAB; window.toggleOverview=toggleOverview;
 </script>
 </body>
