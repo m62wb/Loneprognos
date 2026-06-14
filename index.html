@@ -32,11 +32,11 @@
             min-height: 100vh; 
             padding: 20px; 
             color: var(--text);
-            overflow-x: hidden; /* förhindra horisontell scroll */
+            overflow-x: hidden;
         }
         .container { 
             width: 100%; 
-            max-width: 1200px;  /* centrerad bredd med luft på sidorna */
+            max-width: 1200px;
             margin: 0 auto;
             display: flex;
             flex-direction: column;
@@ -342,7 +342,9 @@ function updateUI(){
     let months=['Jan','Feb','Mar','Apr','Maj','Jun','Jul','Aug','Sep','Okt','Nov','Dec'];
     let lagName={A:'Lag A',B:'Lag B',C:'Lag C',D:'Lag D',E:'Lag E'}[lag]||'Manuell';
     document.getElementById('selectedPeriod').innerText=months[selectedMonth-1]+' '+selectedYear+' · '+karensDays+' karensdag'+(karensDays!==1?'ar':'')+(extraSick>0?' +'+fd(extraSick,1)+'h sjuk':'')+' · '+lagName;
-    if(isAuto) document.getElementById('tableMonthLabel').innerText=months[obMonth-1]+' '+obYear+' (OB-underlag för '+months[selectedMonth-1]+'s lön)'; else document.getElementById('tableMonthLabel').innerText='—';
+    // Borttagen lång text – nu bara månad och år
+    if(isAuto) document.getElementById('tableMonthLabel').innerText=months[obMonth-1]+' '+obYear; 
+    else document.getElementById('tableMonthLabel').innerText='—';
     document.getElementById('finalNetSalary').innerText=fc(netSalary)+' kr';
     document.getElementById('overviewTotalNet').innerText=fc(netSalary)+' kr';
     
