@@ -2,7 +2,7 @@
 <html lang="sv" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=0.25, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=0.65, user-scalable=no">
     <title>Löneprognos 2026-2036 | Uppsala - IKEM</title>
     <style>
         /* Göm scrollbar i Safari */
@@ -93,8 +93,6 @@
         .sjuk-ob-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
         .table-container { 
             overflow-x: auto; 
-            overflow-y: auto; 
-            max-height: 420px;
             border-radius: var(--radius-sm); 
         }
         table { 
@@ -192,13 +190,11 @@
         </div>
     </div>
 
-    <!-- HOPFÄLLBAR OB & Övertid – kontroller inuti -->
     <div class="card collapsible-section">
         <div class="collapsible-header" onclick="toggleOB()">
             OB & Övertid <span id="obArrow">▼</span>
         </div>
         <div class="collapsible-content" id="obContent">
-            <!-- Lås & reset inuti, döljs tillsammans med OB -->
             <div class="toggle-container" style="margin-bottom:12px; justify-content: flex-end;">
                 <span>Lås</span>
                 <label class="toggle-switch"><input type="checkbox" id="obLockToggle" checked onchange="updateUI()"><span class="slider"></span></label>
