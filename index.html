@@ -39,22 +39,22 @@
             margin: 0 auto;
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 16px; /* minskat från 20px */
         }
         .card, .header, .result-card, .year-summary-card {
             background: var(--card-bg);
             border-radius: var(--radius);
-            padding: 20px;
+            padding: 16px; /* minskat från 20px */
             box-shadow: var(--shadow);
         }
         .header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
         .logo { font-size: 1.4rem; font-weight: 800; background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .theme-toggle { background: var(--border); border: none; border-radius: 30px; padding: 6px 12px; cursor: pointer; color: var(--text); }
-        .card-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-        .input-group { margin-bottom: 14px; }
+        .card-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .input-group { margin-bottom: 10px; } /* minskat */
         .input-group label { display: block; font-size: 0.7rem; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 4px; }
         select, input[type="number"], input[type="text"] {
-            width: 100%; padding: 12px 14px; font-size: 1rem;
+            width: 100%; padding: 10px 12px; font-size: 1rem; /* minskad padding */
             border: 1px solid var(--border); border-radius: var(--radius-sm);
             background: var(--input-bg); color: var(--text);
         }
@@ -63,8 +63,8 @@
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
-            gap: 12px;
-            margin-bottom: 12px;
+            gap: 10px;
+            margin-bottom: 10px;
         }
         .ob-row .ob-input, .ot-row .ob-input {
             flex: 1 1 180px;
@@ -91,7 +91,12 @@
         .sjuk-ob-container.visible, .sick-hours-container.visible { display: block; }
         .sjuk-ob-title { font-size: 0.8rem; font-weight: 700; color: var(--danger); margin-bottom: 10px; }
         .sjuk-ob-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
-        .table-container { overflow-x: auto; border-radius: var(--radius-sm); }
+        .table-container { 
+            overflow-x: auto; 
+            overflow-y: auto; 
+            max-height: 420px; /* lagom höjd för scroll i schemat */
+            border-radius: var(--radius-sm); 
+        }
         table { 
             width: 100%; 
             table-layout: fixed; 
@@ -101,17 +106,17 @@
         th { 
             background: var(--primary); 
             color: white; 
-            padding: 6px 2px; 
+            padding: 5px 2px; 
             position: sticky; 
             top: 0; 
             font-size: 0.6rem; 
             white-space: nowrap;
         }
         td { 
-            padding: 4px 2px; 
+            padding: 3px 2px; 
             border-bottom: 1px solid var(--border); 
             text-align: right; 
-            font-size: 0.65rem; 
+            font-size: 0.6rem; 
             word-break: break-word;
         }
         td:first-child { 
@@ -120,16 +125,16 @@
             position: sticky; 
             left: 0; 
             background: var(--card-bg); 
-            width: 40px; 
+            width: 36px; 
         }
-        th:nth-child(1), td:nth-child(1) { width: 36px; }
-        th:nth-child(2), td:nth-child(2) { width: 42px; }
-        th:nth-child(3), td:nth-child(3) { width: 34px; }
-        th:nth-child(4), td:nth-child(4) { width: 34px; }
-        th:nth-child(5), td:nth-child(5) { width: 34px; }
-        th:nth-child(6), td:nth-child(6) { width: 70px; }
+        th:nth-child(1), td:nth-child(1) { width: 34px; }
+        th:nth-child(2), td:nth-child(2) { width: 40px; }
+        th:nth-child(3), td:nth-child(3) { width: 32px; }
+        th:nth-child(4), td:nth-child(4) { width: 32px; }
+        th:nth-child(5), td:nth-child(5) { width: 32px; }
+        th:nth-child(6), td:nth-child(6) { width: 68px; }
         th:nth-child(7), td:nth-child(7) { width: 80px; }
-        th:nth-child(8), td:nth-child(8) { width: 50px; }
+        th:nth-child(8), td:nth-child(8) { width: 48px; }
 
         .row-active { background: rgba(16,185,129,0.15) !important; }
         .row-vacation td:first-child::after { content: " 🏖️"; }
@@ -137,7 +142,7 @@
         .row-parental td:first-child::after { content: " 🍼"; }
         .badge-ikem { background: #f59e0b; color: black; padding: 2px 6px; border-radius: 12px; }
         .badge-local { background: var(--accent); color: white; padding: 2px 6px; border-radius: 12px; }
-        .lön-summary { display: flex; justify-content: space-between; background: rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 12px; margin-top: 8px; }
+        .lön-summary { display: flex; justify-content: space-between; background: rgba(255,255,255,0.1); padding: 6px 10px; border-radius: 12px; margin-top: 6px; }
         .toggle-container { display: flex; align-items: center; gap: 8px; margin-left: auto; }
         .toggle-switch { position: relative; display: inline-block; width: 44px; height: 24px; }
         .toggle-switch input { opacity: 0; width: 0; height: 0; }
@@ -156,8 +161,8 @@
             border-radius: 20px; 
             padding: 2px 4px; 
             color: var(--text); 
-            width: 60px; 
-            font-size: 0.6rem; 
+            width: 56px; 
+            font-size: 0.55rem; 
         }
     </style>
 </head>
@@ -187,20 +192,30 @@
         </div>
     </div>
 
-    <div class="card">
-        <div class="card-title">OB & Övertid
-            <div class="toggle-container"><span>Lås</span><label class="toggle-switch"><input type="checkbox" id="obLockToggle" checked onchange="updateUI()"><span class="slider"></span></label><button class="reset-btn" onclick="resetOB()">⟳</button><span id="lockBadge" style="display:none;">Låst</span></div>
+    <!-- HOPFÄLLBAR OB & Övertid -->
+    <div class="card collapsible-section">
+        <div class="collapsible-header" onclick="toggleOB()">
+            OB & Övertid <span id="obArrow">▼</span>
+            <div class="toggle-container" onclick="event.stopPropagation()">
+                <span>Lås</span>
+                <label class="toggle-switch"><input type="checkbox" id="obLockToggle" checked onchange="updateUI()"><span class="slider"></span></label>
+                <button class="reset-btn" onclick="event.stopPropagation(); resetOB()">⟳</button>
+                <span id="lockBadge" style="display:none;">Låst</span>
+            </div>
         </div>
-        <div class="ob-row">
-            <div class="ob-input"><span class="ob-badge">OB1</span><input type="text" id="ob1Hours" placeholder="0"><div class="ob-rate" id="ob1Rate">/460</div></div>
-            <div class="ob-input"><span class="ob-badge">OB2</span><input type="text" id="ob2Hours" placeholder="0"><div class="ob-rate" id="ob2Rate">/260</div></div>
-            <div class="ob-input"><span class="ob-badge">OB3</span><input type="text" id="ob3Hours" placeholder="0"><div class="ob-rate" id="ob3Rate">/150</div></div>
-        </div>
-        <div class="ot-row">
-            <div class="ob-input"><span class="ob-badge ot">ÖT</span><input type="text" id="otHours" placeholder="0"><div class="ob-rate" id="otRate">/72</div></div>
-            <div class="ob-input"><span class="ob-badge ot">ÖT enkel</span><input type="text" id="otEnkelHours" placeholder="0"><div class="ob-rate" id="otEnkelRate">/94</div></div>
+        <div class="collapsible-content" id="obContent">
+            <div class="ob-row">
+                <div class="ob-input"><span class="ob-badge">OB1</span><input type="text" id="ob1Hours" placeholder="0"><div class="ob-rate" id="ob1Rate">/460</div></div>
+                <div class="ob-input"><span class="ob-badge">OB2</span><input type="text" id="ob2Hours" placeholder="0"><div class="ob-rate" id="ob2Rate">/260</div></div>
+                <div class="ob-input"><span class="ob-badge">OB3</span><input type="text" id="ob3Hours" placeholder="0"><div class="ob-rate" id="ob3Rate">/150</div></div>
+            </div>
+            <div class="ot-row">
+                <div class="ob-input"><span class="ob-badge ot">ÖT</span><input type="text" id="otHours" placeholder="0"><div class="ob-rate" id="otRate">/72</div></div>
+                <div class="ob-input"><span class="ob-badge ot">ÖT enkel</span><input type="text" id="otEnkelHours" placeholder="0"><div class="ob-rate" id="otEnkelRate">/94</div></div>
+            </div>
         </div>
     </div>
+
     <div class="card"><div class="card-title">Löneperiod</div><select id="monthSelect"></select><select id="yearSelect"></select></div>
     <div class="result-card"><div id="selectedPeriod">Februari 2026</div><div class="result-amount" id="finalNetSalary">0 kr</div><div>Totalt netto (jobb + bidrag)</div></div>
     
@@ -397,27 +412,12 @@ function updateUI(){
 }
 function updateYearSummary(){ let y=parseInt(yearSelect.value), lag=lagSelect.value; if(lag==='manual'){ document.getElementById('yearSummaryGrid').innerHTML='Välj lag'; return; } document.getElementById('yearSummaryYear').innerText=y; let bs=p(salaryInput.value)||0, da=Math.round(bs*DRIFT/100), obBase=bs+da, o1r=obBase/O1D, o2r=obBase/O2D, o3r=obBase/O3D, totBrutto=0, totNetto=0, totSkatt=0, totFack=0, totOB=0; for(let m=1;m<=12;m++){ let obData=getOBForMonth(y,m,lag), ob1Amt=Math.round(obData.ob1*o1r), ob2Amt=Math.round(obData.ob2*o2r), ob3Amt=Math.round(obData.ob3*o3r), mOB=ob1Amt+ob2Amt+ob3Amt; totOB+=mOB; let jb=obBase+mOB, tax=taxFromTable33Col1(jb), uf=calcUnion(jb), net=jb-tax-uf; totBrutto+=jb; totNetto+=net; totSkatt+=tax; totFack+=uf; } document.getElementById('yearSummaryGrid').innerHTML=`<div>Total bruttolön: ${fc(totBrutto)} kr</div><div>Total nettolön: ${fc(totNetto)} kr</div><div>Total skatt: -${fc(totSkatt)} kr</div><div>Fackavgift: -${fc(totFack)} kr</div><div>Totalt OB: +${fc(totOB)} kr</div>`; }
 
-// ---------- RESET OB (endast om manuella ändringar finns) ----------
-function resetOB(){ 
-    if (!manualOBOverride) return;  // Inget att återställa
-    manualOBOverride=false;
-    let lag=lagSelect.value;
-    if(lag!=='manual'){
-        let y=parseInt(yearSelect.value), m=parseInt(monthSelect.value);
-        let om=m-1; if(om===0){ om=12; y--; }
-        let ob=getOBForMonth(y,om,lag);
-        ob1Hours.value=fd(ob.ob1,2);
-        ob2Hours.value=fd(ob.ob2,2);
-        ob3Hours.value=fd(ob.ob3,2);
-    } else {
-        ob1Hours.value='0'; ob2Hours.value='0'; ob3Hours.value='0';
-    }
-    updateUI();
-}
+function resetOB(){ if (!manualOBOverride) return; manualOBOverride=false; let lag=lagSelect.value; if(lag!=='manual'){ let y=parseInt(yearSelect.value), m=parseInt(monthSelect.value); let om=m-1; if(om===0){ om=12; y--; } let ob=getOBForMonth(y,om,lag); ob1Hours.value=fd(ob.ob1,2); ob2Hours.value=fd(ob.ob2,2); ob3Hours.value=fd(ob.ob3,2); } else { ob1Hours.value='0'; ob2Hours.value='0'; ob3Hours.value='0'; } updateUI(); }
 
 function toggleExpand(el){ let d=el.querySelector('.expandable-details'), a=el.querySelector('.expandable-arrow'); d.classList.toggle('open'); a.classList.toggle('open'); }
 function toggleTheme(){ let html=document.documentElement; if(html.getAttribute('data-theme')==='dark') html.setAttribute('data-theme','light'); else html.setAttribute('data-theme','dark'); }
 function toggleVAB(){ let c=document.getElementById('vabContent'), a=document.getElementById('vabArrow'); c.classList.toggle('open'); a.innerText=c.classList.contains('open')?'▲':'▼'; }
+function toggleOB(){ let c=document.getElementById('obContent'), a=document.getElementById('obArrow'); c.classList.toggle('open'); a.innerText=c.classList.contains('open')?'▲':'▼'; }
 function toggleOverview(){ let c=document.getElementById('overviewContent'); if(c.style.display==='none') c.style.display='block'; else c.style.display='none'; }
 function toggleYearSummary(){ let d=document.getElementById('yearDetails'), a=document.getElementById('yearArrow'); if(d.style.display==='none'){ d.style.display='block'; a.innerText='▲'; updateYearSummary(); } else { d.style.display='none'; a.innerText='▼'; } }
 function populateSelectors(){ for(let y=SY;y<=EY;y++){ let o=document.createElement('option'); o.value=y; o.textContent=y; yearSelect.appendChild(o); } let now=new Date(); yearSelect.value=Math.max(SY,Math.min(EY,now.getFullYear())); let months=['Jan','Feb','Mar','Apr','Maj','Jun','Jul','Aug','Sep','Okt','Nov','Dec']; months.forEach((m,i)=>{ let o=document.createElement('option'); o.value=i+1; o.textContent=m; monthSelect.appendChild(o); }); monthSelect.value=now.getMonth()+1; }
@@ -425,7 +425,7 @@ function populateSelectors(){ for(let y=SY;y<=EY;y++){ let o=document.createElem
 let lagSelect=document.getElementById('lagSelect'), salaryInput=document.getElementById('salaryInput'), yearSelect=document.getElementById('yearSelect'), monthSelect=document.getElementById('monthSelect'), karensSelect=document.getElementById('karensSelect'), otHours=document.getElementById('otHours'), otEnkelHours=document.getElementById('otEnkelHours'), ob1Hours=document.getElementById('ob1Hours'), ob2Hours=document.getElementById('ob2Hours'), ob3Hours=document.getElementById('ob3Hours'), sjukOb1Hours=document.getElementById('sjukOb1Hours'), sjukOb2Hours=document.getElementById('sjukOb2Hours'), sjukOb3Hours=document.getElementById('sjukOb3Hours'), sickHours=document.getElementById('sickHours'), ftpDays=document.getElementById('ftpDays'), sgiInput=document.getElementById('sgiInput'), ob1Rate=document.getElementById('ob1Rate'), ob2Rate=document.getElementById('ob2Rate'), ob3Rate=document.getElementById('ob3Rate'), otRate=document.getElementById('otRate'), otEnkelRate=document.getElementById('otEnkelRate'), selectedPeriod=document.getElementById('selectedPeriod'), finalNetSalary=document.getElementById('finalNetSalary'), detailGrid=document.getElementById('detailGrid'), tableBody=document.querySelector('#salaryTable tbody'), tableMonthLabel=document.getElementById('tableMonthLabel'), obGroundingDisplay=document.getElementById('obGroundingDisplay'), sjukOBContainer=document.getElementById('sjukOBContainer'), sickHoursContainer=document.getElementById('sickHoursContainer'), lockBadge=document.getElementById('lockBadge'), vabSummary=document.getElementById('vabSummary'), vabInfo=document.getElementById('vabInfo'), yearSummaryYear=document.getElementById('yearSummaryYear'), yearSummaryGrid=document.getElementById('yearSummaryGrid'), obLockToggle=document.getElementById('obLockToggle'), overviewTotalNet=document.getElementById('overviewTotalNet');
 lagSelect.addEventListener('change',updateUI); salaryInput.addEventListener('input',updateUI); yearSelect.addEventListener('change',updateUI); monthSelect.addEventListener('change',updateUI); karensSelect.addEventListener('change',updateUI); otHours.addEventListener('input',updateUI); otEnkelHours.addEventListener('input',updateUI); ob1Hours.addEventListener('input',updateUI); ob2Hours.addEventListener('input',updateUI); ob3Hours.addEventListener('input',updateUI); sjukOb1Hours.addEventListener('input',updateUI); sjukOb2Hours.addEventListener('input',updateUI); sjukOb3Hours.addEventListener('input',updateUI); sickHours.addEventListener('input',updateUI); ftpDays.addEventListener('change',updateUI); sgiInput.addEventListener('input',updateUI); 
 populateSelectors(); updateUI();
-window.setFromvaro=setFromvaro; window.changeShift=changeShift; window.resetSchema=resetSchema; window.resetAllShifts=resetAllShifts; window.resetOB=resetOB; window.toggleExpand=toggleExpand; window.toggleYearSummary=toggleYearSummary; window.toggleVAB=toggleVAB; window.toggleOverview=toggleOverview;
+window.setFromvaro=setFromvaro; window.changeShift=changeShift; window.resetSchema=resetSchema; window.resetAllShifts=resetAllShifts; window.resetOB=resetOB; window.toggleExpand=toggleExpand; window.toggleYearSummary=toggleYearSummary; window.toggleVAB=toggleVAB; window.toggleOB=toggleOB; window.toggleOverview=toggleOverview;
 </script>
 </body>
 </html>
