@@ -2,8 +2,7 @@
 <html lang="sv" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <!-- Ändrad viewport: mer utzoomad, tillåter manuell zoom -->
-    <meta name="viewport" content="width=device-width, initial-scale=0.8, user-scalable=yes"5
+    <meta name="viewport" content="width=device-width, initial-scale=0.8, user-scalable=yes">
     <title>Löneprognos 2026-2036 | Uppsala - IKEM</title>
     <style>
         /* Göm scrollbar i Safari */
@@ -33,19 +32,20 @@
             min-height: 100vh; 
             padding: 20px; 
             color: var(--text);
+            overflow-x: hidden; /* förhindra horisontell scroll */
         }
         .container { 
             width: 100%; 
-            /* Borttagen max-width: 850px för att använda hela skärmbredden */
+            max-width: 1200px;  /* centrerad bredd med luft på sidorna */
             margin: 0 auto;
             display: flex;
             flex-direction: column;
-            gap: 20px;  /* ökat mellanrum */
+            gap: 20px;
         }
         .card, .header, .result-card, .year-summary-card {
             background: var(--card-bg);
             border-radius: var(--radius);
-            padding: 24px;  /* ökad padding */
+            padding: 24px;
             box-shadow: var(--shadow);
         }
         .header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
