@@ -92,6 +92,8 @@
         .sjuk-ob-container.visible, .sick-hours-container.visible { display: block; }
         .sjuk-ob-title { font-size: 0.8rem; font-weight: 700; color: var(--danger); margin-bottom: 10px; }
         .sjuk-ob-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+        /* Fix för att etiketterna i sjuk-ob-grid ska synas */
+        .sjuk-ob-grid div { position: relative; }
         .table-container { 
             overflow-x: auto; 
             border-radius: var(--radius-sm); 
@@ -342,7 +344,6 @@ function updateUI(){
     let months=['Jan','Feb','Mar','Apr','Maj','Jun','Jul','Aug','Sep','Okt','Nov','Dec'];
     let lagName={A:'Lag A',B:'Lag B',C:'Lag C',D:'Lag D',E:'Lag E'}[lag]||'Manuell';
     document.getElementById('selectedPeriod').innerText=months[selectedMonth-1]+' '+selectedYear+' · '+karensDays+' karensdag'+(karensDays!==1?'ar':'')+(extraSick>0?' +'+fd(extraSick,1)+'h sjuk':'')+' · '+lagName;
-    // Borttagen lång text – nu bara månad och år
     if(isAuto) document.getElementById('tableMonthLabel').innerText=months[obMonth-1]+' '+obYear; 
     else document.getElementById('tableMonthLabel').innerText='—';
     document.getElementById('finalNetSalary').innerText=fc(netSalary)+' kr';
