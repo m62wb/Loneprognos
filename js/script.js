@@ -12,14 +12,24 @@ const O1D=460, O2D=260, O3D=150, OTD=72, OTENKELD=94, SY=2026, EY=2036;
 const PBB=59200, SGI_TAK_PARENTAL=10*PBB, SGI_TAK_VAB=7.5*PBB, FK_SKATT=0.30;
 const MONTHS = ['Januari','Februari','Mars','April','Maj','Juni','Juli','Augusti','September','Oktober','November','December'];
 
-<script src="js/skattetabell.js"></script>
-<script src="js/script.js"></script>
-</body>
+function calcUnion(s){ let f=Math.round(s*UPCT); if(f<UMIN) return UMIN; if(f>UMAX) return UMAX; return f; }
 
- // ---------- Stationer för lag E ----------
-const stationsE=['Reaktorn','Dian','Spray'], initials=['B','Y','M'], refStation=new Date(2026,5,9);
-function countWorkShiftsUntil(date,lag){ let cnt=0, d=new Date(refStation); while(daysBetween(d,date)>0){ let sh=getShift(d,lag); if(sh>0 && !isPermissionDay(d,lag)) cnt++; d.setDate(d.getDate()+1); } return cnt; }
-function getStationE(date,shift,lag){ if(shift===0||isPermissionDay(date,lag)) return '-'; let ws=countWorkShiftsUntil(date,lag), idx=ws%3, yidx=(idx+1)%3, midx=(idx+2)%3; let bp=stationsE[idx]+'('+initials[0]+')', yp=stationsE[yidx]+'('+initials[1]+')', mp=stationsE[midx]+'('+initials[2]+')'; let day=date.getDay(); if((day===6 && shift===1 && idx===2)||(day===0 && shift===1 && idx===1)) bp+='🧹'; return bp+' '+yp+' '+mp; }
+// ---------- Frånvaro och pass (använder fromvaroMap/shiftOverrideMap från scheman.js) ----------
+function setFromvaro(dateStr, value){
+  if(value==="") fromvaroMap.delete(dateStr);
+  else if(value==="Semester") fromvaroMap.set(dateStr,1);
+  else if(value==="VAB") fromvaroMap.set(dateStr,2);
+  else if(value==="F-ledig") fromvaroMap.set(dateStr,3);
+  updateUI();
+}
+function resetSchema(){ fromvaroMap.clear(); updateUI(); }
+function resetAllShifts(){ shiftOverrideMap.clear(); updateUI(); }
+function changeShift(dateStr,val,lag){
+  let nv = parseInt(val, 10);
+  shiftOverrideMap.set(dateStr, nv);
+  if(nv === 0) fromvaroMap.delete(dateStr);
+  updateUI();
+}
 
 // ---------- Huvudlogik ----------
 let manualOBOverride=false, lastAutoOB={ob1:0,ob2:0,ob3:0}, lastAutoLag='', lastAutoYear=0, lastAutoMonth=0;
@@ -165,4 +175,4 @@ updateUI();
 // Exponera globala funktioner för onclick i HTML
 window.setFromvaro=setFromvaro; window.changeShift=changeShift; window.resetSchema=resetSchema; window.resetAllShifts=resetAllShifts; window.resetOB=resetOB; window.toggleExpand=toggleExpand; window.toggleYearSummary=toggleYearSummary; window.toggleVAB=toggleVAB; window.toggleOB=toggleOB; window.toggleOverview=toggleOverview;
 
-}); // Slut på DOMContentLoaded
+});
