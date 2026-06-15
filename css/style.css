@@ -138,7 +138,7 @@ input:checked + .slider:before { transform: translateX(20px); }
 }
 .highlight {
     animation: highlightPulse 0.6s ease;
-}/* Förhindra inzoomning på inputfält */
+}
 input, select, textarea {
-    font-size: 16px !important;
+    font-size: 32px !important;   /* 32 × 0.5 = 16 px visuellt */
 }
