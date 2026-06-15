@@ -39,14 +39,7 @@ function getAllHelgons(year){ let d=new Date(year,9,31); while(d.getDay()!==6) d
 function isPermissionDay(date,lag){ let m=date.getMonth(),d=date.getDate(),shift=getShift(date,lag); if(m===11&&d===24) return true; if(m===11&&d===25&&shift===1) return true; if(m===11&&d===31&&shift===2) return true; if(m===0&&d===1&&shift===1) return true; let mid=getMidsummer(date.getFullYear()),eve=new Date(mid); eve.setDate(mid.getDate()-1); if(date.toDateString()===eve.toDateString()) return true; if(date.toDateString()===mid.toDateString()) return true; let mids=new Date(mid); mids.setDate(mid.getDate()+1); if(date.toDateString()===mids.toDateString()&&shift===1) return true; return false; }
 function calcOB(date,shift,lag){ if(isPermissionDay(date,lag)||shift===0) return {ob1:0,ob2:0,ob3:0}; let w=date.getDay(),isWeekend=(w===0||w===6),ob1=0,ob2=0,ob3=0; if(isStorhelg(date)) ob3=12.25; else if(shift===1){ if(isWeekend) ob2=12.25; else ob2=1.25; } else if(shift===2){ if(isWeekend) ob2=12.25; else { ob1=6; ob2=6; } } let dst=getDSTAdjustment(date); if(dst!==0&&shift===2){ if(ob2>=6) ob2+=dst; else if(ob1>=6) ob1+=dst; } return {ob1,ob2,ob3}; }
 function getOBForMonth(year,month,lag){ let to1=0,to2=0,to3=0, dim=new Date(year,month,0).getDate(); for(let d=1;d<=dim;d++){ let date=new Date(year,month-1,d); let dateStr=date.toISOString().split('T')[0]; let shift=getShift(date,lag); if(fromvaroMap.has(dateStr)) continue; let ob=calcOB(date,shift,lag); to1+=ob.ob1; to2+=ob.ob2; to3+=ob.ob3; } return {ob1:to1,ob2:to2,ob3:to3}; }
-function calcUnion(s){ let f=Math.round(s*UPCT); if(f<UMIN) return UMIN; if(f>UMAX) return UMAX; return f; }
-
-// ---------- Frånvaro och pass ----------
-const fromvaroMap=new Map();
-function setFromvaro(dateStr, value){ if(value==="") fromvaroMap.delete(dateStr); else if(value==="Semester") fromvaroMap.set(dateStr,1); else if(value==="VAB") fromvaroMap.set(dateStr,2); else if(value==="F-ledig") fromvaroMap.set(dateStr,3); updateUI(); }
-function resetSchema(){ fromvaroMap.clear(); updateUI(); }
-function resetAllShifts(){ shiftOverrideMap.clear(); updateUI(); }
-function changeShift(dateStr,val,lag){ let nv = parseInt(val, 10); shiftOverrideMap.set(dateStr, nv); if(nv === 0) fromvaroMap.delete(dateStr); updateUI(); }
+function calcUnion(s){ let f=Math.round(s*UPCT); if(f<UMIN) return UMIN; if(f>UMAX) return UMAX; return 
 
 // ---------- Stationer för lag E ----------
 const stationsE=['Reaktorn','Dian','Spray'], initials=['B','Y','M'], refStation=new Date(2026,5,9);
