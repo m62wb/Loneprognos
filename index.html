@@ -12,7 +12,23 @@
         <div class="logo">Lön <span class="badge-ikem">IKEM</span> <span class="badge-local">LOKAL</span></div>
         <button class="theme-toggle" onclick="toggleTheme()">Byt tema</button>
     </div>
-    <div class="card"><div class="card-title">Lagval</div><select id="lagSelect"><option value="A">Lag A - Ekwall</option><option value="B">Lag B - Swärd</option><option value="C">Lag C - Samer</option><option value="D">Lag D - Isaac</option><option value="E" selected>Lag E - Benji</option><option value="manual">Manuell</option></select></div>
+    <!-- Scenarier -->
+    <div class="card">
+      <div class="card-title">Scenarier</div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+        <select id="scenarioSelect" style="flex:1; min-width:150px;">
+          <option value="">-- Välj scenario --</option>
+        </select>
+        <button class="reset-btn" onclick="loadScenario()">Ladda</button>
+        <button class="reset-btn" onclick="deleteScenario()">Ta bort</button>
+      </div>
+      <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; align-items:center;">
+        <input type="text" id="scenarioName" placeholder="Nytt scenario..." style="flex:1; min-width:120px;">
+        <button class="reset-btn" onclick="saveScenario()">Spara</button>
+        <button class="reset-btn" onclick="resetAll()">Nollställ allt</button>
+      </div>
+    <div 
+        class="card"><div class="card-title">Lagval</div><select id="lagSelect"><option value="A">Lag A - Ekwall</option><option value="B">Lag B - Swärd</option><option value="C">Lag C - Samer</option><option value="D">Lag D - Isaac</option><option value="E" selected>Lag E - Benji</option><option value="manual">Manuell</option></select></div>
     
     <div class="card">
         <div class="card-title">Grundlön & Karens</div>
