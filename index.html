@@ -16,14 +16,14 @@
     <div class="card">
       <div class="card-title">Profiler</div>
       <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-        <select id="profileSelect" style="flex:1; min-width:150px;" onchange="loadProfile()">
+        <select id="profileSelect" style="flex:1; min-width:150px;" onchange="loadScenario()">
           <option value="">-- Välj profil --</option>
         </select>
-        <button class="reset-btn" onclick="deleteProfile()">Ta bort</button>
+        <button class="reset-btn" onclick="deleteScenario()">Ta bort</button>
       </div>
       <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; align-items:center;">
         <input type="text" id="profileName" placeholder="Ny profil..." style="flex:1; min-width:120px;">
-        <button class="reset-btn" onclick="saveProfile()">Spara</button>
+        <button class="reset-btn" onclick="saveScenario()">Spara</button>
         <button class="reset-btn" onclick="resetAll()">Nollställ allt</button>
       </div>
     </div>
