@@ -16,9 +16,7 @@ const MONTHS = ['Januari','Februari','Mars','April','Maj','Juni','Juli','Augusti
 <script src="js/script.js"></script>
 </body>
 
- 
-
-// ---------- Stationer för lag E ----------
+ // ---------- Stationer för lag E ----------
 const stationsE=['Reaktorn','Dian','Spray'], initials=['B','Y','M'], refStation=new Date(2026,5,9);
 function countWorkShiftsUntil(date,lag){ let cnt=0, d=new Date(refStation); while(daysBetween(d,date)>0){ let sh=getShift(d,lag); if(sh>0 && !isPermissionDay(d,lag)) cnt++; d.setDate(d.getDate()+1); } return cnt; }
 function getStationE(date,shift,lag){ if(shift===0||isPermissionDay(date,lag)) return '-'; let ws=countWorkShiftsUntil(date,lag), idx=ws%3, yidx=(idx+1)%3, midx=(idx+2)%3; let bp=stationsE[idx]+'('+initials[0]+')', yp=stationsE[yidx]+'('+initials[1]+')', mp=stationsE[midx]+'('+initials[2]+')'; let day=date.getDay(); if((day===6 && shift===1 && idx===2)||(day===0 && shift===1 && idx===1)) bp+='🧹'; return bp+' '+yp+' '+mp; }
