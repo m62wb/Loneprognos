@@ -1,5 +1,5 @@
-// ---------- Profilhanterare (minimalt ändrad från fungerande scenariohanterare) ----------
-const STORAGE_KEY = 'loneprognos_profiler';   // ändrad nyckel
+// ---------- Profilhanterare (popup istället för textfält) ----------
+const STORAGE_KEY = 'loneprognos_profiler';
 
 function getAllProfiles() {
   const raw = localStorage.getItem(STORAGE_KEY);
@@ -75,12 +75,11 @@ function applyState(state) {
   }
 }
 
-// Uppdatera dropdownen – enda skillnaden är den svenska texten
 function updateProfileList() {
-  const select = document.getElementById('profileSelect');   // OBS! ID:t har ändrats i HTML
+  const select = document.getElementById('profileSelect');
   if (!select) return;
   const profiles = getAllProfiles();
-  select.innerHTML = '<option value="">-- Välj profil --</option>';   // ändrad text
+  select.innerHTML = '<option value="">-- Välj profil --</option>';
   for (const name of Object.keys(profiles)) {
     const opt = document.createElement('option');
     opt.value = name;
@@ -89,43 +88,47 @@ function updateProfileList() {
   }
 }
 
-// Globala funktioner – SAMMA NAMN som tidigare, så HTML-knapparna fungerar
-window.saveScenario = function () {   // namnet sparat, knappen anropar saveScenario()
-  const nameInput = document.getElementById('profileName');
-  const name = nameInput.value.trim();
-  if (!name) {
-    alert('Ange ett namn på profilen.');   // ändrad text
+// ---- Globala funktioner för HTML ----
+
+// NY funktion – anropas av Spara-knappen istället för saveScenario
+window.saveProfilePopup = function () {
+  const name = prompt('Ange ett namn på profilen:');
+  if (!name || name.trim() === '') {
+    alert('Inget namn angivet – profilen sparades inte.');
     return;
   }
   const state = getCurrentState();
   const profiles = getAllProfiles();
-  profiles[name] = state;
+  profiles[name.trim()] = state;
   saveAllProfiles(profiles);
   updateProfileList();
-  nameInput.value = '';
+  // Sätt dropdownen till den nyss sparade profilen
+  document.getElementById('profileSelect').value = name.trim();
 };
 
-window.loadScenario = function () {   // samma namn, anropas av dropdown onchange
+// Ladda profil (anropas av dropdown onchange)
+window.loadScenario = function () {
   const select = document.getElementById('profileSelect');
   const name = select.value;
-  if (!name) return;   // inget valt
+  if (!name) return;
   const profiles = getAllProfiles();
   const state = profiles[name];
   if (!state) {
-    alert('Profilen kunde inte hittas.');   // ändrad text
+    alert('Profilen kunde inte hittas.');
     return;
   }
   applyState(state);
 };
 
-window.deleteScenario = function () {   // samma namn
+// Ta bort profil
+window.deleteScenario = function () {
   const select = document.getElementById('profileSelect');
   const name = select.value;
   if (!name) {
-    alert('Välj en profil att ta bort.');   // ändrad text
+    alert('Välj en profil att ta bort.');
     return;
   }
-  if (!confirm(`Är du säker på att du vill ta bort profilen "${name}"?`)) {   // ändrad text
+  if (!confirm(`Är du säker på att du vill ta bort profilen "${name}"?`)) {
     return;
   }
   const profiles = getAllProfiles();
@@ -134,7 +137,8 @@ window.deleteScenario = function () {   // samma namn
   updateProfileList();
 };
 
-window.resetAll = function () {   // samma namn
+// Nollställ allt
+window.resetAll = function () {
   if (confirm('Vill du verkligen nollställa alla fält? Detta går inte att ångra.')) {
     salaryInput.value = 37664;
     lagSelect.value = 'E';
@@ -160,7 +164,7 @@ window.resetAll = function () {   // samma namn
   }
 };
 
-// Fyll listan vid sidladdning
+// Fyll dropdownen när sidan laddas
 window.addEventListener('DOMContentLoaded', function () {
   updateProfileList();
 });
