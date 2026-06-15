@@ -14,7 +14,7 @@ const MONTHS = ['Januari','Februari','Mars','April','Maj','Juni','Juli','Augusti
 
 function calcUnion(s){ let f=Math.round(s*UPCT); if(f<UMIN) return UMIN; if(f>UMAX) return UMAX; return f; }
 
-// ---------- Frånvaro och pass (använder fromvaroMap/shiftOverrideMap från scheman.js) ----------
+// ---------- Frånvaro och pass ----------
 function setFromvaro(dateStr, value){
   if(value==="") fromvaroMap.delete(dateStr);
   else if(value==="Semester") fromvaroMap.set(dateStr,1);
@@ -31,148 +31,400 @@ function changeShift(dateStr,val,lag){
   updateUI();
 }
 
-// ---------- Huvudlogik ----------
+// ---------- Tillstånd ----------
 let manualOBOverride=false, lastAutoOB={ob1:0,ob2:0,ob3:0}, lastAutoLag='', lastAutoYear=0, lastAutoMonth=0;
-function updateUI(){
-    let baseSalary=p(salaryInput.value)||0, selectedYear=parseInt(yearSelect.value), selectedMonth=parseInt(monthSelect.value), karensDays=parseInt(karensSelect.value), lag=lagSelect.value, isAuto=(lag!=='manual');
-    let vabD=[...fromvaroMap.values()].filter(v=>v===2).length, parentalD=[...fromvaroMap.values()].filter(v=>v===3).length, totalVABParental=vabD+parentalD, vacationCount=[...fromvaroMap.values()].filter(v=>v===1).length;
-    let ftpD=parseInt(ftpDays.value), sgiVal=Math.min(p(sgiInput.value)||0,SGI_TAK_PARENTAL), extraSick=(karensDays>0||p(sickHours.value)>0)?p(sickHours.value):0;
-    if(karensDays>0||extraSick>0){ sjukOBContainer.classList.add('visible'); sickHoursContainer.classList.add('visible'); } else { sjukOBContainer.classList.remove('visible'); sickHoursContainer.classList.remove('visible'); }
-    if(totalVABParental>0) vabSummary.style.display='flex'; else vabSummary.style.display='none';
-    let driftAddition=Math.round(baseSalary*DRIFT/100), obGroundingBase=baseSalary+driftAddition;
-    obGroundingDisplay.innerText=fc(obGroundingBase)+' kr';
-    let ob1RatePerHour=obGroundingBase/O1D, ob2RatePerHour=obGroundingBase/O2D, ob3RatePerHour=obGroundingBase/O3D, otRatePerHour=obGroundingBase/OTD, otEnkelRatePerHour=obGroundingBase/OTENKELD;
-    let sickRate100=baseSalary/141.667, sickRate80=baseSalary/177.0837;
-    ob1Rate.innerText='/460 = '+fd(ob1RatePerHour,2)+' kr/h'; ob2Rate.innerText='/260 = '+fd(ob2RatePerHour,2)+' kr/h'; ob3Rate.innerText='/150 = '+fd(ob3RatePerHour,2)+' kr/h'; otRate.innerText='/72 = '+fd(otRatePerHour,2)+' kr/h'; otEnkelRate.innerText='/94 = '+fd(otEnkelRatePerHour,2)+' kr/h';
-    let semesterSupplementPerDay = (baseSalary + driftAddition) / 125;
-    let semesterTillagg = f2(vacationCount * semesterSupplementPerDay);
-    let karensHours=karensDays*6.8, karensDeduction=karensDays>0?f2(karensHours*sickRate100):0;
-    let sickDeduct100=f2(extraSick*sickRate100), sickPay80=f2(extraSick*sickRate80), sickNetLoss=f2(sickDeduct100-sickPay80), totalSickLoss=f2(karensDeduction+sickNetLoss);
-    let vabParentalHours=totalVABParental*VAB_HPD, vabParentalDeduction=f2(vabParentalHours*sickRate100);
-    let sgiVab=Math.min(sgiVal,SGI_TAK_VAB), sgiVabDay=f2(sgiVab/365*0.8), fkVabTotal=f2(vabD*sgiVabDay);
-    let sgiPar=Math.min(sgiVal,SGI_TAK_PARENTAL), fpDayAmt=Math.min(1259,f2(sgiPar/365*0.776)), fkFpTotal=f2(parentalD*fpDayAmt);
-    let fptDayAmt=f2(baseSalary/30*0.10), fkFptTotal=f2(ftpD*fptDayAmt);
-    let fkVabTax=f2(fkVabTotal*FK_SKATT), fkFpTax=f2(fkFpTotal*FK_SKATT), fkFptTax=f2(fkFptTotal*FK_SKATT);
-    let fkVabNet=f2(fkVabTotal-fkVabTax), fkFpNet=f2(fkFpTotal-fkFpTax), fkFptNet=f2(fkFptTotal-fkFptTax), totalErsattningNetto=f2(fkVabNet+fkFpNet+fkFptNet);
-    
-    let obYear = selectedYear, obMonth = selectedMonth - 1;
-    if(obMonth === 0) { obMonth = 12; obYear--; }
-    
-    let autoOB=null; if(isAuto){ autoOB=getOBForMonth(obYear,obMonth,lag); if(lag!==lastAutoLag||obYear!==lastAutoYear||obMonth!==lastAutoMonth) manualOBOverride=false; lastAutoLag=lag; lastAutoYear=obYear; lastAutoMonth=obMonth; lastAutoOB=autoOB; } else manualOBOverride=false;
-    let lockEnabled=obLockToggle.checked, obData;
-    document.getElementById('lockLabel').innerText = lockEnabled ? 'Låst' : 'Lås';
-    
-    if(isAuto&&lockEnabled&&!manualOBOverride){ ob1Hours.value=fd(autoOB.ob1,2); ob2Hours.value=fd(autoOB.ob2,2); ob3Hours.value=fd(autoOB.ob3,2); ob1Hours.disabled=ob2Hours.disabled=ob3Hours.disabled=true; obData=autoOB; }
-    else if(isAuto&&lockEnabled&&manualOBOverride){ ob1Hours.disabled=ob2Hours.disabled=ob3Hours.disabled=true; obData={ob1:p(ob1Hours.value),ob2:p(ob2Hours.value),ob3:p(ob3Hours.value)}; }
-    else{ ob1Hours.disabled=ob2Hours.disabled=ob3Hours.disabled=false; if(isAuto&&!lockEnabled){ let c1=p(ob1Hours.value),c2=p(ob2Hours.value),c3=p(ob3Hours.value); if(Math.abs(c1-lastAutoOB.ob1)>0.001||Math.abs(c2-lastAutoOB.ob2)>0.001||Math.abs(c3-lastAutoOB.ob3)>0.001) manualOBOverride=true; if(!manualOBOverride){ ob1Hours.value=fd(autoOB.ob1,2); ob2Hours.value=fd(autoOB.ob2,2); ob3Hours.value=fd(autoOB.ob3,2); } obData={ob1:p(ob1Hours.value),ob2:p(ob2Hours.value),ob3:p(ob3Hours.value)}; } else obData={ob1:p(ob1Hours.value),ob2:p(ob2Hours.value),ob3:p(ob3Hours.value)}; }
-    let otH=p(otHours.value), otEnkelH=p(otEnkelHours.value);
-    let ob1Amount=Math.round(obData.ob1*ob1RatePerHour), ob2Amount=Math.round(obData.ob2*ob2RatePerHour), ob3Amount=Math.round(obData.ob3*ob3RatePerHour), otAmount=Math.round(otH*otRatePerHour), otEnkelAmount=Math.round(otEnkelH*otEnkelRatePerHour);
-    let totalOBOnly=ob1Amount+ob2Amount+ob3Amount, totalOBOnlyHours=obData.ob1+obData.ob2+obData.ob3, totalOB=totalOBOnly+otAmount+otEnkelAmount;
-    
-    let sjukOb1H=(karensDays>0||extraSick>0)?p(sjukOb1Hours.value):0;
-    let sjukOb2H=(karensDays>0||extraSick>0)?p(sjukOb2Hours.value):0;
-    let sjukOb3H=(karensDays>0||extraSick>0)?p(sjukOb3Hours.value):0;
-    let sjukOb1Loss=f2(sjukOb1H*ob1RatePerHour*0.2), sjukOb2Loss=f2(sjukOb2H*ob2RatePerHour*0.2), sjukOb3Loss=f2(sjukOb3H*ob3RatePerHour*0.2), totalSjukOB=f2(sjukOb1Loss+sjukOb2Loss+sjukOb3Loss);
-    
-    let totalBeforeKarens=obGroundingBase+totalOB+semesterTillagg;
-    let jobbBrutto=f2(totalBeforeKarens-totalSickLoss-totalSjukOB-vabParentalDeduction);
-    let tax=taxFromTable33Col1(jobbBrutto);
-    let netBeforeFack=f2(jobbBrutto-tax);
-    let unionFee=calcUnion(jobbBrutto);
-    let jobbNetto=f2(netBeforeFack-unionFee);
-    let netSalary=f2(jobbNetto+totalErsattningNetto);
-    
-    let lagName={A:'Lag A',B:'Lag B',C:'Lag C',D:'Lag D',E:'Lag E'}[lag]||'Manuell';
-    document.getElementById('selectedPeriod').innerText=MONTHS[selectedMonth-1]+' '+selectedYear+' · '+karensDays+' karensdag'+(karensDays!==1?'ar':'')+(extraSick>0?' +'+fd(extraSick,1)+'h sjuk':'')+' · '+lagName;
-    if(isAuto) document.getElementById('tableMonthLabel').innerText=MONTHS[obMonth-1]+' '+obYear; 
-    else document.getElementById('tableMonthLabel').innerText='—';
-    document.getElementById('finalNetSalary').innerText=fc(netSalary)+' kr';
-    document.getElementById('overviewTotalNet').innerText=fc(netSalary)+' kr';
-    
-    // Översikt
-    let obOTHTML='<div class="expandable-chip" onclick="toggleExpand(this)"><div class="expandable-header"><span>Totalt OB</span><span>'+fd(totalOBOnlyHours,2)+'h / +'+fc(totalOBOnly)+' kr <span class="expandable-arrow">▼</span></span></div><div class="expandable-details"><div class="tax-detail-row">OB1 ('+fd(obData.ob1,2)+'h x '+fd(ob1RatePerHour,2)+' kr): +'+fc(ob1Amount)+' kr</div><div class="tax-detail-row">OB2 ('+fd(obData.ob2,2)+'h x '+fd(ob2RatePerHour,2)+' kr): +'+fc(ob2Amount)+' kr</div><div class="tax-detail-row">OB3 ('+fd(obData.ob3,2)+'h x '+fd(ob3RatePerHour,2)+' kr): +'+fc(ob3Amount)+' kr</div><div class="tax-detail-row total">Summa OB: '+fd(totalOBOnlyHours,2)+'h / +'+fc(totalOBOnly)+' kr</div></div></div>';
-    if(otH>0) obOTHTML+='<div class="detail-chip"><span>Övertid ('+fd(otH,2)+'h x '+fd(otRatePerHour,2)+' kr)</span><span>+'+fc(otAmount)+' kr</span></div>';
-    if(otEnkelH>0) obOTHTML+='<div class="detail-chip"><span>ÖT enkel ('+fd(otEnkelH,2)+'h x '+fd(otEnkelRatePerHour,2)+' kr)</span><span>+'+fc(otEnkelAmount)+' kr</span></div>';
-    let karensHTML='', extraSickHTML='', sjukObHTML='', vabHTML='', semesterHTML='', bidragHTML='';
-    if(karensDays>0) karensHTML='<div class="detail-chip danger"><span>Karens</span><span>'+karensDays+' dag'+(karensDays>1?'ar':'')+'</span></div>';
-    if(extraSick>0) extraSickHTML='<div class="detail-chip danger"><span>Sjuktimmar</span><span>'+fd(extraSick,1)+'h (netto -20%)</span></div>';
-    if(totalSjukOB>0) sjukObHTML='<div class="detail-chip danger"><span>Sjuk-OB förlust</span><span>-'+fc(totalSjukOB)+' kr</span></div>';
-    if(totalVABParental>0) vabHTML='<div class="detail-chip danger"><span>VAB/F-ledig avdrag</span><span>-'+fc(vabParentalDeduction)+' kr</span></div>';
-    if(vacationCount>0) semesterHTML='<div class="detail-chip info"><span>Semestertillägg ('+vacationCount+' dgr, '+fd(semesterSupplementPerDay,2)+' kr/d)</span><span>+'+fc(semesterTillagg)+' kr</span></div>';
-    if(totalVABParental>0||ftpD>0) bidragHTML='<div class="detail-chip success"><span>FK/AFA netto</span><span>+'+fc(totalErsattningNetto)+' kr</span></div>';
-    let detailHTML='<div class="detail-chip"><span>Grundlön</span><span>'+fc(baseSalary)+' kr</span></div><div class="detail-chip"><span>OB-grundande</span><span>'+fc(obGroundingBase)+' kr</span></div>'+obOTHTML+semesterHTML+karensHTML+extraSickHTML+sjukObHTML+vabHTML+bidragHTML+'<div class="detail-chip"><span>Bruttolön jobb</span><span>'+fc(jobbBrutto)+' kr</span></div><div class="detail-chip"><span>Skatt (tabell 33)</span><span>-'+fc(tax)+' kr</span></div><div class="detail-chip"><span>Nettolön före fack</span><span>'+fc(netBeforeFack)+' kr</span></div><div class="detail-chip"><span>IF Metall</span><span>-'+fc(unionFee)+' kr</span></div><div class="detail-chip"><span>Nettolön jobb</span><span>'+fc(jobbNetto)+' kr</span></div>';
-    if(totalErsattningNetto>0) detailHTML+='<div class="detail-chip success"><span>Nettolön bidrag</span><span>+'+fc(totalErsattningNetto)+' kr</span></div>';
-    detailHTML+='<div class="detail-chip success"><strong>Totalt netto: '+fc(netSalary)+' kr</strong></div>';
-    document.getElementById('detailGrid').innerHTML=detailHTML;
-    
-    // Dagsschema
-    if(isAuto){
-        let daysInMonth=new Date(obYear,obMonth,0).getDate();
-        let shiftNames=['Ledig','Dag','Natt'];
-        let tbody='';
-        for(let d=1;d<=daysInMonth;d++){
-            let date=new Date(obYear,obMonth-1,d);
-            let dateStr=date.toISOString().split('T')[0];
-            let fromvaroVal=fromvaroMap.get(dateStr)||0;
-            let shift=getShift(date,lag);
-            let ob=calcOB(date,shift,lag);
-            let isPerm=isPermissionDay(date,lag);
-            if (fromvaroVal !== 0) ob = {ob1:0, ob2:0, ob3:0};
-            let dayName=['Sön','Mån','Tis','Ons','Tor','Fre','Lör'][date.getDay()];
-            let shiftText=isPerm?'Perm':shiftNames[shift];
-            if(shiftOverrideMap.has(dateStr)&&!isPerm) shiftText+='*';
-            let fromvaroText="";
-            if(fromvaroVal===1) fromvaroText="Semester";
-            else if(fromvaroVal===2) fromvaroText="VAB";
-            else if(fromvaroVal===3) fromvaroText="F-ledig";
-            let station=(lag==='E')?getStationE(date,shift,lag):'-';
-            let rowClass="";
-            if(shift>0 && !isPerm && fromvaroVal===0) rowClass="row-active";
-            if(fromvaroVal===1) rowClass+=" row-vacation";
-            else if(fromvaroVal===2) rowClass+=" row-vab";
-            else if(fromvaroVal===3) rowClass+=" row-parental";
-            let fromvaroCell = "";
-            if (shift !== 0) {
-                fromvaroCell = `<select class="fromvaro-select" onchange="setFromvaro('${dateStr}',this.value)" onclick="event.stopPropagation()">
-                    <option value="" ${fromvaroText===""?'selected':''}>Ingen</option>
-                    <option value="Semester" ${fromvaroText==="Semester"?'selected':''}>Sem</option>
-                    <option value="VAB" ${fromvaroText==="VAB"?'selected':''}>VAB</option>
-                    <option value="F-ledig" ${fromvaroText==="F-ledig"?'selected':''}>F-ledig</option>
-                </select>`;
-            }
-            let passSelect=`<select class="shift-select" onchange="changeShift('${dateStr}',this.value,'${lag}')" onclick="event.stopPropagation()">
-                <option value="0" ${shift===0?'selected':''}>Led</option>
-                <option value="1" ${shift===1?'selected':''}>Dag</option>
-                <option value="2" ${shift===2?'selected':''}>Natt</option>
-            </select>`;
-            tbody+=`<tr class="${rowClass}"><td>${d} ${dayName}</td><td>${shiftText}</td><td>${fd(ob.ob1,2)}h</td><td>${fd(ob.ob2,2)}h</td><td>${fd(ob.ob3,2)}h</td><td>${fromvaroCell}</td><td>${station}</td><td>${passSelect}</td></tr>`;
-        }
-        document.querySelector('#salaryTable tbody').innerHTML=tbody;
-    } else {
-        document.querySelector('#salaryTable tbody').innerHTML='<tr><td colspan="8">Välj ett lag</td></tr>';
+
+// ---------- Beräkningsfunktioner ----------
+
+/**
+ * Samlar alla parametrar och returnerar ett objekt med ALLA beräknade värden.
+ * Rör INTE DOM. Det gör renderUI().
+ */
+function calculateEverything() {
+  const baseSalary = p(salaryInput.value) || 0;
+  const selectedYear = parseInt(yearSelect.value);
+  const selectedMonth = parseInt(monthSelect.value);
+  const karensDays = parseInt(karensSelect.value);
+  const lag = lagSelect.value;
+  const isAuto = (lag !== 'manual');
+
+  const ftpD = parseInt(ftpDays.value);
+  const sgiVal = Math.min(p(sgiInput.value) || 0, SGI_TAK_PARENTAL);
+  const extraSick = (karensDays > 0 || p(sickHours.value) > 0) ? p(sickHours.value) : 0;
+  const sickVisible = karensDays > 0 || extraSick > 0;
+
+  const vabD = [...fromvaroMap.values()].filter(v => v === 2).length;
+  const parentalD = [...fromvaroMap.values()].filter(v => v === 3).length;
+  const totalVABParental = vabD + parentalD;
+  const vacationCount = [...fromvaroMap.values()].filter(v => v === 1).length;
+
+  const driftAddition = Math.round(baseSalary * DRIFT / 100);
+  const obGroundingBase = baseSalary + driftAddition;
+
+  const ob1RatePerHour = obGroundingBase / O1D;
+  const ob2RatePerHour = obGroundingBase / O2D;
+  const ob3RatePerHour = obGroundingBase / O3D;
+  const otRatePerHour = obGroundingBase / OTD;
+  const otEnkelRatePerHour = obGroundingBase / OTENKELD;
+
+  const sickRate100 = baseSalary / 141.667;
+  const sickRate80 = baseSalary / 177.0837;
+
+  const semesterSupplementPerDay = (baseSalary + driftAddition) / 125;
+  const semesterTillagg = f2(vacationCount * semesterSupplementPerDay);
+
+  // Karens och sjuklön
+  const karensHours = karensDays * 6.8;
+  const karensDeduction = karensDays > 0 ? f2(karensHours * sickRate100) : 0;
+  const sickDeduct100 = f2(extraSick * sickRate100);
+  const sickPay80 = f2(extraSick * sickRate80);
+  const sickNetLoss = f2(sickDeduct100 - sickPay80);
+  const totalSickLoss = f2(karensDeduction + sickNetLoss);
+
+  // VAB/F-ledig avdrag
+  const vabParentalHours = totalVABParental * VAB_HPD;
+  const vabParentalDeduction = f2(vabParentalHours * sickRate100);
+
+  // Försäkringskassan
+  const sgiVab = Math.min(sgiVal, SGI_TAK_VAB);
+  const sgiVabDay = f2(sgiVab / 365 * 0.8);
+  const fkVabTotal = f2(vabD * sgiVabDay);
+
+  const sgiPar = Math.min(sgiVal, SGI_TAK_PARENTAL);
+  const fpDayAmt = Math.min(1259, f2(sgiPar / 365 * 0.776));
+  const fkFpTotal = f2(parentalD * fpDayAmt);
+
+  const fptDayAmt = f2(baseSalary / 30 * 0.10);
+  const fkFptTotal = f2(ftpD * fptDayAmt);
+
+  const fkVabTax = f2(fkVabTotal * FK_SKATT);
+  const fkFpTax = f2(fkFpTotal * FK_SKATT);
+  const fkFptTax = f2(fkFptTotal * FK_SKATT);
+
+  const fkVabNet = f2(fkVabTotal - fkVabTax);
+  const fkFpNet = f2(fkFpTotal - fkFpTax);
+  const fkFptNet = f2(fkFptTotal - fkFptTax);
+  const totalErsattningNetto = f2(fkVabNet + fkFpNet + fkFptNet);
+
+  // OB-månad (föregående)
+  let obYear = selectedYear, obMonth = selectedMonth - 1;
+  if (obMonth === 0) { obMonth = 12; obYear--; }
+
+  // Automatisk OB
+  let autoOB = null;
+  if (isAuto) {
+    autoOB = getOBForMonth(obYear, obMonth, lag);
+    if (lag !== lastAutoLag || obYear !== lastAutoYear || obMonth !== lastAutoMonth) {
+      manualOBOverride = false;
     }
+    lastAutoLag = lag;
+    lastAutoYear = obYear;
+    lastAutoMonth = obMonth;
+    lastAutoOB = autoOB;
+  } else {
+    manualOBOverride = false;
+  }
+
+  const lockEnabled = obLockToggle.checked;
+  let obData; // {ob1, ob2, ob3}
+  if (isAuto && lockEnabled && !manualOBOverride) {
+    obData = autoOB;
+  } else if (isAuto && lockEnabled && manualOBOverride) {
+    obData = {ob1: p(ob1Hours.value), ob2: p(ob2Hours.value), ob3: p(ob3Hours.value)};
+  } else {
+    if (isAuto && !lockEnabled) {
+      const c1 = p(ob1Hours.value), c2 = p(ob2Hours.value), c3 = p(ob3Hours.value);
+      if (Math.abs(c1 - lastAutoOB.ob1) > 0.001 || Math.abs(c2 - lastAutoOB.ob2) > 0.001 || Math.abs(c3 - lastAutoOB.ob3) > 0.001) {
+        manualOBOverride = true;
+      }
+      if (!manualOBOverride) {
+        ob1Hours.value = fd(autoOB.ob1, 2);
+        ob2Hours.value = fd(autoOB.ob2, 2);
+        ob3Hours.value = fd(autoOB.ob3, 2);
+      }
+      obData = {ob1: p(ob1Hours.value), ob2: p(ob2Hours.value), ob3: p(ob3Hours.value)};
+    } else {
+      obData = {ob1: p(ob1Hours.value), ob2: p(ob2Hours.value), ob3: p(ob3Hours.value)};
+    }
+  }
+
+  const otH = p(otHours.value), otEnkelH = p(otEnkelHours.value);
+  const ob1Amount = Math.round(obData.ob1 * ob1RatePerHour);
+  const ob2Amount = Math.round(obData.ob2 * ob2RatePerHour);
+  const ob3Amount = Math.round(obData.ob3 * ob3RatePerHour);
+  const otAmount = Math.round(otH * otRatePerHour);
+  const otEnkelAmount = Math.round(otEnkelH * otEnkelRatePerHour);
+  const totalOBOnly = ob1Amount + ob2Amount + ob3Amount;
+  const totalOBOnlyHours = obData.ob1 + obData.ob2 + obData.ob3;
+  const totalOB = totalOBOnly + otAmount + otEnkelAmount;
+
+  // Sjuk-OB
+  const sjukOb1H = sickVisible ? p(sjukOb1Hours.value) : 0;
+  const sjukOb2H = sickVisible ? p(sjukOb2Hours.value) : 0;
+  const sjukOb3H = sickVisible ? p(sjukOb3Hours.value) : 0;
+  const sjukOb1Loss = f2(sjukOb1H * ob1RatePerHour * 0.2);
+  const sjukOb2Loss = f2(sjukOb2H * ob2RatePerHour * 0.2);
+  const sjukOb3Loss = f2(sjukOb3H * ob3RatePerHour * 0.2);
+  const totalSjukOB = f2(sjukOb1Loss + sjukOb2Loss + sjukOb3Loss);
+
+  // Brutto/netto
+  const totalBeforeKarens = obGroundingBase + totalOB + semesterTillagg;
+  const jobbBrutto = f2(totalBeforeKarens - totalSickLoss - totalSjukOB - vabParentalDeduction);
+  const tax = taxFromTable33Col1(jobbBrutto);
+  const netBeforeFack = f2(jobbBrutto - tax);
+  const unionFee = calcUnion(jobbBrutto);
+  const jobbNetto = f2(netBeforeFack - unionFee);
+  const netSalary = f2(jobbNetto + totalErsattningNetto);
+
+  return {
+    baseSalary, selectedYear, selectedMonth, karensDays, lag, isAuto,
+    sickVisible, extraSick, totalVABParental, vacationCount,
+    driftAddition, obGroundingBase,
+    ob1RatePerHour, ob2RatePerHour, ob3RatePerHour, otRatePerHour, otEnkelRatePerHour,
+    semesterSupplementPerDay, semesterTillagg,
+    karensDeduction, totalSickLoss,
+    vabParentalDeduction, totalErsattningNetto,
+    obYear, obMonth, lockEnabled, obData, autoOB,
+    ob1Amount, ob2Amount, ob3Amount, otAmount, otEnkelAmount,
+    totalOBOnly, totalOBOnlyHours, totalOB,
+    sjukOb1Loss, sjukOb2Loss, sjukOb3Loss, totalSjukOB,
+    jobbBrutto, tax, netBeforeFack, unionFee, jobbNetto, netSalary
+  };
 }
-function updateYearSummary(){ let y=parseInt(yearSelect.value), lag=lagSelect.value; if(lag==='manual'){ document.getElementById('yearSummaryGrid').innerHTML='Välj lag'; return; } document.getElementById('yearSummaryYear').innerText=y; let bs=p(salaryInput.value)||0, da=Math.round(bs*DRIFT/100), obBase=bs+da, o1r=obBase/O1D, o2r=obBase/O2D, o3r=obBase/O3D, totBrutto=0, totNetto=0, totSkatt=0, totFack=0, totOB=0; for(let m=1;m<=12;m++){ let obData=getOBForMonth(y,m,lag), ob1Amt=Math.round(obData.ob1*o1r), ob2Amt=Math.round(obData.ob2*o2r), ob3Amt=Math.round(obData.ob3*o3r), mOB=ob1Amt+ob2Amt+ob3Amt; totOB+=mOB; let jb=obBase+mOB, tax=taxFromTable33Col1(jb), uf=calcUnion(jb), net=jb-tax-uf; totBrutto+=jb; totNetto+=net; totSkatt+=tax; totFack+=uf; } document.getElementById('yearSummaryGrid').innerHTML=`<div>Total bruttolön: ${fc(totBrutto)} kr</div><div>Total nettolön: ${fc(totNetto)} kr</div><div>Total skatt: -${fc(totSkatt)} kr</div><div>Fackavgift: -${fc(totFack)} kr</div><div>Totalt OB: +${fc(totOB)} kr</div>`; }
 
-function resetOB(){ if (!manualOBOverride) return; manualOBOverride=false; let lag=lagSelect.value; if(lag!=='manual'){ let y=parseInt(yearSelect.value), m=parseInt(monthSelect.value); let om=m-1; if(om===0){ om=12; y--; } let ob=getOBForMonth(y,om,lag); ob1Hours.value=fd(ob.ob1,2); ob2Hours.value=fd(ob.ob2,2); ob3Hours.value=fd(ob.ob3,2); } else { ob1Hours.value='0'; ob2Hours.value='0'; ob3Hours.value='0'; } updateUI(); }
+/**
+ * Uppdaterar HELA gränssnittet med data från calculateEverything().
+ */
+function renderUI(data) {
+  // Hjälpvariabler
+  const lagName = {A:'Lag A',B:'Lag B',C:'Lag C',D:'Lag D',E:'Lag E'}[data.lag] || 'Manuell';
 
+  // Visa/dölj sjuk-sektioner
+  if (data.sickVisible) {
+    sjukOBContainer.classList.add('visible');
+    sickHoursContainer.classList.add('visible');
+  } else {
+    sjukOBContainer.classList.remove('visible');
+    sickHoursContainer.classList.remove('visible');
+  }
+  vabSummary.style.display = data.totalVABParental > 0 ? 'flex' : 'none';
+
+  // OB-grundande
+  obGroundingDisplay.innerText = fc(data.obGroundingBase) + ' kr';
+
+  // Timpriser
+  ob1Rate.innerText = '/460 = ' + fd(data.ob1RatePerHour, 2) + ' kr/h';
+  ob2Rate.innerText = '/260 = ' + fd(data.ob2RatePerHour, 2) + ' kr/h';
+  ob3Rate.innerText = '/150 = ' + fd(data.ob3RatePerHour, 2) + ' kr/h';
+  otRate.innerText = '/72 = ' + fd(data.otRatePerHour, 2) + ' kr/h';
+  otEnkelRate.innerText = '/94 = ' + fd(data.otEnkelRatePerHour, 2) + ' kr/h';
+
+  // Lås-etikett & låsta OB-fält
+  document.getElementById('lockLabel').innerText = data.lockEnabled ? 'Låst' : 'Lås';
+  ob1Hours.disabled = data.lockEnabled;
+  ob2Hours.disabled = data.lockEnabled;
+  ob3Hours.disabled = data.lockEnabled;
+  if (data.isAuto && data.lockEnabled && !manualOBOverride) {
+    ob1Hours.value = fd(data.autoOB.ob1, 2);
+    ob2Hours.value = fd(data.autoOB.ob2, 2);
+    ob3Hours.value = fd(data.autoOB.ob3, 2);
+  } else if (!data.lockEnabled) {
+    // fälten är redan redigerbara – behåller sina värden
+  }
+
+  // Periodinfo
+  document.getElementById('selectedPeriod').innerText =
+    MONTHS[data.selectedMonth-1] + ' ' + data.selectedYear +
+    ' · ' + data.karensDays + ' karensdag' + (data.karensDays !== 1 ? 'ar' : '') +
+    (data.extraSick > 0 ? ' +' + fd(data.extraSick, 1) + 'h sjuk' : '') +
+    ' · ' + lagName;
+
+  document.getElementById('tableMonthLabel').innerText =
+    data.isAuto ? MONTHS[data.obMonth-1] + ' ' + data.obYear : '—';
+
+  document.getElementById('finalNetSalary').innerText = fc(data.netSalary) + ' kr';
+  document.getElementById('overviewTotalNet').innerText = fc(data.netSalary) + ' kr';
+
+  // ---- Översiktskort ----
+  let obOTHTML = '';
+  if (data.totalOBOnlyHours > 0) {
+    obOTHTML = '<div class="expandable-chip" onclick="toggleExpand(this)">' +
+      '<div class="expandable-header"><span>Totalt OB</span><span>' + fd(data.totalOBOnlyHours, 2) + 'h / +' + fc(data.totalOBOnly) + ' kr <span class="expandable-arrow">▼</span></span></div>' +
+      '<div class="expandable-details">' +
+      '<div class="tax-detail-row">OB1 (' + fd(data.obData.ob1, 2) + 'h x ' + fd(data.ob1RatePerHour, 2) + ' kr): +' + fc(data.ob1Amount) + ' kr</div>' +
+      '<div class="tax-detail-row">OB2 (' + fd(data.obData.ob2, 2) + 'h x ' + fd(data.ob2RatePerHour, 2) + ' kr): +' + fc(data.ob2Amount) + ' kr</div>' +
+      '<div class="tax-detail-row">OB3 (' + fd(data.obData.ob3, 2) + 'h x ' + fd(data.ob3RatePerHour, 2) + ' kr): +' + fc(data.ob3Amount) + ' kr</div>' +
+      '<div class="tax-detail-row total">Summa OB: ' + fd(data.totalOBOnlyHours, 2) + 'h / +' + fc(data.totalOBOnly) + ' kr</div>' +
+      '</div></div>';
+  }
+  if (data.otAmount > 0) obOTHTML += '<div class="detail-chip"><span>Övertid (' + fd(data.otH || p(otHours.value), 2) + 'h x ' + fd(data.otRatePerHour, 2) + ' kr)</span><span>+' + fc(data.otAmount) + ' kr</span></div>';
+  if (data.otEnkelAmount > 0) obOTHTML += '<div class="detail-chip"><span>ÖT enkel (' + fd(data.otEnkelH || p(otEnkelHours.value), 2) + 'h x ' + fd(data.otEnkelRatePerHour, 2) + ' kr)</span><span>+' + fc(data.otEnkelAmount) + ' kr</span></div>';
+
+  let karensHTML = data.karensDays > 0 ? '<div class="detail-chip danger"><span>Karens</span><span>' + data.karensDays + ' dag' + (data.karensDays > 1 ? 'ar' : '') + '</span></div>' : '';
+  let extraSickHTML = data.extraSick > 0 ? '<div class="detail-chip danger"><span>Sjuktimmar</span><span>' + fd(data.extraSick, 1) + 'h (netto -20%)</span></div>' : '';
+  let sjukObHTML = data.totalSjukOB > 0 ? '<div class="detail-chip danger"><span>Sjuk-OB förlust</span><span>-' + fc(data.totalSjukOB) + ' kr</span></div>' : '';
+  let vabHTML = data.totalVABParental > 0 ? '<div class="detail-chip danger"><span>VAB/F-ledig avdrag</span><span>-' + fc(data.vabParentalDeduction) + ' kr</span></div>' : '';
+  let semesterHTML = data.vacationCount > 0 ? '<div class="detail-chip info"><span>Semestertillägg (' + data.vacationCount + ' dgr, ' + fd(data.semesterSupplementPerDay, 2) + ' kr/d)</span><span>+' + fc(data.semesterTillagg) + ' kr</span></div>' : '';
+  let bidragHTML = (data.totalVABParental > 0 || ftpDays.value > 0) ? '<div class="detail-chip success"><span>FK/AFA netto</span><span>+' + fc(data.totalErsattningNetto) + ' kr</span></div>' : '';
+
+  let detailHTML =
+    '<div class="detail-chip"><span>Grundlön</span><span>' + fc(data.baseSalary) + ' kr</span></div>' +
+    '<div class="detail-chip"><span>OB-grundande</span><span>' + fc(data.obGroundingBase) + ' kr</span></div>' +
+    obOTHTML +
+    semesterHTML +
+    karensHTML + extraSickHTML + sjukObHTML + vabHTML + bidragHTML +
+    '<div class="detail-chip"><span>Bruttolön jobb</span><span>' + fc(data.jobbBrutto) + ' kr</span></div>' +
+    '<div class="detail-chip"><span>Skatt (tabell 33)</span><span>-' + fc(data.tax) + ' kr</span></div>' +
+    '<div class="detail-chip"><span>Nettolön före fack</span><span>' + fc(data.netBeforeFack) + ' kr</span></div>' +
+    '<div class="detail-chip"><span>IF Metall</span><span>-' + fc(data.unionFee) + ' kr</span></div>' +
+    '<div class="detail-chip"><span>Nettolön jobb</span><span>' + fc(data.jobbNetto) + ' kr</span></div>';
+  if (data.totalErsattningNetto > 0) detailHTML += '<div class="detail-chip success"><span>Nettolön bidrag</span><span>+' + fc(data.totalErsattningNetto) + ' kr</span></div>';
+  detailHTML += '<div class="detail-chip success"><strong>Totalt netto: ' + fc(data.netSalary) + ' kr</strong></div>';
+
+  document.getElementById('detailGrid').innerHTML = detailHTML;
+
+  // ---- Dagsschema ----
+  if (data.isAuto) {
+    let daysInMonth = new Date(data.obYear, data.obMonth, 0).getDate();
+    let shiftNames = ['Ledig', 'Dag', 'Natt'];
+    let tbody = '';
+    for (let d = 1; d <= daysInMonth; d++) {
+      let date = new Date(data.obYear, data.obMonth - 1, d);
+      let dateStr = date.toISOString().split('T')[0];
+      let fromvaroVal = fromvaroMap.get(dateStr) || 0;
+      let shift = getShift(date, data.lag);
+      let ob = calcOB(date, shift, data.lag);
+      let isPerm = isPermissionDay(date, data.lag);
+      if (fromvaroVal !== 0) ob = {ob1:0, ob2:0, ob3:0};
+      let dayName = ['Sön','Mån','Tis','Ons','Tor','Fre','Lör'][date.getDay()];
+      let shiftText = isPerm ? 'Perm' : shiftNames[shift];
+      if (shiftOverrideMap.has(dateStr) && !isPerm) shiftText += '*';
+      let fromvaroText = '';
+      if (fromvaroVal === 1) fromvaroText = 'Semester';
+      else if (fromvaroVal === 2) fromvaroText = 'VAB';
+      else if (fromvaroVal === 3) fromvaroText = 'F-ledig';
+      let station = (data.lag === 'E') ? getStationE(date, shift, data.lag) : '-';
+      let rowClass = '';
+      if (shift > 0 && !isPerm && fromvaroVal === 0) rowClass = 'row-active';
+      if (fromvaroVal === 1) rowClass += ' row-vacation';
+      else if (fromvaroVal === 2) rowClass += ' row-vab';
+      else if (fromvaroVal === 3) rowClass += ' row-parental';
+      let fromvaroCell = '';
+      if (shift !== 0) {
+        fromvaroCell = `<select class="fromvaro-select" onchange="setFromvaro('${dateStr}',this.value)" onclick="event.stopPropagation()">
+          <option value="" ${fromvaroText===""?'selected':''}>Ingen</option>
+          <option value="Semester" ${fromvaroText==="Semester"?'selected':''}>Sem</option>
+          <option value="VAB" ${fromvaroText==="VAB"?'selected':''}>VAB</option>
+          <option value="F-ledig" ${fromvaroText==="F-ledig"?'selected':''}>F-ledig</option>
+        </select>`;
+      }
+      let passSelect = `<select class="shift-select" onchange="changeShift('${dateStr}',this.value,'${data.lag}')" onclick="event.stopPropagation()">
+        <option value="0" ${shift===0?'selected':''}>Led</option>
+        <option value="1" ${shift===1?'selected':''}>Dag</option>
+        <option value="2" ${shift===2?'selected':''}>Natt</option>
+      </select>`;
+      tbody += `<tr class="${rowClass}"><td>${d} ${dayName}</td><td>${shiftText}</td><td>${fd(ob.ob1,2)}h</td><td>${fd(ob.ob2,2)}h</td><td>${fd(ob.ob3,2)}h</td><td>${fromvaroCell}</td><td>${station}</td><td>${passSelect}</td></tr>`;
+    }
+    document.querySelector('#salaryTable tbody').innerHTML = tbody;
+  } else {
+    document.querySelector('#salaryTable tbody').innerHTML = '<tr><td colspan="8">Välj ett lag</td></tr>';
+  }
+}
+
+// ---------- Huvudentré ----------
+function updateUI() {
+  const data = calculateEverything();
+  renderUI(data);
+}
+
+// ---------- Årsöversikt ----------
+function updateYearSummary(){
+  let y = parseInt(yearSelect.value), lag = lagSelect.value;
+  if (lag === 'manual'){ document.getElementById('yearSummaryGrid').innerHTML='Välj lag'; return; }
+  document.getElementById('yearSummaryYear').innerText = y;
+  let bs = p(salaryInput.value)||0, da = Math.round(bs*DRIFT/100), obBase = bs+da;
+  let o1r = obBase/O1D, o2r = obBase/O2D, o3r = obBase/O3D;
+  let totBrutto=0, totNetto=0, totSkatt=0, totFack=0, totOB=0;
+  for (let m=1; m<=12; m++){
+    let obData = getOBForMonth(y, m, lag);
+    let ob1Amt = Math.round(obData.ob1*o1r), ob2Amt = Math.round(obData.ob2*o2r), ob3Amt = Math.round(obData.ob3*o3r);
+    let mOB = ob1Amt+ob2Amt+ob3Amt;
+    totOB += mOB;
+    let jb = obBase+mOB, tax = taxFromTable33Col1(jb), uf = calcUnion(jb), net = jb-tax-uf;
+    totBrutto += jb; totNetto += net; totSkatt += tax; totFack += uf;
+  }
+  document.getElementById('yearSummaryGrid').innerHTML =
+    `<div>Total bruttolön: ${fc(totBrutto)} kr</div><div>Total nettolön: ${fc(totNetto)} kr</div>` +
+    `<div>Total skatt: -${fc(totSkatt)} kr</div><div>Fackavgift: -${fc(totFack)} kr</div><div>Totalt OB: +${fc(totOB)} kr</div>`;
+}
+
+// ---------- Reset OB ----------
+function resetOB(){
+  if (!manualOBOverride) return;
+  manualOBOverride = false;
+  let lag = lagSelect.value;
+  if (lag !== 'manual'){
+    let y = parseInt(yearSelect.value), m = parseInt(monthSelect.value);
+    let om = m-1; if (om===0){ om=12; y--; }
+    let ob = getOBForMonth(y, om, lag);
+    ob1Hours.value = fd(ob.ob1,2); ob2Hours.value = fd(ob.ob2,2); ob3Hours.value = fd(ob.ob3,2);
+  } else {
+    ob1Hours.value='0'; ob2Hours.value='0'; ob3Hours.value='0';
+  }
+  updateUI();
+}
+
+// ---------- Toggle-funktioner ----------
 function toggleExpand(el){ let d=el.querySelector('.expandable-details'), a=el.querySelector('.expandable-arrow'); d.classList.toggle('open'); a.classList.toggle('open'); }
-function toggleTheme(){ let html=document.documentElement; if(html.getAttribute('data-theme')==='dark') html.setAttribute('data-theme','light'); else html.setAttribute('data-theme','dark'); }
+function toggleTheme(){ let html=document.documentElement; html.setAttribute('data-theme', html.getAttribute('data-theme')==='dark'?'light':'dark'); }
 function toggleVAB(){ let c=document.getElementById('vabContent'), a=document.getElementById('vabArrow'); c.classList.toggle('open'); a.innerText=c.classList.contains('open')?'▲':'▼'; }
 function toggleOB(){ let c=document.getElementById('obContent'), a=document.getElementById('obArrow'); c.classList.toggle('open'); a.innerText=c.classList.contains('open')?'▲':'▼'; }
-function toggleOverview(){ let c=document.getElementById('overviewContent'); if(c.style.display==='none') c.style.display='block'; else c.style.display='none'; }
+function toggleOverview(){ let c=document.getElementById('overviewContent'); c.style.display = c.style.display==='none'?'block':'none'; }
 function toggleYearSummary(){ let d=document.getElementById('yearDetails'), a=document.getElementById('yearArrow'); if(d.style.display==='none'){ d.style.display='block'; a.innerText='▲'; updateYearSummary(); } else { d.style.display='none'; a.innerText='▼'; } }
-function populateSelectors(){ for(let y=SY;y<=EY;y++){ let o=document.createElement('option'); o.value=y; o.textContent=y; yearSelect.appendChild(o); } let now=new Date(); yearSelect.value=Math.max(SY,Math.min(EY,now.getFullYear())); MONTHS.forEach((m,i)=>{ let o=document.createElement('option'); o.value=i+1; o.textContent=m; monthSelect.appendChild(o); }); monthSelect.value=now.getMonth()+1; }
 
-// ---------- Initiera allt ----------
-let lagSelect=document.getElementById('lagSelect'), salaryInput=document.getElementById('salaryInput'), yearSelect=document.getElementById('yearSelect'), monthSelect=document.getElementById('monthSelect'), karensSelect=document.getElementById('karensSelect'), otHours=document.getElementById('otHours'), otEnkelHours=document.getElementById('otEnkelHours'), ob1Hours=document.getElementById('ob1Hours'), ob2Hours=document.getElementById('ob2Hours'), ob3Hours=document.getElementById('ob3Hours'), sjukOb1Hours=document.getElementById('sjukOb1Hours'), sjukOb2Hours=document.getElementById('sjukOb2Hours'), sjukOb3Hours=document.getElementById('sjukOb3Hours'), sickHours=document.getElementById('sickHours'), ftpDays=document.getElementById('ftpDays'), sgiInput=document.getElementById('sgiInput'), ob1Rate=document.getElementById('ob1Rate'), ob2Rate=document.getElementById('ob2Rate'), ob3Rate=document.getElementById('ob3Rate'), otRate=document.getElementById('otRate'), otEnkelRate=document.getElementById('otEnkelRate'), selectedPeriod=document.getElementById('selectedPeriod'), finalNetSalary=document.getElementById('finalNetSalary'), detailGrid=document.getElementById('detailGrid'), tableBody=document.querySelector('#salaryTable tbody'), tableMonthLabel=document.getElementById('tableMonthLabel'), obGroundingDisplay=document.getElementById('obGroundingDisplay'), sjukOBContainer=document.getElementById('sjukOBContainer'), sickHoursContainer=document.getElementById('sickHoursContainer'), lockLabel=document.getElementById('lockLabel'), vabSummary=document.getElementById('vabSummary'), vabInfo=document.getElementById('vabInfo'), yearSummaryYear=document.getElementById('yearSummaryYear'), yearSummaryGrid=document.getElementById('yearSummaryGrid'), obLockToggle=document.getElementById('obLockToggle'), overviewTotalNet=document.getElementById('overviewTotalNet');
+// ---------- Initiera ----------
+function populateSelectors(){
+  for(let y=SY;y<=EY;y++){ let o=document.createElement('option'); o.value=y; o.textContent=y; yearSelect.appendChild(o); }
+  let now=new Date();
+  yearSelect.value=Math.max(SY,Math.min(EY,now.getFullYear()));
+  MONTHS.forEach((m,i)=>{ let o=document.createElement('option'); o.value=i+1; o.textContent=m; monthSelect.appendChild(o); });
+  monthSelect.value=now.getMonth()+1;
+}
 
-lagSelect.addEventListener('change',updateUI); salaryInput.addEventListener('input',updateUI); yearSelect.addEventListener('change',updateUI); monthSelect.addEventListener('change',updateUI); karensSelect.addEventListener('change',updateUI); otHours.addEventListener('input',updateUI); otEnkelHours.addEventListener('input',updateUI); ob1Hours.addEventListener('input',updateUI); ob2Hours.addEventListener('input',updateUI); ob3Hours.addEventListener('input',updateUI); sjukOb1Hours.addEventListener('input',updateUI); sjukOb2Hours.addEventListener('input',updateUI); sjukOb3Hours.addEventListener('input',updateUI); sickHours.addEventListener('input',updateUI); ftpDays.addEventListener('change',updateUI); sgiInput.addEventListener('input',updateUI); 
+let lagSelect=document.getElementById('lagSelect'), salaryInput=document.getElementById('salaryInput'),
+    yearSelect=document.getElementById('yearSelect'), monthSelect=document.getElementById('monthSelect'),
+    karensSelect=document.getElementById('karensSelect'), otHours=document.getElementById('otHours'),
+    otEnkelHours=document.getElementById('otEnkelHours'), ob1Hours=document.getElementById('ob1Hours'),
+    ob2Hours=document.getElementById('ob2Hours'), ob3Hours=document.getElementById('ob3Hours'),
+    sjukOb1Hours=document.getElementById('sjukOb1Hours'), sjukOb2Hours=document.getElementById('sjukOb2Hours'),
+    sjukOb3Hours=document.getElementById('sjukOb3Hours'), sickHours=document.getElementById('sickHours'),
+    ftpDays=document.getElementById('ftpDays'), sgiInput=document.getElementById('sgiInput'),
+    ob1Rate=document.getElementById('ob1Rate'), ob2Rate=document.getElementById('ob2Rate'),
+    ob3Rate=document.getElementById('ob3Rate'), otRate=document.getElementById('otRate'),
+    otEnkelRate=document.getElementById('otEnkelRate'), selectedPeriod=document.getElementById('selectedPeriod'),
+    finalNetSalary=document.getElementById('finalNetSalary'), detailGrid=document.getElementById('detailGrid'),
+    tableBody=document.querySelector('#salaryTable tbody'), tableMonthLabel=document.getElementById('tableMonthLabel'),
+    obGroundingDisplay=document.getElementById('obGroundingDisplay'), sjukOBContainer=document.getElementById('sjukOBContainer'),
+    sickHoursContainer=document.getElementById('sickHoursContainer'), lockLabel=document.getElementById('lockLabel'),
+    vabSummary=document.getElementById('vabSummary'), vabInfo=document.getElementById('vabInfo'),
+    yearSummaryYear=document.getElementById('yearSummaryYear'), yearSummaryGrid=document.getElementById('yearSummaryGrid'),
+    obLockToggle=document.getElementById('obLockToggle'), overviewTotalNet=document.getElementById('overviewTotalNet');
+
+lagSelect.addEventListener('change',updateUI); salaryInput.addEventListener('input',updateUI);
+yearSelect.addEventListener('change',updateUI); monthSelect.addEventListener('change',updateUI);
+karensSelect.addEventListener('change',updateUI); otHours.addEventListener('input',updateUI);
+otEnkelHours.addEventListener('input',updateUI); ob1Hours.addEventListener('input',updateUI);
+ob2Hours.addEventListener('input',updateUI); ob3Hours.addEventListener('input',updateUI);
+sjukOb1Hours.addEventListener('input',updateUI); sjukOb2Hours.addEventListener('input',updateUI);
+sjukOb3Hours.addEventListener('input',updateUI); sickHours.addEventListener('input',updateUI);
+ftpDays.addEventListener('change',updateUI); sgiInput.addEventListener('input',updateUI);
 
 populateSelectors();
 updateUI();
 
-// Exponera globala funktioner för onclick i HTML
-window.setFromvaro=setFromvaro; window.changeShift=changeShift; window.resetSchema=resetSchema; window.resetAllShifts=resetAllShifts; window.resetOB=resetOB; window.toggleExpand=toggleExpand; window.toggleYearSummary=toggleYearSummary; window.toggleVAB=toggleVAB; window.toggleOB=toggleOB; window.toggleOverview=toggleOverview;
+window.setFromvaro=setFromvaro; window.changeShift=changeShift; window.resetSchema=resetSchema;
+window.resetAllShifts=resetAllShifts; window.resetOB=resetOB; window.toggleExpand=toggleExpand;
+window.toggleYearSummary=toggleYearSummary; window.toggleVAB=toggleVAB; window.toggleOB=toggleOB;
+window.toggleOverview=toggleOverview;
 
 });
