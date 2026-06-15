@@ -36,10 +36,6 @@ let manualOBOverride=false, lastAutoOB={ob1:0,ob2:0,ob3:0}, lastAutoLag='', last
 
 // ---------- Beräkningsfunktioner ----------
 
-/**
- * Samlar alla parametrar och returnerar ett objekt med ALLA beräknade värden.
- * Rör INTE DOM. Det gör renderUI().
- */
 function calculateEverything() {
   const baseSalary = p(salaryInput.value) || 0;
   const selectedYear = parseInt(yearSelect.value);
@@ -73,7 +69,6 @@ function calculateEverything() {
   const semesterSupplementPerDay = (baseSalary + driftAddition) / 125;
   const semesterTillagg = f2(vacationCount * semesterSupplementPerDay);
 
-  // Karens och sjuklön
   const karensHours = karensDays * 6.8;
   const karensDeduction = karensDays > 0 ? f2(karensHours * sickRate100) : 0;
   const sickDeduct100 = f2(extraSick * sickRate100);
@@ -81,11 +76,9 @@ function calculateEverything() {
   const sickNetLoss = f2(sickDeduct100 - sickPay80);
   const totalSickLoss = f2(karensDeduction + sickNetLoss);
 
-  // VAB/F-ledig avdrag
   const vabParentalHours = totalVABParental * VAB_HPD;
   const vabParentalDeduction = f2(vabParentalHours * sickRate100);
 
-  // Försäkringskassan
   const sgiVab = Math.min(sgiVal, SGI_TAK_VAB);
   const sgiVabDay = f2(sgiVab / 365 * 0.8);
   const fkVabTotal = f2(vabD * sgiVabDay);
@@ -106,11 +99,9 @@ function calculateEverything() {
   const fkFptNet = f2(fkFptTotal - fkFptTax);
   const totalErsattningNetto = f2(fkVabNet + fkFpNet + fkFptNet);
 
-  // OB-månad (föregående)
   let obYear = selectedYear, obMonth = selectedMonth - 1;
   if (obMonth === 0) { obMonth = 12; obYear--; }
 
-  // Automatisk OB
   let autoOB = null;
   if (isAuto) {
     autoOB = getOBForMonth(obYear, obMonth, lag);
@@ -126,7 +117,7 @@ function calculateEverything() {
   }
 
   const lockEnabled = obLockToggle.checked;
-  let obData; // {ob1, ob2, ob3}
+  let obData;
   if (isAuto && lockEnabled && !manualOBOverride) {
     obData = autoOB;
   } else if (isAuto && lockEnabled && manualOBOverride) {
@@ -158,7 +149,6 @@ function calculateEverything() {
   const totalOBOnlyHours = obData.ob1 + obData.ob2 + obData.ob3;
   const totalOB = totalOBOnly + otAmount + otEnkelAmount;
 
-  // Sjuk-OB
   const sjukOb1H = sickVisible ? p(sjukOb1Hours.value) : 0;
   const sjukOb2H = sickVisible ? p(sjukOb2Hours.value) : 0;
   const sjukOb3H = sickVisible ? p(sjukOb3Hours.value) : 0;
@@ -167,7 +157,6 @@ function calculateEverything() {
   const sjukOb3Loss = f2(sjukOb3H * ob3RatePerHour * 0.2);
   const totalSjukOB = f2(sjukOb1Loss + sjukOb2Loss + sjukOb3Loss);
 
-  // Brutto/netto
   const totalBeforeKarens = obGroundingBase + totalOB + semesterTillagg;
   const jobbBrutto = f2(totalBeforeKarens - totalSickLoss - totalSjukOB - vabParentalDeduction);
   const tax = taxFromTable33Col1(jobbBrutto);
@@ -192,14 +181,9 @@ function calculateEverything() {
   };
 }
 
-/**
- * Uppdaterar HELA gränssnittet med data från calculateEverything().
- */
 function renderUI(data) {
-  // Hjälpvariabler
   const lagName = {A:'Lag A',B:'Lag B',C:'Lag C',D:'Lag D',E:'Lag E'}[data.lag] || 'Manuell';
 
-  // Visa/dölj sjuk-sektioner
   if (data.sickVisible) {
     sjukOBContainer.classList.add('visible');
     sickHoursContainer.classList.add('visible');
@@ -209,17 +193,14 @@ function renderUI(data) {
   }
   vabSummary.style.display = data.totalVABParental > 0 ? 'flex' : 'none';
 
-  // OB-grundande
   obGroundingDisplay.innerText = fc(data.obGroundingBase) + ' kr';
 
-  // Timpriser
   ob1Rate.innerText = '/460 = ' + fd(data.ob1RatePerHour, 2) + ' kr/h';
   ob2Rate.innerText = '/260 = ' + fd(data.ob2RatePerHour, 2) + ' kr/h';
   ob3Rate.innerText = '/150 = ' + fd(data.ob3RatePerHour, 2) + ' kr/h';
   otRate.innerText = '/72 = ' + fd(data.otRatePerHour, 2) + ' kr/h';
   otEnkelRate.innerText = '/94 = ' + fd(data.otEnkelRatePerHour, 2) + ' kr/h';
 
-  // Lås-etikett & låsta OB-fält
   document.getElementById('lockLabel').innerText = data.lockEnabled ? 'Låst' : 'Lås';
   ob1Hours.disabled = data.lockEnabled;
   ob2Hours.disabled = data.lockEnabled;
@@ -228,11 +209,8 @@ function renderUI(data) {
     ob1Hours.value = fd(data.autoOB.ob1, 2);
     ob2Hours.value = fd(data.autoOB.ob2, 2);
     ob3Hours.value = fd(data.autoOB.ob3, 2);
-  } else if (!data.lockEnabled) {
-    // fälten är redan redigerbara – behåller sina värden
   }
 
-  // Periodinfo
   document.getElementById('selectedPeriod').innerText =
     MONTHS[data.selectedMonth-1] + ' ' + data.selectedYear +
     ' · ' + data.karensDays + ' karensdag' + (data.karensDays !== 1 ? 'ar' : '') +
@@ -245,7 +223,6 @@ function renderUI(data) {
   document.getElementById('finalNetSalary').innerText = fc(data.netSalary) + ' kr';
   document.getElementById('overviewTotalNet').innerText = fc(data.netSalary) + ' kr';
 
-  // ---- Översiktskort ----
   let obOTHTML = '';
   if (data.totalOBOnlyHours > 0) {
     obOTHTML = '<div class="expandable-chip" onclick="toggleExpand(this)">' +
@@ -283,7 +260,6 @@ function renderUI(data) {
 
   document.getElementById('detailGrid').innerHTML = detailHTML;
 
-  // ---- Dagsschema ----
   if (data.isAuto) {
     let daysInMonth = new Date(data.obYear, data.obMonth, 0).getDate();
     let shiftNames = ['Ledig', 'Dag', 'Natt'];
@@ -331,47 +307,9 @@ function renderUI(data) {
   }
 }
 
-// ---------- Huvudentré ----------
 function updateUI() {
   const data = calculateEverything();
   renderUI(data);
-}
-
-// ---------- Årsöversikt ----------
-function updateYearSummary(){
-  let y = parseInt(yearSelect.value), lag = lagSelect.value;
-  if (lag === 'manual'){ document.getElementById('yearSummaryGrid').innerHTML='Välj lag'; return; }
-  document.getElementById('yearSummaryYear').innerText = y;
-  let bs = p(salaryInput.value)||0, da = Math.round(bs*DRIFT/100), obBase = bs+da;
-  let o1r = obBase/O1D, o2r = obBase/O2D, o3r = obBase/O3D;
-  let totBrutto=0, totNetto=0, totSkatt=0, totFack=0, totOB=0;
-  for (let m=1; m<=12; m++){
-    let obData = getOBForMonth(y, m, lag);
-    let ob1Amt = Math.round(obData.ob1*o1r), ob2Amt = Math.round(obData.ob2*o2r), ob3Amt = Math.round(obData.ob3*o3r);
-    let mOB = ob1Amt+ob2Amt+ob3Amt;
-    totOB += mOB;
-    let jb = obBase+mOB, tax = taxFromTable33Col1(jb), uf = calcUnion(jb), net = jb-tax-uf;
-    totBrutto += jb; totNetto += net; totSkatt += tax; totFack += uf;
-  }
-  document.getElementById('yearSummaryGrid').innerHTML =
-    `<div>Total bruttolön: ${fc(totBrutto)} kr</div><div>Total nettolön: ${fc(totNetto)} kr</div>` +
-    `<div>Total skatt: -${fc(totSkatt)} kr</div><div>Fackavgift: -${fc(totFack)} kr</div><div>Totalt OB: +${fc(totOB)} kr</div>`;
-}
-
-// ---------- Reset OB ----------
-function resetOB(){
-  if (!manualOBOverride) return;
-  manualOBOverride = false;
-  let lag = lagSelect.value;
-  if (lag !== 'manual'){
-    let y = parseInt(yearSelect.value), m = parseInt(monthSelect.value);
-    let om = m-1; if (om===0){ om=12; y--; }
-    let ob = getOBForMonth(y, om, lag);
-    ob1Hours.value = fd(ob.ob1,2); ob2Hours.value = fd(ob.ob2,2); ob3Hours.value = fd(ob.ob3,2);
-  } else {
-    ob1Hours.value='0'; ob2Hours.value='0'; ob3Hours.value='0';
-  }
-  updateUI();
 }
 
 // ---------- Toggle-funktioner ----------
