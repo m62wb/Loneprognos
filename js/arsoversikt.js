@@ -1,3 +1,5 @@
+function p(v){ if(!v) return 0; let n=String(v).replace(',','.'); let x=parseFloat(n); return isNaN(x)?0:x; }
+
 function updateYearSummary() {
   const y = parseInt(yearSelect.value);
   const lag = lagSelect.value;
