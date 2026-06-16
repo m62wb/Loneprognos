@@ -153,7 +153,6 @@ function calculateEverything() {
   const totalSjukOBGain = f2(sjukOb1Gain + sjukOb2Gain + sjukOb3Gain);
 
   const totalBeforeKarens = obGroundingBase + totalOB + semesterTillagg;
-  // Sjuk-OB läggs till istället för att dras av
   const jobbBrutto = f2(totalBeforeKarens - totalSickLoss + totalSjukOBGain - vabParentalDeduction);
   const tax = taxFromTable33Col1(jobbBrutto);
   const netBeforeFack = f2(jobbBrutto - tax);
@@ -233,9 +232,12 @@ function renderUI(data) {
   if (data.otAmount > 0) obOTHTML += '<div class="detail-chip"><span>Övertid (' + fd(data.otH || p(otHours.value), 2) + 'h x ' + fd(data.otRatePerHour, 2) + ' kr)</span><span>+' + fc(data.otAmount) + ' kr</span></div>';
   if (data.otEnkelAmount > 0) obOTHTML += '<div class="detail-chip"><span>ÖT enkel (' + fd(data.otEnkelH || p(otEnkelHours.value), 2) + 'h x ' + fd(data.otEnkelRatePerHour, 2) + ' kr)</span><span>+' + fc(data.otEnkelAmount) + ' kr</span></div>';
 
-  let karensHTML = data.karensDays > 0 ? '<div class="detail-chip danger"><span>Karens</span><span>' + data.karensDays + ' dag' + (data.karensDays > 1 ? 'ar' : '') + '</span></div>' : '';
+  // ---- ÄNDRAD: Karensraden visar nu både belopp och antal dagar ----
+  let karensHTML = data.karensDays > 0
+    ? '<div class="detail-chip danger"><span>Karensavdrag</span><span>-' + fc(data.karensDeduction) + ' kr (' + data.karensDays + ' dag' + (data.karensDays > 1 ? 'ar' : '') + ')</span></div>'
+    : '';
+
   let extraSickHTML = data.extraSick > 0 ? '<div class="detail-chip danger"><span>Sjuktimmar</span><span>' + fd(data.extraSick, 1) + 'h (netto -20%)</span></div>' : '';
-  // Ändrad till grön "Sjuk-OB ersättning"
   let sjukObHTML = data.totalSjukOBGain > 0 ? '<div class="detail-chip success"><span>Sjuk-OB ersättning</span><span>+' + fc(data.totalSjukOBGain) + ' kr</span></div>' : '';
   let vabHTML = data.totalVABParental > 0 ? '<div class="detail-chip danger"><span>VAB/F-ledig avdrag</span><span>-' + fc(data.vabParentalDeduction) + ' kr</span></div>' : '';
   let semesterHTML = data.vacationCount > 0 ? '<div class="detail-chip info"><span>Semestertillägg (' + data.vacationCount + ' dgr, ' + fd(data.semesterSupplementPerDay, 2) + ' kr/d)</span><span>+' + fc(data.semesterTillagg) + ' kr</span></div>' : '';
