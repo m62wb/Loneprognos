@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
 
-function p(v){ if(!v) return 0; let n=String(v).replace(',','.'); let x=parseFloat(n); return isNaN(x)?0:x; }
+function p(v){ if(!v) return 0; let n=String(v).replace(',','.'); let x=parseFloat(n); return isNaN(x)?0:x; } window.p = p;
 function fc(v){ return new Intl.NumberFormat('sv-SE').format(Math.round(v)); }
 function fd(v,d){ return v.toFixed(d).replace('.',','); }
 function f2(n){ return Math.round((n+Number.EPSILON)*100)/100; }
