@@ -66,5 +66,5 @@ function resetOB() {
   }
   updateUI();
   window.updateYearSummary = updateYearSummary;
-  window.resetOB = resetOB;
+window.resetOB = resetOB;
 }
