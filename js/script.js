@@ -339,7 +339,16 @@ function resetOB() {
 }
 
 function toggleExpand(el){ let d=el.querySelector('.expandable-details'), a=el.querySelector('.expandable-arrow'); d.classList.toggle('open'); a.classList.toggle('open'); }
-function toggleTheme(){ let html=document.documentElement; html.setAttribute('data-theme', html.getAttribute('data-theme')==='dark'?'light':'dark'); }
+
+// NY TEMA-FUNKTION
+function toggleTheme() {
+    const checkbox = document.getElementById('themeToggleCheckbox');
+    const isDark = checkbox.checked;
+    const html = document.documentElement;
+    html.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+}
+
 function toggleVAB(){ let c=document.getElementById('vabContent'), a=document.getElementById('vabArrow'); c.classList.toggle('open'); a.innerText=c.classList.contains('open')?'▲':'▼'; }
 function toggleOB(){ let c=document.getElementById('obContent'), a=document.getElementById('obArrow'); c.classList.toggle('open'); a.innerText=c.classList.contains('open')?'▲':'▼'; }
 function toggleOverview(){ let c=document.getElementById('overviewContent'); c.style.display = c.style.display==='none'?'block':'none'; }
@@ -514,6 +523,15 @@ obLockToggle.addEventListener('change',updateUI);
   });
 });
 
+// Initiera tema från localStorage (standard mörkt)
+(function() {
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    const html = document.documentElement;
+    html.setAttribute('data-theme', savedTheme);
+    const checkbox = document.getElementById('themeToggleCheckbox');
+    if (checkbox) checkbox.checked = (savedTheme === 'dark');
+})();
+
 populateSelectors();
 updateUI();
 
@@ -521,6 +539,7 @@ window.setFromvaro=setFromvaro; window.changeShift=changeShift; window.resetSche
 window.resetAllShifts=resetAllShifts; window.toggleExpand=toggleExpand;
 window.toggleYearSummary=toggleYearSummary; window.toggleVAB=toggleVAB; window.toggleOB=toggleOB;
 window.toggleOverview=toggleOverview;
+window.toggleTheme = toggleTheme;
 window.toggleSettings = toggleSettings;
 window.resetOB = resetOB;
 window.manualOBOverride = manualOBOverride;
