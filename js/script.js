@@ -309,7 +309,7 @@ function showMainIfValid() {
   if (lag !== '' && lag !== 'manual') {
     main.style.display = '';
   } else if (lag === 'manual') {
-    main.style.display = '';   // manuellt läge visar också allt
+    main.style.display = '';
   } else {
     main.style.display = 'none';
   }
@@ -321,7 +321,7 @@ function updateUI() {
   updateSettingsLabel();
   closeSettingsBoxIfNeeded();
   renderOBChart();
-  showMainIfValid();   // <-- NYTT ANROP
+  showMainIfValid();
 }
 
 function closeSettingsBoxIfNeeded() {
@@ -357,7 +357,7 @@ function toggleExpand(el){ let d=el.querySelector('.expandable-details'), a=el.q
 
 function toggleTheme() {
     const checkbox = document.getElementById('themeToggleCheckbox');
-    const isDark = checkbox.checked;
+    const isDark = checkbox.checked;          // checked = mörkt tema
     const html = document.documentElement;
     html.setAttribute('data-theme', isDark ? 'dark' : 'light');
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
@@ -539,11 +539,11 @@ obLockToggle.addEventListener('change',updateUI);
 
 (function() {
     const savedTheme = localStorage.getItem('theme') || 'dark';
-    const isLight = (savedTheme === 'light');
+    const isDark = (savedTheme === 'dark');
     const html = document.documentElement;
-    html.setAttribute('data-theme', isLight ? 'light' : 'dark');
+    html.setAttribute('data-theme', isDark ? 'dark' : 'light');
     const checkbox = document.getElementById('themeToggleCheckbox');
-    if (checkbox) checkbox.checked = isLight;
+    if (checkbox) checkbox.checked = isDark;
 })();
 
 populateSelectors();
