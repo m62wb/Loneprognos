@@ -2,6 +2,7 @@
    LÖNEKALKYLATOR – STYLESHEET
    GitHub-inspirerat mörkt tema
    + äggskalsljus tema
+   + centrerat dagsschema
    ============================== */
 
 /* ---- MÖRKT TEMA (GitHub-inspirerat) ---- */
@@ -32,7 +33,6 @@
     --shadow: 0 4px 6px rgba(0,0,0,0.04);
     --shadow-lg: 0 20px 40px rgba(0,0,0,0.06);
     --input-bg: #ffffff;
-    /* Accenter behåller sina färger (passar båda teman) */
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -158,9 +158,28 @@ select, input[type="number"], input[type="text"] {
 
 .table-container { overflow-x: auto; border-radius: var(--radius-sm); }
 table { width: 100%; table-layout: fixed; border-collapse: collapse; background: var(--card-bg); }
-th { background: var(--primary); color: white; padding: 6px 4px; position: sticky; top: 0; font-size: 0.65rem; white-space: nowrap; }
-td { padding: 5px 4px; border-bottom: 1px solid var(--border); text-align: right; font-size: 0.7rem; word-break: break-word; }
-td:first-child { text-align: left; font-weight: 600; position: sticky; left: 0; background: var(--card-bg); width: 40px; }
+th { background: var(--primary); color: white; padding: 6px 4px; position: sticky; top: 0; font-size: 0.65rem; white-space: nowrap; text-align: center; }
+
+/* CENTRERA ALLA CELLER I SCHEMAT (utom första kolumnen) */
+td {
+    padding: 5px 4px;
+    border-bottom: 1px solid var(--border);
+    text-align: center;          /* centrera horisontellt */
+    vertical-align: middle;      /* centrera vertikalt */
+    font-size: 0.7rem;
+    word-break: break-word;
+}
+
+/* Första kolumnen (dag) vänsterställd */
+td:first-child {
+    text-align: left;
+    font-weight: 600;
+    position: sticky;
+    left: 0;
+    background: var(--card-bg);
+    width: 40px;
+}
+
 th:nth-child(1), td:nth-child(1) { width: 38px; }
 th:nth-child(2), td:nth-child(2) { width: 44px; }
 th:nth-child(3), td:nth-child(3) { width: 36px; }
@@ -207,7 +226,7 @@ th:nth-child(8), td:nth-child(8) { width: 54px; }
 .schema-table .shift-select,
 .schema-table .fromvaro-select { font-size: 0.55rem !important; width: 60px; }
 
-/* Badges (IKEM/LOKAL) – anpassade för att synas på båda teman */
+/* Badges (IKEM/LOKAL) */
 .badge-ikem { background: #d2991d; color: #000; padding: 2px 8px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; }
 .badge-local { background: var(--accent); color: #fff; padding: 2px 8px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; }
 
