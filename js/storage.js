@@ -1,5 +1,5 @@
-// ---------- Profilhanterare (popup istället för textfält) ----------
-const STORAGE_KEY = 'loneprognos_profiler';
+// Profilhanterare (popup med namn, lag & lön)
+var STORAGE_KEY = 'loneprognos_profiler_v2';   // nytt unikt namn
 
 function getAllProfiles() {
   const raw = localStorage.getItem(STORAGE_KEY);
@@ -88,25 +88,51 @@ function updateProfileList() {
   }
 }
 
-// ---- Globala funktioner för HTML ----
-
-// NY funktion – anropas av Spara-knappen istället för saveScenario
+// NY FUNKTION FÖR ATT SKAPA PROFIL
 window.saveProfilePopup = function () {
   const name = prompt('Ange ett namn på profilen:');
   if (!name || name.trim() === '') {
     alert('Inget namn angivet – profilen sparades inte.');
     return;
   }
+
+  const lagChoice = prompt(
+    'Välj lag:\n' +
+    '1 = Lag A – Ekwall\n' +
+    '2 = Lag B – Swärd\n' +
+    '3 = Lag C – Samer\n' +
+    '4 = Lag D – Isaac\n' +
+    '5 = Lag E – Benji\n' +
+    '6 = Manuell\n\n' +
+    'Ange siffra (1–6):'
+  );
+  if (!lagChoice) return;
+  const lagMap = { '1':'A', '2':'B', '3':'C', '4':'D', '5':'E', '6':'manual' };
+  const lag = lagMap[lagChoice.trim()];
+  if (!lag) {
+    alert('Ogiltigt val av lag – profilen sparades inte.');
+    return;
+  }
+
+  const salary = prompt('Ange grundlön (månadslön brutto):');
+  if (!salary || isNaN(parseFloat(salary.replace(',','.')))) {
+    alert('Ogiltig lön – profilen sparades inte.');
+    return;
+  }
+  const cleanSalary = salary.replace(',', '.').trim();
+
+  lagSelect.value = lag;
+  salaryInput.value = cleanSalary;
+
   const state = getCurrentState();
   const profiles = getAllProfiles();
   profiles[name.trim()] = state;
   saveAllProfiles(profiles);
   updateProfileList();
-  // Sätt dropdownen till den nyss sparade profilen
   document.getElementById('profileSelect').value = name.trim();
+  if (typeof updateUI === 'function') updateUI();
 };
 
-// Ladda profil (anropas av dropdown onchange)
 window.loadScenario = function () {
   const select = document.getElementById('profileSelect');
   const name = select.value;
@@ -120,7 +146,6 @@ window.loadScenario = function () {
   applyState(state);
 };
 
-// Ta bort profil
 window.deleteScenario = function () {
   const select = document.getElementById('profileSelect');
   const name = select.value;
@@ -137,7 +162,6 @@ window.deleteScenario = function () {
   updateProfileList();
 };
 
-// Nollställ allt
 window.resetAll = function () {
   if (confirm('Vill du verkligen nollställa alla fält? Detta går inte att ångra.')) {
     salaryInput.value = 37664;
@@ -164,7 +188,6 @@ window.resetAll = function () {
   }
 };
 
-// Fyll dropdownen när sidan laddas
 window.addEventListener('DOMContentLoaded', function () {
   updateProfileList();
 });
