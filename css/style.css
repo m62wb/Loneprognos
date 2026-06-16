@@ -149,13 +149,13 @@ input:checked + .slider:before { transform: translateX(20px); }
 .highlight {
     animation: highlightPulse 0.6s ease;
 }
-input, select, textarea {
-    font-size: 32px !important;   /* 32 × 0.5 = 16 px visuellt */
-}
 /* ---- STOPPA AUTOMATISK ZOOM PÅ INPUT (UTAN ATT ÄNDRA LAYOUT) ---- */
 {
     font-size: 16px !important;       /* webbläsaren ser 16px → zoomar inte */
     transform: scale(0.5);            /* visuellt halvera till 8px */
     transform-origin: left top;       /* skalas från övre vänstra hörnet */
     margin-bottom: -0.6em;            /* jämnar ut tomrum under fältet */
+}
+input, select, textarea {
+    font-size: 32px !important;
 }
