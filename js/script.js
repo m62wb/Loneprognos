@@ -114,6 +114,7 @@ function calculateEverything() {
   const lockEnabled = obLockToggle.checked;
   let obData;
   if (isAuto && lockEnabled && !manualOBOverride) {
+    // Använd de avrundade timmarna från fälten (exakt som visas)
     obData = {
         ob1: Math.round(p(ob1Hours.value)),
         ob2: Math.round(p(ob2Hours.value)),
@@ -327,6 +328,14 @@ function updateUI() {
   const data = calculateEverything();
   renderUI(data);
   updateSettingsLabel();
+
+  // Tvinga fram nya OB‑timmar direkt vid byte av månad/lag (låst läge)
+  if (data.isAuto && data.lockEnabled && !manualOBOverride && data.autoOB) {
+    ob1Hours.value = fd(data.autoOB.ob1, 2);
+    ob2Hours.value = fd(data.autoOB.ob2, 2);
+    ob3Hours.value = fd(data.autoOB.ob3, 2);
+  }
+
   closeSettingsBoxIfNeeded();
   renderOBChart();
   showMainIfValid();
