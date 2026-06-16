@@ -48,7 +48,6 @@ function calculateEverything() {
   const totalVABParental = vabD + parentalD;
   const vacationCount = [...fromvaroMap.values()].filter(v => v === 1).length;
 
-  // INGEN AVRUNDNING på drifttillägget
   const driftAddition = baseSalary * DRIFT / 100;
   const obGroundingBase = baseSalary + driftAddition;
 
@@ -92,26 +91,41 @@ function calculateEverything() {
   const fkVabNet = fkVabTotal - fkVabTax;
   const fkFpNet = fkFpTotal - fkFpTax;
   const fkFptNet = fkFptTotal - fkFptTax;
-  const totalErsattningNettoExact = fkVabNet + fkFpNet + fkFptNet;   // oavrundad
+  const totalErsattningNettoExact = fkVabNet + fkFpNet + fkFptNet;
 
   let obYear = selectedYear, obMonth = selectedMonth - 1;
   if (obMonth === 0) { obMonth = 12; obYear--; }
 
+  // ---------- Hämta autoOB tidigt ----------
   let autoOB = null;
   if (isAuto) {
     autoOB = getOBForMonth(obYear, obMonth, lag);
-    if (lag !== lastAutoLag || obYear !== lastAutoYear || obMonth !== lastAutoMonth) {
-      manualOBOverride = false;
-    }
-    lastAutoLag = lag; lastAutoYear = obYear; lastAutoMonth = obMonth; lastAutoOB = autoOB;
-  } else {
-    manualOBOverride = false;
   }
 
+  // ---------- Upptäck månads-/lagbyte och uppdatera fälten direkt ----------
+  if (isAuto && (lag !== lastAutoLag || obYear !== lastAutoYear || obMonth !== lastAutoMonth)) {
+    manualOBOverride = false;
+    if (autoOB) {
+      ob1Hours.value = fd(autoOB.ob1, 2);
+      ob2Hours.value = fd(autoOB.ob2, 2);
+      ob3Hours.value = fd(autoOB.ob3, 2);
+    }
+  }
+  lastAutoLag = lag;
+  lastAutoYear = obYear;
+  lastAutoMonth = obMonth;
+  if (!isAuto) manualOBOverride = false;
+
+  // ---------- Fortsätt med lock/obData ----------
   const lockEnabled = obLockToggle.checked;
   let obData;
   if (isAuto && lockEnabled && !manualOBOverride) {
-    obData = { ob1: Math.round(p(ob1Hours.value)), ob2: Math.round(p(ob2Hours.value)), ob3: Math.round(p(ob3Hours.value)) };
+    // använd de (nu uppdaterade) fältvärdena avrundade
+    obData = {
+      ob1: Math.round(p(ob1Hours.value)),
+      ob2: Math.round(p(ob2Hours.value)),
+      ob3: Math.round(p(ob3Hours.value))
+    };
   } else if (isAuto && lockEnabled && manualOBOverride) {
     obData = {ob1: p(ob1Hours.value), ob2: p(ob2Hours.value), ob3: p(ob3Hours.value)};
   } else {
@@ -150,15 +164,13 @@ function calculateEverything() {
   const totalBeforeKarens = obGroundingBase + totalOB + semesterTillagg;
   const jobbBruttoExact = totalBeforeKarens - totalSickLoss + totalSjukOBGain - vabParentalDeduction;
   const jobbBrutto = Math.round(jobbBruttoExact);
-  const tax = f2(taxFromTable33Col1(jobbBrutto));
+  const taxExact = taxFromTable33Col1(jobbBruttoExact);
+  const tax = f2(taxExact);
   const netBeforeFack = f2(jobbBrutto - tax);
   const unionFee = calcUnion(jobbBrutto);
   const jobbNetto = f2(netBeforeFack - unionFee);
-  const netSalary = f2(jobbNetto + f2(totalErsattningNettoExact));
-
-  // Exakt nettolön för öresutjämning (utan avrundning)
-  const taxExact = taxFromTable33Col1(jobbBruttoExact);   // f2 används internt, ger två decimaler
   const netSalaryExact = jobbBruttoExact - taxExact - unionFee + totalErsattningNettoExact;
+  const netSalary = f2(jobbNetto + f2(totalErsattningNettoExact));
 
   return {
     baseSalary, selectedYear, selectedMonth, karensDays, lag, isAuto,
@@ -173,7 +185,7 @@ function calculateEverything() {
     totalOBOnly, totalOBOnlyHours, totalOB,
     sjukOb1Gain, sjukOb2Gain, sjukOb3Gain, totalSjukOBGain,
     jobbBrutto, tax, netBeforeFack, unionFee, jobbNetto, netSalary,
-    netSalaryExact   // nytt!
+    netSalaryExact
   };
 }
 
@@ -197,7 +209,7 @@ function renderUI(data) {
 
   lockLabel.innerText = data.lockEnabled ? 'Låst' : 'Lås';
   ob1Hours.disabled = data.lockEnabled; ob2Hours.disabled = data.lockEnabled; ob3Hours.disabled = data.lockEnabled;
-  if (data.isAuto && data.lockEnabled && !manualOBOverride) {
+  if (data.isAuto && data.lockEnabled && !manualOBOverride && data.autoOB) {
     ob1Hours.value = fd(data.autoOB.ob1, 2); ob2Hours.value = fd(data.autoOB.ob2, 2); ob3Hours.value = fd(data.autoOB.ob3, 2);
   }
 
@@ -236,7 +248,7 @@ function renderUI(data) {
   let semesterHTML = data.vacationCount > 0 ? '<div class="detail-chip info"><span>Semestertillägg (' + data.vacationCount + ' dgr, ' + fd(data.semesterSupplementPerDay, 2) + ' kr/d)</span><span>+' + fc(data.semesterTillagg) + ' kr</span></div>' : '';
   let bidragHTML = (data.totalVABParental > 0 || ftpDays.value > 0) ? '<div class="detail-chip success"><span>FK/AFA netto</span><span>+' + fc(data.totalErsattningNettoExact) + ' kr</span></div>' : '';
 
-  // Beräkna öresutjämning
+  // Öresutjämning
   const roundedNet = Math.round(data.netSalaryExact);
   const utjämning = roundedNet - data.netSalaryExact;
   let utjämningHTML = '';
@@ -258,7 +270,7 @@ function renderUI(data) {
     '<div class="detail-chip"><span>IF Metall</span><span>-' + fc(data.unionFee) + ' kr</span></div>' +
     '<div class="detail-chip"><span>Nettolön jobb</span><span>' + fc(data.jobbNetto) + ' kr</span></div>';
   if (data.totalErsattningNettoExact > 0) detailHTML += '<div class="detail-chip success"><span>Nettolön bidrag</span><span>+' + fc(data.totalErsattningNettoExact) + ' kr</span></div>';
-  detailHTML += utjämningHTML;   // öresutjämning
+  detailHTML += utjämningHTML;
   detailHTML += '<div class="detail-chip success"><strong>Totalt netto: ' + fc(roundedNet) + ' kr</strong></div>';
 
   detailGrid.innerHTML = detailHTML;
@@ -327,6 +339,7 @@ function updateUI() {
   const data = calculateEverything();
   renderUI(data);
   updateSettingsLabel();
+  // Fyller fälten igen (ifall de inte redan är satta) – mest som backup
   if (data.isAuto && data.lockEnabled && !manualOBOverride && data.autoOB) {
     ob1Hours.value = fd(data.autoOB.ob1, 2);
     ob2Hours.value = fd(data.autoOB.ob2, 2);
