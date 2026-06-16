@@ -52,6 +52,9 @@
         </div>
     </div>
 
+    <!-- ALLT ANNAT GÖMS TILLS LAG/PROFIL ÄR VALT -->
+    <div id="mainContent" style="display:none;">
+
     <div class="card">
         <div class="card-title">Grundlön & Karens</div>
         <div class="input-group"><label>Månadslön (brutto)</label><input type="text" id="salaryInput" inputmode="decimal" class="numeric-only" placeholder="0"></div>
@@ -116,6 +119,8 @@
     </div>
 
     <div class="year-summary-card" onclick="toggleYearSummary()"><div class="card-title">Årsöversikt <span id="yearSummaryYear">2026</span> <span id="yearArrow">▼</span></div><div id="yearDetails" style="display:none"><div class="year-summary-grid" id="yearSummaryGrid"></div></div></div>
+
+    </div><!-- /mainContent -->
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
