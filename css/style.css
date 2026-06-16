@@ -1,27 +1,38 @@
 /* ==============================
    LÖNEKALKYLATOR – STYLESHEET
-   Modern header + äggskalsljus tema + mellanrum
+   GitHub-inspirerat mörkt tema
+   + äggskalsljus tema
    ============================== */
 
+/* ---- MÖRKT TEMA (GitHub-inspirerat) ---- */
 :root {
-    --bg: #1a202c; --card-bg: #2d3748; --text: #e2e8f0; --text-secondary: #a0aec0;
-    --primary: #4a6cf7; --accent: #10b981; --danger: #ef4444; --warning: #f59e0b;
-    --border: #4a5568; --shadow: 0 4px 6px rgba(0,0,0,0.3);
-    --shadow-lg: 0 20px 40px rgba(0,0,0,0.4);
-    --gradient: linear-gradient(135deg, #4a6cf7 0%, #10b981 100%);
-    --radius: 16px; --radius-sm: 12px; --input-bg: #1a202c;
+    --bg: #0d1117;                 /* GitHub dark bakgrund */
+    --card-bg: #161b22;            /* GitHub dark kort */
+    --text: #e6edf3;               /* ljus text */
+    --text-secondary: #8b949e;     /* dämpad sekundär text */
+    --primary: #58a6ff;            /* GitHub blå */
+    --accent: #3fb950;             /* GitHub grön */
+    --danger: #f85149;             /* röd */
+    --warning: #d2991d;            /* orange/gul */
+    --border: #30363d;             /* GitHub kantlinje */
+    --shadow: 0 4px 6px rgba(0,0,0,0.4);
+    --shadow-lg: 0 20px 40px rgba(0,0,0,0.6);
+    --gradient: linear-gradient(135deg, #58a6ff 0%, #3fb950 100%);
+    --radius: 16px; --radius-sm: 12px;
+    --input-bg: #0d1117;
 }
 
-/* ---- NYTT LJUST TEMA – äggskal/pärlvit (eggshell, off‑white) ---- */
+/* ---- LJUST TEMA (äggskal/pärlvit) ---- */
 [data-theme="light"] {
-    --bg: #f7f5f0;              /* varm äggskalsbakgrund */
-    --card-bg: #fefdf9;         /* mycket ljust pärlvit */
-    --text: #3e3a35;            /* mörkgrå text */
+    --bg: #f7f5f0;
+    --card-bg: #fefdf9;
+    --text: #3e3a35;
     --text-secondary: #6b6560;
-    --border: #e0dcd3;          /* mjukt gråbeige kant */
+    --border: #e0dcd3;
     --shadow: 0 4px 6px rgba(0,0,0,0.04);
     --shadow-lg: 0 20px 40px rgba(0,0,0,0.06);
     --input-bg: #ffffff;
+    /* Accenter behåller sina färger (passar båda teman) */
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -48,18 +59,18 @@ body {
 
 /* ========== HEADER ========== */
 .header {
-    background: linear-gradient(135deg, rgba(74,108,247,0.15) 0%, rgba(16,185,129,0.15) 100%);
+    background: linear-gradient(135deg, rgba(88,166,255,0.1) 0%, rgba(63,185,80,0.1) 100%);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border-radius: var(--radius);
     padding: 28px 32px;
     margin-bottom: 20px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.25), var(--shadow);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3), var(--shadow);
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    border: 1px solid rgba(255,255,255,0.1);
+    border: 1px solid var(--border);
     position: relative;
     z-index: 1;
 }
@@ -70,7 +81,7 @@ body {
     background: var(--gradient);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    text-shadow: 0 2px 10px rgba(74,108,247,0.3);
+    text-shadow: 0 2px 10px rgba(88,166,255,0.3);
     letter-spacing: -0.5px;
 }
 
@@ -92,13 +103,14 @@ body {
 input:checked + .slider { background-color: var(--accent); }
 input:checked + .slider:before { transform: translateX(20px); }
 
-/* ========== KORT (med mellanrum) ========== */
+/* ========== KORT ========== */
 .card, .result-card, .year-summary-card {
     background: var(--card-bg);
     border-radius: var(--radius);
     padding: 24px;
     box-shadow: var(--shadow);
     margin-bottom: 20px;
+    border: 1px solid var(--border);
 }
 
 .card-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -127,14 +139,14 @@ select, input[type="number"], input[type="text"] {
 .result-amount { font-size: 2.5rem; font-weight: 900; margin: 12px 0; }
 
 .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
-.detail-chip { background: rgba(255,255,255,0.15); padding: 8px 12px; border-radius: 12px; display: flex; justify-content: space-between; }
-.detail-chip.danger { background: rgba(239,68,68,0.3); }
-.detail-chip.success { background: rgba(16,185,129,0.3); }
-.expandable-chip { background: rgba(255,255,255,0.15); padding: 8px 12px; border-radius: 12px; cursor: pointer; }
+.detail-chip { background: rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 12px; display: flex; justify-content: space-between; }
+.detail-chip.danger { background: rgba(248,81,73,0.3); }
+.detail-chip.success { background: rgba(63,185,80,0.3); }
+.expandable-chip { background: rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 12px; cursor: pointer; }
 .expandable-header { display: flex; justify-content: space-between; }
 .expandable-arrow { transition: transform 0.2s; }
 .expandable-arrow.open { transform: rotate(180deg); }
-.expandable-details { display: none; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); }
+.expandable-details { display: none; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
 .expandable-details.open { display: block; }
 .tax-detail-row { display: flex; justify-content: space-between; padding: 4px 0; }
 
@@ -158,17 +170,19 @@ th:nth-child(6), td:nth-child(6) { width: 74px; }
 th:nth-child(7), td:nth-child(7) { width: 90px; }
 th:nth-child(8), td:nth-child(8) { width: 54px; }
 
-.row-active { background: rgba(16,185,129,0.15) !important; }
+.row-active { background: rgba(63,185,80,0.15) !important; }
 .row-vacation td:first-child::after { content: " 🏖️"; }
 .row-vab td:first-child::after { content: " 👶"; }
 .row-parental td:first-child::after { content: " 🍼"; }
 
-.lön-summary { display: flex; justify-content: space-between; background: rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 12px; margin-top: 8px; }
+.lön-summary { display: flex; justify-content: space-between; background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 12px; margin-top: 8px; border: 1px solid var(--border); }
 
 .toggle-container { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; justify-content: flex-start; padding-left: 0; }
 .toggle-container .reset-btn { margin-left: 8px; font-size: 1.3rem; padding: 6px 10px; line-height: 1; }
 
 .reset-btn { background: none; border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 4px 8px; cursor: pointer; }
+.reset-btn:hover { background: rgba(255,255,255,0.05); }
+
 .collapsible-header { display: flex; justify-content: space-between; cursor: pointer; font-weight: 700; margin-bottom: 8px; }
 
 .collapsible-content {
@@ -193,9 +207,13 @@ th:nth-child(8), td:nth-child(8) { width: 54px; }
 .schema-table .shift-select,
 .schema-table .fromvaro-select { font-size: 0.55rem !important; width: 60px; }
 
+/* Badges (IKEM/LOKAL) – anpassade för att synas på båda teman */
+.badge-ikem { background: #d2991d; color: #000; padding: 2px 8px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; }
+.badge-local { background: var(--accent); color: #fff; padding: 2px 8px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; }
+
 @keyframes highlightPulse {
-    0%   { background-color: rgba(74,108,247,0.3); }
-    50%  { background-color: rgba(74,108,247,0.1); }
+    0%   { background-color: rgba(88,166,255,0.3); }
+    50%  { background-color: rgba(88,166,255,0.1); }
     100% { background-color: transparent; }
 }
 .highlight { animation: highlightPulse 0.6s ease; }
