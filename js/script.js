@@ -159,7 +159,9 @@ function calculateEverything() {
   const totalSjukOBGain = sjukOb1Gain + sjukOb2Gain + sjukOb3Gain;
 
   const totalBeforeKarens = obGroundingBase + totalOB + semesterTillagg;
-  const jobbBrutto = f2(totalBeforeKarens - totalSickLoss + totalSjukOBGain - vabParentalDeduction);
+  // Öresavrunda bruttolönen till hela kronor INNAN skatten beräknas
+  const jobbBruttoExact = totalBeforeKarens - totalSickLoss + totalSjukOBGain - vabParentalDeduction;
+  const jobbBrutto = Math.round(jobbBruttoExact);
   const tax = f2(taxFromTable33Col1(jobbBrutto));
   const netBeforeFack = f2(jobbBrutto - tax);
   const unionFee = calcUnion(jobbBrutto);
