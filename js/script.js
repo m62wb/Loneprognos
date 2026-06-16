@@ -378,16 +378,11 @@ window.obLockToggle = obLockToggle;
 
 document.querySelectorAll('.numeric-only').forEach(function(field) {
   field.addEventListener('input', function() {
-    // Tillåt bara siffror, komma och punkt
     this.value = this.value.replace(/[^0-9.,]/g, '');
-    // Byt ut komma mot punkt
     if (this.value.includes(',')) {
       this.value = this.value.replace(',', '.');
     }
-    // Om fältet har klassen numeric-hours, begränsa till max 3 heltal + 2 decimaler
-    if (field.classList.contains('numeric-hours')) {
-      var match = this.value.match(/^(\d{0,3})(\.\d{0,2})?/);
-      this.value = match ? match[0] : '';
-    }
   });
+});
+
 });
