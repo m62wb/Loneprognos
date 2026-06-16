@@ -305,6 +305,17 @@ function updateUI() {
   const data = calculateEverything();
   renderUI(data);
   updateSettingsLabel();
+  // Stäng inställningsboxen automatiskt om ett lag har valts
+  closeSettingsBoxIfNeeded();
+}
+
+function closeSettingsBoxIfNeeded() {
+  const settingsContent = document.getElementById('settingsContent');
+  const arrow = document.getElementById('settingsArrow');
+  if (settingsContent && settingsContent.classList.contains('open') && lagSelect.value !== '') {
+    settingsContent.classList.remove('open');
+    if (arrow) arrow.textContent = '▼';
+  }
 }
 
 // ---- Reset OB (inbyggd i script.js) ----
