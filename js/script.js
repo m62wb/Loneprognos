@@ -306,6 +306,27 @@ function updateUI() {
   renderUI(data);
 }
 
+// ---- RESET OB (flyttad hit, fungerar alltid) ----
+function resetOB() {
+  const lag = lagSelect.value;
+  if (lag !== 'manual') {
+    let y = parseInt(yearSelect.value);
+    let m = parseInt(monthSelect.value);
+    let om = m - 1;
+    if (om === 0) { om = 12; y--; }
+    const ob = getOBForMonth(y, om, lag);
+    ob1Hours.value = fd(ob.ob1, 2);
+    ob2Hours.value = fd(ob.ob2, 2);
+    ob3Hours.value = fd(ob.ob3, 2);
+  } else {
+    ob1Hours.value = '0';
+    ob2Hours.value = '0';
+    ob3Hours.value = '0';
+  }
+  manualOBOverride = false;
+  updateUI();
+}
+
 function toggleExpand(el){ let d=el.querySelector('.expandable-details'), a=el.querySelector('.expandable-arrow'); d.classList.toggle('open'); a.classList.toggle('open'); }
 function toggleTheme(){ let html=document.documentElement; html.setAttribute('data-theme', html.getAttribute('data-theme')==='dark'?'light':'dark'); }
 function toggleVAB(){ let c=document.getElementById('vabContent'), a=document.getElementById('vabArrow'); c.classList.toggle('open'); a.innerText=c.classList.contains('open')?'▲':'▼'; }
@@ -357,6 +378,7 @@ window.setFromvaro=setFromvaro; window.changeShift=changeShift; window.resetSche
 window.resetAllShifts=resetAllShifts; window.toggleExpand=toggleExpand;
 window.toggleYearSummary=toggleYearSummary; window.toggleVAB=toggleVAB; window.toggleOB=toggleOB;
 window.toggleOverview=toggleOverview;
+window.resetOB = resetOB;
 window.manualOBOverride = manualOBOverride;
 window.updateUI = updateUI;
 window.salaryInput = salaryInput;
