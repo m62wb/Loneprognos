@@ -57,8 +57,9 @@ function calculateEverything() {
   const otRatePerHour = obGroundingBase / OTD;
   const otEnkelRatePerHour = obGroundingBase / OTENKELD;
 
-  const sickRate100 = baseSalary / 141.667;
-  const sickRate80 = baseSalary / 177.0837;
+  // ---- EXAKTA DIVISORER FÖR SJUKLÖN ----
+  const sickRate100 = baseSalary / (141 + 2/3);
+  const sickRate80  = baseSalary / (177 + 1/12);
 
   const semesterSupplementPerDay = (baseSalary + driftAddition) / 125;
   const semesterTillagg = vacationCount * semesterSupplementPerDay;
@@ -113,7 +114,11 @@ function calculateEverything() {
   const lockEnabled = obLockToggle.checked;
   let obData;
   if (isAuto && lockEnabled && !manualOBOverride) {
-    obData = autoOB;
+    obData = {
+        ob1: Math.round(p(ob1Hours.value)),
+        ob2: Math.round(p(ob2Hours.value)),
+        ob3: Math.round(p(ob3Hours.value))
+    };
   } else if (isAuto && lockEnabled && manualOBOverride) {
     obData = {ob1: p(ob1Hours.value), ob2: p(ob2Hours.value), ob3: p(ob3Hours.value)};
   } else {
@@ -305,7 +310,6 @@ function renderUI(data) {
   }
 }
 
-// ---- NY FUNKTION: visa huvudinnehållet om giltigt val är gjort ----
 function showMainIfValid() {
   const main = document.getElementById('mainContent');
   if (!main) return;
