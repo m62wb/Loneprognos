@@ -48,7 +48,7 @@ function calculateEverything() {
   const totalVABParental = vabD + parentalD;
   const vacationCount = [...fromvaroMap.values()].filter(v => v === 1).length;
 
-  // INGEN AVRUNDNING på drifttillägget – gör OB‑grundande lön exakt
+  // INGEN AVRUNDNING på drifttillägget
   const driftAddition = baseSalary * DRIFT / 100;
   const obGroundingBase = baseSalary + driftAddition;
 
@@ -58,7 +58,6 @@ function calculateEverything() {
   const otRatePerHour = obGroundingBase / OTD;
   const otEnkelRatePerHour = obGroundingBase / OTENKELD;
 
-  // ---- EXAKTA DIVISORER FÖR SJUKLÖN ----
   const sickRate100 = baseSalary / (141 + 2/3);
   const sickRate80  = baseSalary / (177 + 1/12);
 
@@ -93,7 +92,7 @@ function calculateEverything() {
   const fkVabNet = fkVabTotal - fkVabTax;
   const fkFpNet = fkFpTotal - fkFpTax;
   const fkFptNet = fkFptTotal - fkFptTax;
-  const totalErsattningNetto = fkVabNet + fkFpNet + fkFptNet;
+  const totalErsattningNettoExact = fkVabNet + fkFpNet + fkFptNet;   // oavrundad
 
   let obYear = selectedYear, obMonth = selectedMonth - 1;
   if (obMonth === 0) { obMonth = 12; obYear--; }
@@ -104,10 +103,7 @@ function calculateEverything() {
     if (lag !== lastAutoLag || obYear !== lastAutoYear || obMonth !== lastAutoMonth) {
       manualOBOverride = false;
     }
-    lastAutoLag = lag;
-    lastAutoYear = obYear;
-    lastAutoMonth = obMonth;
-    lastAutoOB = autoOB;
+    lastAutoLag = lag; lastAutoYear = obYear; lastAutoMonth = obMonth; lastAutoOB = autoOB;
   } else {
     manualOBOverride = false;
   }
@@ -115,11 +111,7 @@ function calculateEverything() {
   const lockEnabled = obLockToggle.checked;
   let obData;
   if (isAuto && lockEnabled && !manualOBOverride) {
-    obData = {
-        ob1: Math.round(p(ob1Hours.value)),
-        ob2: Math.round(p(ob2Hours.value)),
-        ob3: Math.round(p(ob3Hours.value))
-    };
+    obData = { ob1: Math.round(p(ob1Hours.value)), ob2: Math.round(p(ob2Hours.value)), ob3: Math.round(p(ob3Hours.value)) };
   } else if (isAuto && lockEnabled && manualOBOverride) {
     obData = {ob1: p(ob1Hours.value), ob2: p(ob2Hours.value), ob3: p(ob3Hours.value)};
   } else {
@@ -129,9 +121,7 @@ function calculateEverything() {
         manualOBOverride = true;
       }
       if (!manualOBOverride) {
-        ob1Hours.value = fd(autoOB.ob1, 2);
-        ob2Hours.value = fd(autoOB.ob2, 2);
-        ob3Hours.value = fd(autoOB.ob3, 2);
+        ob1Hours.value = fd(autoOB.ob1, 2); ob2Hours.value = fd(autoOB.ob2, 2); ob3Hours.value = fd(autoOB.ob3, 2);
       }
       obData = {ob1: p(ob1Hours.value), ob2: p(ob2Hours.value), ob3: p(ob3Hours.value)};
     } else {
@@ -164,7 +154,11 @@ function calculateEverything() {
   const netBeforeFack = f2(jobbBrutto - tax);
   const unionFee = calcUnion(jobbBrutto);
   const jobbNetto = f2(netBeforeFack - unionFee);
-  const netSalary = f2(jobbNetto + f2(totalErsattningNetto));
+  const netSalary = f2(jobbNetto + f2(totalErsattningNettoExact));
+
+  // Exakt nettolön för öresutjämning (utan avrundning)
+  const taxExact = taxFromTable33Col1(jobbBruttoExact);   // f2 används internt, ger två decimaler
+  const netSalaryExact = jobbBruttoExact - taxExact - unionFee + totalErsattningNettoExact;
 
   return {
     baseSalary, selectedYear, selectedMonth, karensDays, lag, isAuto,
@@ -173,12 +167,13 @@ function calculateEverything() {
     ob1RatePerHour, ob2RatePerHour, ob3RatePerHour, otRatePerHour, otEnkelRatePerHour,
     semesterSupplementPerDay, semesterTillagg,
     karensDeduction, totalSickLoss,
-    vabParentalDeduction, totalErsattningNetto,
+    vabParentalDeduction, totalErsattningNettoExact,
     obYear, obMonth, lockEnabled, obData, autoOB,
     ob1Amount, ob2Amount, ob3Amount, otAmount, otEnkelAmount,
     totalOBOnly, totalOBOnlyHours, totalOB,
     sjukOb1Gain, sjukOb2Gain, sjukOb3Gain, totalSjukOBGain,
-    jobbBrutto, tax, netBeforeFack, unionFee, jobbNetto, netSalary
+    jobbBrutto, tax, netBeforeFack, unionFee, jobbNetto, netSalary,
+    netSalaryExact   // nytt!
   };
 }
 
@@ -186,11 +181,9 @@ function renderUI(data) {
   const lagName = {A:'Lag A',B:'Lag B',C:'Lag C',D:'Lag D',E:'Lag E'}[data.lag] || 'Manuell';
 
   if (data.sickVisible) {
-    sjukOBContainer.classList.add('visible');
-    sickHoursContainer.classList.add('visible');
+    sjukOBContainer.classList.add('visible'); sickHoursContainer.classList.add('visible');
   } else {
-    sjukOBContainer.classList.remove('visible');
-    sickHoursContainer.classList.remove('visible');
+    sjukOBContainer.classList.remove('visible'); sickHoursContainer.classList.remove('visible');
   }
   vabSummary.style.display = data.totalVABParental > 0 ? 'flex' : 'none';
 
@@ -203,13 +196,9 @@ function renderUI(data) {
   otEnkelRate.innerText = '/94 = ' + fd(data.otEnkelRatePerHour, 2) + ' kr/h';
 
   lockLabel.innerText = data.lockEnabled ? 'Låst' : 'Lås';
-  ob1Hours.disabled = data.lockEnabled;
-  ob2Hours.disabled = data.lockEnabled;
-  ob3Hours.disabled = data.lockEnabled;
+  ob1Hours.disabled = data.lockEnabled; ob2Hours.disabled = data.lockEnabled; ob3Hours.disabled = data.lockEnabled;
   if (data.isAuto && data.lockEnabled && !manualOBOverride) {
-    ob1Hours.value = fd(data.autoOB.ob1, 2);
-    ob2Hours.value = fd(data.autoOB.ob2, 2);
-    ob3Hours.value = fd(data.autoOB.ob3, 2);
+    ob1Hours.value = fd(data.autoOB.ob1, 2); ob2Hours.value = fd(data.autoOB.ob2, 2); ob3Hours.value = fd(data.autoOB.ob3, 2);
   }
 
   selectedPeriod.innerText =
@@ -224,7 +213,6 @@ function renderUI(data) {
   finalNetSalary.innerText = fc(data.netSalary) + ' kr';
   overviewTotalNet.innerText = fc(data.netSalary) + ' kr';
 
-  // Här kommer översikten, dagsschemat osv. (oförändrat)
   let obOTHTML = '';
   if (data.totalOBOnlyHours > 0) {
     obOTHTML = '<div class="expandable-chip" onclick="toggleExpand(this)">' +
@@ -242,12 +230,21 @@ function renderUI(data) {
   let karensHTML = data.karensDays > 0
     ? '<div class="detail-chip danger"><span>Karensavdrag</span><span>-' + fd(data.karensDeduction, 2) + ' kr (' + data.karensDays + ' dag' + (data.karensDays > 1 ? 'ar' : '') + ')</span></div>'
     : '';
-
   let extraSickHTML = data.extraSick > 0 ? '<div class="detail-chip danger"><span>Sjuktimmar</span><span>' + fd(data.extraSick, 1) + 'h (netto -20%)</span></div>' : '';
   let sjukObHTML = data.totalSjukOBGain > 0 ? '<div class="detail-chip success"><span>Sjuk-OB ersättning</span><span>+' + fc(data.totalSjukOBGain) + ' kr</span></div>' : '';
   let vabHTML = data.totalVABParental > 0 ? '<div class="detail-chip danger"><span>VAB/F-ledig avdrag</span><span>-' + fc(data.vabParentalDeduction) + ' kr</span></div>' : '';
   let semesterHTML = data.vacationCount > 0 ? '<div class="detail-chip info"><span>Semestertillägg (' + data.vacationCount + ' dgr, ' + fd(data.semesterSupplementPerDay, 2) + ' kr/d)</span><span>+' + fc(data.semesterTillagg) + ' kr</span></div>' : '';
-  let bidragHTML = (data.totalVABParental > 0 || ftpDays.value > 0) ? '<div class="detail-chip success"><span>FK/AFA netto</span><span>+' + fc(data.totalErsattningNetto) + ' kr</span></div>' : '';
+  let bidragHTML = (data.totalVABParental > 0 || ftpDays.value > 0) ? '<div class="detail-chip success"><span>FK/AFA netto</span><span>+' + fc(data.totalErsattningNettoExact) + ' kr</span></div>' : '';
+
+  // Beräkna öresutjämning
+  const roundedNet = Math.round(data.netSalaryExact);
+  const utjämning = roundedNet - data.netSalaryExact;
+  let utjämningHTML = '';
+  if (Math.abs(utjämning) > 0.001) {
+    const tecken = utjämning > 0 ? '+' : '';
+    const färg = utjämning > 0 ? 'success' : 'danger';
+    utjämningHTML = `<div class="detail-chip ${färg}"><span>Öresutjämning</span><span>${tecken}${fd(Math.abs(utjämning), 2)} kr</span></div>`;
+  }
 
   let detailHTML =
     '<div class="detail-chip"><span>Grundlön</span><span>' + fc(data.baseSalary) + ' kr</span></div>' +
@@ -260,8 +257,9 @@ function renderUI(data) {
     '<div class="detail-chip"><span>Nettolön före fack</span><span>' + fc(data.netBeforeFack) + ' kr</span></div>' +
     '<div class="detail-chip"><span>IF Metall</span><span>-' + fc(data.unionFee) + ' kr</span></div>' +
     '<div class="detail-chip"><span>Nettolön jobb</span><span>' + fc(data.jobbNetto) + ' kr</span></div>';
-  if (data.totalErsattningNetto > 0) detailHTML += '<div class="detail-chip success"><span>Nettolön bidrag</span><span>+' + fc(data.totalErsattningNetto) + ' kr</span></div>';
-  detailHTML += '<div class="detail-chip success"><strong>Totalt netto: ' + fc(data.netSalary) + ' kr</strong></div>';
+  if (data.totalErsattningNettoExact > 0) detailHTML += '<div class="detail-chip success"><span>Nettolön bidrag</span><span>+' + fc(data.totalErsattningNettoExact) + ' kr</span></div>';
+  detailHTML += utjämningHTML;   // öresutjämning
+  detailHTML += '<div class="detail-chip success"><strong>Totalt netto: ' + fc(roundedNet) + ' kr</strong></div>';
 
   detailGrid.innerHTML = detailHTML;
 
@@ -312,7 +310,6 @@ function renderUI(data) {
   }
 }
 
-// Resten av filen (showMainIfValid, updateUI, resetOB, toggles, diagram etc.) är oförändrad.
 function showMainIfValid() {
   const main = document.getElementById('mainContent');
   if (!main) return;
@@ -361,9 +358,7 @@ function resetOB() {
     ob2Hours.value = fd(ob.ob2, 2);
     ob3Hours.value = fd(ob.ob3, 2);
   } else {
-    ob1Hours.value = '0';
-    ob2Hours.value = '0';
-    ob3Hours.value = '0';
+    ob1Hours.value = '0'; ob2Hours.value = '0'; ob3Hours.value = '0';
   }
   manualOBOverride = false;
   updateUI();
@@ -410,10 +405,7 @@ function updateYearSummary() {
     const tax = taxFromTable33Col1(jb);
     const uf = calcUnion(jb);
     const net = jb - tax - uf;
-    totBrutto += jb;
-    totNetto += net;
-    totSkatt += tax;
-    totFack += uf;
+    totBrutto += jb; totNetto += net; totSkatt += tax; totFack += uf;
   }
   document.getElementById('yearSummaryGrid').innerHTML =
     `<div>Total bruttolön: ${fc(totBrutto)} kr</div>` +
@@ -429,9 +421,7 @@ function updateSettingsLabel() {
     const profName = (profSelect && profSelect.value) ? profSelect.value : '--';
     const lagName = lagSelectEl && lagSelectEl.selectedIndex >= 0 ? lagSelectEl.options[lagSelectEl.selectedIndex].text : 'Välj lag';
     const label = document.getElementById('settingsLabel');
-    if (label) {
-        label.textContent = 'Profil: ' + profName + ' | Lag: ' + lagName;
-    }
+    if (label) label.textContent = 'Profil: ' + profName + ' | Lag: ' + lagName;
 }
 
 function toggleSettings() {
@@ -454,13 +444,11 @@ function renderOBChart() {
     const o1r = obBase / O1D;
     const o2r = obBase / O2D;
     const o3r = obBase / O3D;
-    const labels = [];
-    const data = [];
+    const labels = []; const data = [];
     for (let m = 1; m <= 12; m++) {
         const obData = getOBForMonth(year, m, lag);
         const amount = Math.round(obData.ob1 * o1r + obData.ob2 * o2r + obData.ob3 * o3r);
-        labels.push(MONTHS[m-1]);
-        data.push(amount);
+        labels.push(MONTHS[m-1]); data.push(amount);
     }
     const ctx = document.getElementById('obChart');
     if (!ctx) return;
@@ -478,8 +466,7 @@ function renderOBChart() {
             }]
         },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
+            responsive: true, maintainAspectRatio: false,
             scales: {
                 y: { beginAtZero: true, ticks: { color: '#8b949e' } },
                 x: { ticks: { color: '#8b949e' } }
@@ -528,9 +515,7 @@ obLockToggle.addEventListener('change',updateUI);
 
 [ob1Hours, ob2Hours, ob3Hours].forEach(function(field) {
   field.addEventListener('input', function() {
-    if (!obLockToggle.checked) {
-      manualOBOverride = true;
-    }
+    if (!obLockToggle.checked) { manualOBOverride = true; }
   });
 });
 
@@ -550,35 +535,21 @@ window.setFromvaro=setFromvaro; window.changeShift=changeShift; window.resetSche
 window.resetAllShifts=resetAllShifts; window.toggleExpand=toggleExpand;
 window.toggleYearSummary=toggleYearSummary; window.toggleVAB=toggleVAB; window.toggleOB=toggleOB;
 window.toggleOverview=toggleOverview;
-window.toggleTheme = toggleTheme;
-window.toggleSettings = toggleSettings;
-window.resetOB = resetOB;
-window.manualOBOverride = manualOBOverride;
+window.toggleTheme = toggleTheme; window.toggleSettings = toggleSettings;
+window.resetOB = resetOB; window.manualOBOverride = manualOBOverride;
 window.updateUI = updateUI;
-window.salaryInput = salaryInput;
-window.lagSelect = lagSelect;
-window.yearSelect = yearSelect;
-window.monthSelect = monthSelect;
-window.karensSelect = karensSelect;
-window.otHours = otHours;
-window.otEnkelHours = otEnkelHours;
-window.ob1Hours = ob1Hours;
-window.ob2Hours = ob2Hours;
-window.ob3Hours = ob3Hours;
-window.sjukOb1Hours = sjukOb1Hours;
-window.sjukOb2Hours = sjukOb2Hours;
-window.sjukOb3Hours = sjukOb3Hours;
-window.sickHours = sickHours;
-window.ftpDays = ftpDays;
-window.sgiInput = sgiInput;
+window.salaryInput = salaryInput; window.lagSelect = lagSelect;
+window.yearSelect = yearSelect; window.monthSelect = monthSelect;
+window.karensSelect = karensSelect; window.otHours = otHours; window.otEnkelHours = otEnkelHours;
+window.ob1Hours = ob1Hours; window.ob2Hours = ob2Hours; window.ob3Hours = ob3Hours;
+window.sjukOb1Hours = sjukOb1Hours; window.sjukOb2Hours = sjukOb2Hours; window.sjukOb3Hours = sjukOb3Hours;
+window.sickHours = sickHours; window.ftpDays = ftpDays; window.sgiInput = sgiInput;
 window.obLockToggle = obLockToggle;
 
 document.querySelectorAll('.numeric-only').forEach(function(field) {
   field.addEventListener('input', function() {
     this.value = this.value.replace(/[^0-9.,]/g, '');
-    if (this.value.includes(',')) {
-      this.value = this.value.replace(',', '.');
-    }
+    if (this.value.includes(',')) { this.value = this.value.replace(',', '.'); }
     if (field.classList.contains('numeric-hours')) {
       var match = this.value.match(/^(\d{0,3})(\.\d{0,2})?/);
       this.value = match ? match[0] : '';
