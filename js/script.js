@@ -61,48 +61,46 @@ function calculateEverything() {
   const sickRate80  = baseSalary / (177 + 1/12);
 
   const semesterSupplementPerDay = (baseSalary + driftAddition) / 125;
-  const semesterTillagg = vacationCount * semesterSupplementPerDay;
+  const semesterTillaggExact = vacationCount * semesterSupplementPerDay;
 
   const karensHours = karensDays * 6.8;
-  const karensDeduction = karensDays > 0 ? karensHours * sickRate100 : 0;
-  const sickDeduct100 = extraSick * sickRate100;
-  const sickPay80 = extraSick * sickRate80;
-  const sickNetLoss = sickDeduct100 - sickPay80;
-  const totalSickLoss = karensDeduction + sickNetLoss;
+  const karensDeductionExact = karensDays > 0 ? karensHours * sickRate100 : 0;
+  const sickDeduct100Exact = extraSick * sickRate100;
+  const sickPay80Exact = extraSick * sickRate80;
+  const sickNetLossExact = sickDeduct100Exact - sickPay80Exact;
+  const totalSickLossExact = karensDeductionExact + sickNetLossExact;
 
   const vabParentalHours = totalVABParental * VAB_HPD;
-  const vabParentalDeduction = vabParentalHours * sickRate100;
+  const vabParentalDeductionExact = vabParentalHours * sickRate100;
 
   const sgiVab = Math.min(sgiVal, SGI_TAK_VAB);
   const sgiVabDay = sgiVab / 365 * 0.8;
-  const fkVabTotal = vabD * sgiVabDay;
+  const fkVabTotalExact = vabD * sgiVabDay;
 
   const sgiPar = Math.min(sgiVal, SGI_TAK_PARENTAL);
-  const fpDayAmt = Math.min(1259, sgiPar / 365 * 0.776);
-  const fkFpTotal = parentalD * fpDayAmt;
+  const fpDayAmtExact = Math.min(1259, sgiPar / 365 * 0.776);
+  const fkFpTotalExact = parentalD * fpDayAmtExact;
 
-  const fptDayAmt = baseSalary / 30 * 0.10;
-  const fkFptTotal = ftpD * fptDayAmt;
+  const fptDayAmtExact = baseSalary / 30 * 0.10;
+  const fkFptTotalExact = ftpD * fptDayAmtExact;
 
-  const fkVabTax = fkVabTotal * FK_SKATT;
-  const fkFpTax = fkFpTotal * FK_SKATT;
-  const fkFptTax = fkFptTotal * FK_SKATT;
+  const fkVabTaxExact = fkVabTotalExact * FK_SKATT;
+  const fkFpTaxExact = fkFpTotalExact * FK_SKATT;
+  const fkFptTaxExact = fkFptTotalExact * FK_SKATT;
 
-  const fkVabNet = fkVabTotal - fkVabTax;
-  const fkFpNet = fkFpTotal - fkFpTax;
-  const fkFptNet = fkFptTotal - fkFptTax;
-  const totalErsattningNettoExact = fkVabNet + fkFpNet + fkFptNet;
+  const fkVabNetExact = fkVabTotalExact - fkVabTaxExact;
+  const fkFpNetExact = fkFpTotalExact - fkFpTaxExact;
+  const fkFptNetExact = fkFptTotalExact - fkFptTaxExact;
+  const totalErsattningNettoExact = fkVabNetExact + fkFpNetExact + fkFptNetExact;
 
   let obYear = selectedYear, obMonth = selectedMonth - 1;
   if (obMonth === 0) { obMonth = 12; obYear--; }
 
-  // ---------- Hämta autoOB tidigt ----------
   let autoOB = null;
   if (isAuto) {
     autoOB = getOBForMonth(obYear, obMonth, lag);
   }
 
-  // ---------- Upptäck månads-/lagbyte och uppdatera fälten direkt ----------
   if (isAuto && (lag !== lastAutoLag || obYear !== lastAutoYear || obMonth !== lastAutoMonth)) {
     manualOBOverride = false;
     if (autoOB) {
@@ -111,16 +109,12 @@ function calculateEverything() {
       ob3Hours.value = fd(autoOB.ob3, 2);
     }
   }
-  lastAutoLag = lag;
-  lastAutoYear = obYear;
-  lastAutoMonth = obMonth;
+  lastAutoLag = lag; lastAutoYear = obYear; lastAutoMonth = obMonth;
   if (!isAuto) manualOBOverride = false;
 
-  // ---------- Fortsätt med lock/obData ----------
   const lockEnabled = obLockToggle.checked;
   let obData;
   if (isAuto && lockEnabled && !manualOBOverride) {
-    // använd de (nu uppdaterade) fältvärdena avrundade
     obData = {
       ob1: Math.round(p(ob1Hours.value)),
       ob2: Math.round(p(ob2Hours.value)),
@@ -144,11 +138,12 @@ function calculateEverything() {
   }
 
   const otH = p(otHours.value), otEnkelH = p(otEnkelHours.value);
-  const ob1Amount = obData.ob1 * ob1RatePerHour;
-  const ob2Amount = obData.ob2 * ob2RatePerHour;
-  const ob3Amount = obData.ob3 * ob3RatePerHour;
-  const otAmount = otH * otRatePerHour;
-  const otEnkelAmount = otEnkelH * otEnkelRatePerHour;
+  // Öresavrunda varje OB/ÖT-post innan summering
+  const ob1Amount = Math.round(obData.ob1 * ob1RatePerHour);
+  const ob2Amount = Math.round(obData.ob2 * ob2RatePerHour);
+  const ob3Amount = Math.round(obData.ob3 * ob3RatePerHour);
+  const otAmount = Math.round(otH * otRatePerHour);
+  const otEnkelAmount = Math.round(otEnkelH * otEnkelRatePerHour);
   const totalOBOnly = ob1Amount + ob2Amount + ob3Amount;
   const totalOBOnlyHours = obData.ob1 + obData.ob2 + obData.ob3;
   const totalOB = totalOBOnly + otAmount + otEnkelAmount;
@@ -156,10 +151,17 @@ function calculateEverything() {
   const sjukOb1H = sickVisible ? p(sjukOb1Hours.value) : 0;
   const sjukOb2H = sickVisible ? p(sjukOb2Hours.value) : 0;
   const sjukOb3H = sickVisible ? p(sjukOb3Hours.value) : 0;
-  const sjukOb1Gain = sjukOb1H * ob1RatePerHour * 0.8;
-  const sjukOb2Gain = sjukOb2H * ob2RatePerHour * 0.8;
-  const sjukOb3Gain = sjukOb3H * ob3RatePerHour * 0.8;
+  const sjukOb1Gain = Math.round(sjukOb1H * ob1RatePerHour * 0.8);
+  const sjukOb2Gain = Math.round(sjukOb2H * ob2RatePerHour * 0.8);
+  const sjukOb3Gain = Math.round(sjukOb3H * ob3RatePerHour * 0.8);
   const totalSjukOBGain = sjukOb1Gain + sjukOb2Gain + sjukOb3Gain;
+
+  // Avrunda övriga delposter
+  const semesterTillagg = Math.round(semesterTillaggExact);
+  const karensDeduction = Math.round(karensDeductionExact);
+  const totalSickLoss = Math.round(totalSickLossExact);
+  const vabParentalDeduction = Math.round(vabParentalDeductionExact);
+  const totalErsattningNetto = Math.round(totalErsattningNettoExact);
 
   const totalBeforeKarens = obGroundingBase + totalOB + semesterTillagg;
   const jobbBruttoExact = totalBeforeKarens - totalSickLoss + totalSjukOBGain - vabParentalDeduction;
@@ -170,7 +172,7 @@ function calculateEverything() {
   const unionFee = calcUnion(jobbBrutto);
   const jobbNetto = f2(netBeforeFack - unionFee);
   const netSalaryExact = jobbBruttoExact - taxExact - unionFee + totalErsattningNettoExact;
-  const netSalary = f2(jobbNetto + f2(totalErsattningNettoExact));
+  const netSalary = f2(jobbNetto + f2(totalErsattningNetto));
 
   return {
     baseSalary, selectedYear, selectedMonth, karensDays, lag, isAuto,
@@ -179,7 +181,7 @@ function calculateEverything() {
     ob1RatePerHour, ob2RatePerHour, ob3RatePerHour, otRatePerHour, otEnkelRatePerHour,
     semesterSupplementPerDay, semesterTillagg,
     karensDeduction, totalSickLoss,
-    vabParentalDeduction, totalErsattningNettoExact,
+    vabParentalDeduction, totalErsattningNetto,
     obYear, obMonth, lockEnabled, obData, autoOB,
     ob1Amount, ob2Amount, ob3Amount, otAmount, otEnkelAmount,
     totalOBOnly, totalOBOnlyHours, totalOB,
@@ -246,9 +248,9 @@ function renderUI(data) {
   let sjukObHTML = data.totalSjukOBGain > 0 ? '<div class="detail-chip success"><span>Sjuk-OB ersättning</span><span>+' + fc(data.totalSjukOBGain) + ' kr</span></div>' : '';
   let vabHTML = data.totalVABParental > 0 ? '<div class="detail-chip danger"><span>VAB/F-ledig avdrag</span><span>-' + fc(data.vabParentalDeduction) + ' kr</span></div>' : '';
   let semesterHTML = data.vacationCount > 0 ? '<div class="detail-chip info"><span>Semestertillägg (' + data.vacationCount + ' dgr, ' + fd(data.semesterSupplementPerDay, 2) + ' kr/d)</span><span>+' + fc(data.semesterTillagg) + ' kr</span></div>' : '';
-  let bidragHTML = (data.totalVABParental > 0 || ftpDays.value > 0) ? '<div class="detail-chip success"><span>FK/AFA netto</span><span>+' + fc(data.totalErsattningNettoExact) + ' kr</span></div>' : '';
+  let bidragHTML = (data.totalVABParental > 0 || ftpDays.value > 0) ? '<div class="detail-chip success"><span>FK/AFA netto</span><span>+' + fc(data.totalErsattningNetto) + ' kr</span></div>' : '';
 
-  // Öresutjämning
+  // Öresutjämning baserad på skillnaden mellan avrundad och exakt nettolön
   const roundedNet = Math.round(data.netSalaryExact);
   const utjämning = roundedNet - data.netSalaryExact;
   let utjämningHTML = '';
@@ -269,7 +271,7 @@ function renderUI(data) {
     '<div class="detail-chip"><span>Nettolön före fack</span><span>' + fc(data.netBeforeFack) + ' kr</span></div>' +
     '<div class="detail-chip"><span>IF Metall</span><span>-' + fc(data.unionFee) + ' kr</span></div>' +
     '<div class="detail-chip"><span>Nettolön jobb</span><span>' + fc(data.jobbNetto) + ' kr</span></div>';
-  if (data.totalErsattningNettoExact > 0) detailHTML += '<div class="detail-chip success"><span>Nettolön bidrag</span><span>+' + fc(data.totalErsattningNettoExact) + ' kr</span></div>';
+  if (data.totalErsattningNetto > 0) detailHTML += '<div class="detail-chip success"><span>Nettolön bidrag</span><span>+' + fc(data.totalErsattningNetto) + ' kr</span></div>';
   detailHTML += utjämningHTML;
   detailHTML += '<div class="detail-chip success"><strong>Totalt netto: ' + fc(roundedNet) + ' kr</strong></div>';
 
@@ -339,7 +341,6 @@ function updateUI() {
   const data = calculateEverything();
   renderUI(data);
   updateSettingsLabel();
-  // Fyller fälten igen (ifall de inte redan är satta) – mest som backup
   if (data.isAuto && data.lockEnabled && !manualOBOverride && data.autoOB) {
     ob1Hours.value = fd(data.autoOB.ob1, 2);
     ob2Hours.value = fd(data.autoOB.ob2, 2);
