@@ -113,7 +113,6 @@ input:checked + .slider:before { transform: translateX(20px); }
 .reset-btn { background: none; border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 4px 8px; cursor: pointer; }
 .collapsible-header { display: flex; justify-content: space-between; cursor: pointer; font-weight: 700; margin-bottom: 8px; }
 
-/* --- NY ANIMERING AV PANELER --- */
 .collapsible-content {
     max-height: 0;
     opacity: 0;
@@ -129,8 +128,19 @@ input:checked + .slider:before { transform: translateX(20px); }
 
 .year-summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
 .shift-select, .fromvaro-select { background: var(--input-bg); border: 1px solid var(--border); border-radius: 20px; padding: 2px 4px; color: var(--text); width: 62px; font-size: 0.6rem; }
+/* Schemats textstorlek – liten, som du vill ha den */
+.schema-table th {
+    font-size: 0.55rem;   /* behåll den ursprungliga storleken */
+}
+.schema-table td {
+    font-size: 0.6rem;
+}
+.schema-table .shift-select,
+.schema-table .fromvaro-select {
+    font-size: 0.55rem !important;   /* samma som tidigare */
+    width: 60px;
+}
 
-/* --- NY HIGHLIGHT-EFFEKT --- */
 @keyframes highlightPulse {
     0%   { background-color: rgba(74,108,247,0.3); }
     50%  { background-color: rgba(74,108,247,0.1); }
