@@ -138,41 +138,57 @@ function calculateEverything() {
   }
 
   const otH = p(otHours.value), otEnkelH = p(otEnkelHours.value);
-  // Öresavrunda varje OB/ÖT-post innan summering
-  const ob1Amount = Math.round(obData.ob1 * ob1RatePerHour);
-  const ob2Amount = Math.round(obData.ob2 * ob2RatePerHour);
-  const ob3Amount = Math.round(obData.ob3 * ob3RatePerHour);
-  const otAmount = Math.round(otH * otRatePerHour);
-  const otEnkelAmount = Math.round(otEnkelH * otEnkelRatePerHour);
-  const totalOBOnly = ob1Amount + ob2Amount + ob3Amount;
-  const totalOBOnlyHours = obData.ob1 + obData.ob2 + obData.ob3;
-  const totalOB = totalOBOnly + otAmount + otEnkelAmount;
+  // OB/ÖT – behåll exakta tal för summering, vi avrundar senare
+  const ob1AmountExact = obData.ob1 * ob1RatePerHour;
+  const ob2AmountExact = obData.ob2 * ob2RatePerHour;
+  const ob3AmountExact = obData.ob3 * ob3RatePerHour;
+  const otAmountExact = otH * otRatePerHour;
+  const otEnkelAmountExact = otEnkelH * otEnkelRatePerHour;
 
   const sjukOb1H = sickVisible ? p(sjukOb1Hours.value) : 0;
   const sjukOb2H = sickVisible ? p(sjukOb2Hours.value) : 0;
   const sjukOb3H = sickVisible ? p(sjukOb3Hours.value) : 0;
-  const sjukOb1Gain = Math.round(sjukOb1H * ob1RatePerHour * 0.8);
-  const sjukOb2Gain = Math.round(sjukOb2H * ob2RatePerHour * 0.8);
-  const sjukOb3Gain = Math.round(sjukOb3H * ob3RatePerHour * 0.8);
+  const sjukOb1GainExact = sjukOb1H * ob1RatePerHour * 0.8;
+  const sjukOb2GainExact = sjukOb2H * ob2RatePerHour * 0.8;
+  const sjukOb3GainExact = sjukOb3H * ob3RatePerHour * 0.8;
+
+  // Summera alla delposter exakt
+  const totalOBExact = ob1AmountExact + ob2AmountExact + ob3AmountExact + otAmountExact + otEnkelAmountExact;
+  const totalSjukOBExact = sjukOb1GainExact + sjukOb2GainExact + sjukOb3GainExact;
+  const jobbBruttoExact = obGroundingBase + totalOBExact + semesterTillaggExact - totalSickLossExact + totalSjukOBExact - vabParentalDeductionExact;
+
+  // Avrunda bruttolönen till hela kronor – det är den som används för skatten
+  const jobbBrutto = Math.round(jobbBruttoExact);
+  const taxExact = taxFromTable33Col1(jobbBrutto);    // skatt på avrundad bruttolön
+  const tax = f2(taxExact);
+
+  // Nettolön före utjämning (med exakt bruttolön men samma skatt)
+  const netSalaryExact = jobbBruttoExact - taxExact - calcUnion(jobbBrutto) + totalErsattningNettoExact;
+  const netSalary = Math.round(netSalaryExact);       // den utbetalda nettolönen
+
+  // För visning av öresutjämning
+  const utjämning = netSalary - netSalaryExact;
+
+  // Övriga värden för gränssnittet (avrundade för visning)
+  const ob1Amount = Math.round(ob1AmountExact);
+  const ob2Amount = Math.round(ob2AmountExact);
+  const ob3Amount = Math.round(ob3AmountExact);
+  const otAmount = Math.round(otAmountExact);
+  const otEnkelAmount = Math.round(otEnkelAmountExact);
+  const totalOBOnly = ob1Amount + ob2Amount + ob3Amount;
+  const totalOB = totalOBOnly + otAmount + otEnkelAmount;
+  const totalOBOnlyHours = obData.ob1 + obData.ob2 + obData.ob3;
+
+  const sjukOb1Gain = Math.round(sjukOb1GainExact);
+  const sjukOb2Gain = Math.round(sjukOb2GainExact);
+  const sjukOb3Gain = Math.round(sjukOb3GainExact);
   const totalSjukOBGain = sjukOb1Gain + sjukOb2Gain + sjukOb3Gain;
 
-  // Avrunda övriga delposter
   const semesterTillagg = Math.round(semesterTillaggExact);
   const karensDeduction = Math.round(karensDeductionExact);
   const totalSickLoss = Math.round(totalSickLossExact);
   const vabParentalDeduction = Math.round(vabParentalDeductionExact);
   const totalErsattningNetto = Math.round(totalErsattningNettoExact);
-
-  const totalBeforeKarens = obGroundingBase + totalOB + semesterTillagg;
-  const jobbBruttoExact = totalBeforeKarens - totalSickLoss + totalSjukOBGain - vabParentalDeduction;
-  const jobbBrutto = Math.round(jobbBruttoExact);
-  const taxExact = taxFromTable33Col1(jobbBruttoExact);
-  const tax = f2(taxExact);
-  const netBeforeFack = f2(jobbBrutto - tax);
-  const unionFee = calcUnion(jobbBrutto);
-  const jobbNetto = f2(netBeforeFack - unionFee);
-  const netSalaryExact = jobbBruttoExact - taxExact - unionFee + totalErsattningNettoExact;
-  const netSalary = f2(jobbNetto + f2(totalErsattningNetto));
 
   return {
     baseSalary, selectedYear, selectedMonth, karensDays, lag, isAuto,
@@ -186,8 +202,12 @@ function calculateEverything() {
     ob1Amount, ob2Amount, ob3Amount, otAmount, otEnkelAmount,
     totalOBOnly, totalOBOnlyHours, totalOB,
     sjukOb1Gain, sjukOb2Gain, sjukOb3Gain, totalSjukOBGain,
-    jobbBrutto, tax, netBeforeFack, unionFee, jobbNetto, netSalary,
-    netSalaryExact
+    jobbBrutto, tax, netBeforeFack: f2(jobbBrutto - tax),
+    unionFee: calcUnion(jobbBrutto),
+    jobbNetto: f2(jobbBrutto - tax - calcUnion(jobbBrutto)),
+    netSalary,
+    netSalaryExact,
+    utjämning
   };
 }
 
@@ -250,14 +270,12 @@ function renderUI(data) {
   let semesterHTML = data.vacationCount > 0 ? '<div class="detail-chip info"><span>Semestertillägg (' + data.vacationCount + ' dgr, ' + fd(data.semesterSupplementPerDay, 2) + ' kr/d)</span><span>+' + fc(data.semesterTillagg) + ' kr</span></div>' : '';
   let bidragHTML = (data.totalVABParental > 0 || ftpDays.value > 0) ? '<div class="detail-chip success"><span>FK/AFA netto</span><span>+' + fc(data.totalErsattningNetto) + ' kr</span></div>' : '';
 
-  // Öresutjämning baserad på skillnaden mellan avrundad och exakt nettolön
-  const roundedNet = Math.round(data.netSalaryExact);
-  const utjämning = roundedNet - data.netSalaryExact;
+  // Öresutjämning – korrekt beräknad
   let utjämningHTML = '';
-  if (Math.abs(utjämning) > 0.001) {
-    const tecken = utjämning > 0 ? '+' : '';
-    const färg = utjämning > 0 ? 'success' : 'danger';
-    utjämningHTML = `<div class="detail-chip ${färg}"><span>Öresutjämning</span><span>${tecken}${fd(Math.abs(utjämning), 2)} kr</span></div>`;
+  if (Math.abs(data.utjämning) > 0.001) {
+    const tecken = data.utjämning > 0 ? '+' : '';
+    const färg = data.utjämning > 0 ? 'success' : 'danger';
+    utjämningHTML = `<div class="detail-chip ${färg}"><span>Öresutjämning</span><span>${tecken}${fd(Math.abs(data.utjämning), 2)} kr</span></div>`;
   }
 
   let detailHTML =
@@ -273,7 +291,7 @@ function renderUI(data) {
     '<div class="detail-chip"><span>Nettolön jobb</span><span>' + fc(data.jobbNetto) + ' kr</span></div>';
   if (data.totalErsattningNetto > 0) detailHTML += '<div class="detail-chip success"><span>Nettolön bidrag</span><span>+' + fc(data.totalErsattningNetto) + ' kr</span></div>';
   detailHTML += utjämningHTML;
-  detailHTML += '<div class="detail-chip success"><strong>Totalt netto: ' + fc(roundedNet) + ' kr</strong></div>';
+  detailHTML += '<div class="detail-chip success"><strong>Totalt netto: ' + fc(data.netSalary) + ' kr</strong></div>';
 
   detailGrid.innerHTML = detailHTML;
 
