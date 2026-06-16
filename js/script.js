@@ -143,16 +143,18 @@ function calculateEverything() {
   const totalOBOnlyHours = obData.ob1 + obData.ob2 + obData.ob3;
   const totalOB = totalOBOnly + otAmount + otEnkelAmount;
 
+  // ----- SJUK-OB BLIR ETT TILLÄGG (80 % av OB-ersättningen) -----
   const sjukOb1H = sickVisible ? p(sjukOb1Hours.value) : 0;
   const sjukOb2H = sickVisible ? p(sjukOb2Hours.value) : 0;
   const sjukOb3H = sickVisible ? p(sjukOb3Hours.value) : 0;
-  const sjukOb1Loss = f2(sjukOb1H * ob1RatePerHour * 0.2);
-  const sjukOb2Loss = f2(sjukOb2H * ob2RatePerHour * 0.2);
-  const sjukOb3Loss = f2(sjukOb3H * ob3RatePerHour * 0.2);
-  const totalSjukOB = f2(sjukOb1Loss + sjukOb2Loss + sjukOb3Loss);
+  const sjukOb1Gain = f2(sjukOb1H * ob1RatePerHour * 0.8);
+  const sjukOb2Gain = f2(sjukOb2H * ob2RatePerHour * 0.8);
+  const sjukOb3Gain = f2(sjukOb3H * ob3RatePerHour * 0.8);
+  const totalSjukOBGain = f2(sjukOb1Gain + sjukOb2Gain + sjukOb3Gain);
 
   const totalBeforeKarens = obGroundingBase + totalOB + semesterTillagg;
-  const jobbBrutto = f2(totalBeforeKarens - totalSickLoss - totalSjukOB - vabParentalDeduction);
+  // Sjuk-OB läggs till istället för att dras av
+  const jobbBrutto = f2(totalBeforeKarens - totalSickLoss + totalSjukOBGain - vabParentalDeduction);
   const tax = taxFromTable33Col1(jobbBrutto);
   const netBeforeFack = f2(jobbBrutto - tax);
   const unionFee = calcUnion(jobbBrutto);
@@ -170,7 +172,7 @@ function calculateEverything() {
     obYear, obMonth, lockEnabled, obData, autoOB,
     ob1Amount, ob2Amount, ob3Amount, otAmount, otEnkelAmount,
     totalOBOnly, totalOBOnlyHours, totalOB,
-    sjukOb1Loss, sjukOb2Loss, sjukOb3Loss, totalSjukOB,
+    sjukOb1Gain, sjukOb2Gain, sjukOb3Gain, totalSjukOBGain,
     jobbBrutto, tax, netBeforeFack, unionFee, jobbNetto, netSalary
   };
 }
@@ -233,7 +235,8 @@ function renderUI(data) {
 
   let karensHTML = data.karensDays > 0 ? '<div class="detail-chip danger"><span>Karens</span><span>' + data.karensDays + ' dag' + (data.karensDays > 1 ? 'ar' : '') + '</span></div>' : '';
   let extraSickHTML = data.extraSick > 0 ? '<div class="detail-chip danger"><span>Sjuktimmar</span><span>' + fd(data.extraSick, 1) + 'h (netto -20%)</span></div>' : '';
-  let sjukObHTML = data.totalSjukOB > 0 ? '<div class="detail-chip danger"><span>Sjuk-OB förlust</span><span>-' + fc(data.totalSjukOB) + ' kr</span></div>' : '';
+  // Ändrad till grön "Sjuk-OB ersättning"
+  let sjukObHTML = data.totalSjukOBGain > 0 ? '<div class="detail-chip success"><span>Sjuk-OB ersättning</span><span>+' + fc(data.totalSjukOBGain) + ' kr</span></div>' : '';
   let vabHTML = data.totalVABParental > 0 ? '<div class="detail-chip danger"><span>VAB/F-ledig avdrag</span><span>-' + fc(data.vabParentalDeduction) + ' kr</span></div>' : '';
   let semesterHTML = data.vacationCount > 0 ? '<div class="detail-chip info"><span>Semestertillägg (' + data.vacationCount + ' dgr, ' + fd(data.semesterSupplementPerDay, 2) + ' kr/d)</span><span>+' + fc(data.semesterTillagg) + ' kr</span></div>' : '';
   let bidragHTML = (data.totalVABParental > 0 || ftpDays.value > 0) ? '<div class="detail-chip success"><span>FK/AFA netto</span><span>+' + fc(data.totalErsattningNetto) + ' kr</span></div>' : '';
@@ -357,7 +360,7 @@ function toggleExpand(el){ let d=el.querySelector('.expandable-details'), a=el.q
 
 function toggleTheme() {
     const checkbox = document.getElementById('themeToggleCheckbox');
-    const isDark = checkbox.checked;          // checked = mörkt tema
+    const isDark = checkbox.checked;
     const html = document.documentElement;
     html.setAttribute('data-theme', isDark ? 'dark' : 'light');
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
@@ -468,8 +471,8 @@ function renderOBChart() {
             datasets: [{
                 label: 'OB‑ersättning (kr)',
                 data: data,
-                backgroundColor: 'rgba(74,108,247,0.6)',
-                borderColor: 'rgba(74,108,247,1)',
+                backgroundColor: 'rgba(88,166,255,0.6)',
+                borderColor: 'rgba(88,166,255,1)',
                 borderWidth: 1
             }]
         },
@@ -479,14 +482,14 @@ function renderOBChart() {
             scales: {
                 y: {
                     beginAtZero: true,
-                    ticks: { color: '#a0aec0' }
+                    ticks: { color: '#8b949e' }
                 },
                 x: {
-                    ticks: { color: '#a0aec0' }
+                    ticks: { color: '#8b949e' }
                 }
             },
             plugins: {
-                legend: { labels: { color: '#a0aec0' } }
+                legend: { labels: { color: '#8b949e' } }
             }
         }
     });
