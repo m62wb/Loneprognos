@@ -64,5 +64,7 @@ function resetOB() {
     ob2Hours.value = '0';
     ob3Hours.value = '0';
   }
-  updateUI();  // anropar huvudentrén i script.js
+  updateUI();
+  window.updateYearSummary = updateYearSummary;
+  window.resetOB = resetOB;
 }
