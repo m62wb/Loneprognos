@@ -138,7 +138,6 @@ function calculateEverything() {
   }
 
   const otH = p(otHours.value), otEnkelH = p(otEnkelHours.value);
-  // OB/ÖT – behåll exakta tal för summering, vi avrundar senare
   const ob1AmountExact = obData.ob1 * ob1RatePerHour;
   const ob2AmountExact = obData.ob2 * ob2RatePerHour;
   const ob3AmountExact = obData.ob3 * ob3RatePerHour;
@@ -152,24 +151,18 @@ function calculateEverything() {
   const sjukOb2GainExact = sjukOb2H * ob2RatePerHour * 0.8;
   const sjukOb3GainExact = sjukOb3H * ob3RatePerHour * 0.8;
 
-  // Summera alla delposter exakt
   const totalOBExact = ob1AmountExact + ob2AmountExact + ob3AmountExact + otAmountExact + otEnkelAmountExact;
   const totalSjukOBExact = sjukOb1GainExact + sjukOb2GainExact + sjukOb3GainExact;
   const jobbBruttoExact = obGroundingBase + totalOBExact + semesterTillaggExact - totalSickLossExact + totalSjukOBExact - vabParentalDeductionExact;
 
-  // Avrunda bruttolönen till hela kronor – det är den som används för skatten
   const jobbBrutto = Math.round(jobbBruttoExact);
-  const taxExact = taxFromTable33Col1(jobbBrutto);    // skatt på avrundad bruttolön
+  const taxExact = taxFromTable33Col1(jobbBrutto);
   const tax = f2(taxExact);
 
-  // Nettolön före utjämning (med exakt bruttolön men samma skatt)
   const netSalaryExact = jobbBruttoExact - taxExact - calcUnion(jobbBrutto) + totalErsattningNettoExact;
-  const netSalary = Math.round(netSalaryExact);       // den utbetalda nettolönen
-
-  // För visning av öresutjämning
+  const netSalary = Math.round(netSalaryExact);
   const utjämning = netSalary - netSalaryExact;
 
-  // Övriga värden för gränssnittet (avrundade för visning)
   const ob1Amount = Math.round(ob1AmountExact);
   const ob2Amount = Math.round(ob2AmountExact);
   const ob3Amount = Math.round(ob3AmountExact);
@@ -202,12 +195,10 @@ function calculateEverything() {
     ob1Amount, ob2Amount, ob3Amount, otAmount, otEnkelAmount,
     totalOBOnly, totalOBOnlyHours, totalOB,
     sjukOb1Gain, sjukOb2Gain, sjukOb3Gain, totalSjukOBGain,
-    jobbBrutto, tax, netBeforeFack: f2(jobbBrutto - tax),
+    jobbBrutto, jobbBruttoExact, tax, netBeforeFack: f2(jobbBrutto - tax),
     unionFee: calcUnion(jobbBrutto),
     jobbNetto: f2(jobbBrutto - tax - calcUnion(jobbBrutto)),
-    netSalary,
-    netSalaryExact,
-    utjämning
+    netSalary, netSalaryExact, utjämning
   };
 }
 
@@ -270,7 +261,6 @@ function renderUI(data) {
   let semesterHTML = data.vacationCount > 0 ? '<div class="detail-chip info"><span>Semestertillägg (' + data.vacationCount + ' dgr, ' + fd(data.semesterSupplementPerDay, 2) + ' kr/d)</span><span>+' + fc(data.semesterTillagg) + ' kr</span></div>' : '';
   let bidragHTML = (data.totalVABParental > 0 || ftpDays.value > 0) ? '<div class="detail-chip success"><span>FK/AFA netto</span><span>+' + fc(data.totalErsattningNetto) + ' kr</span></div>' : '';
 
-  // Öresutjämning – korrekt beräknad
   let utjämningHTML = '';
   if (Math.abs(data.utjämning) > 0.001) {
     const tecken = data.utjämning > 0 ? '+' : '';
@@ -284,7 +274,8 @@ function renderUI(data) {
     obOTHTML +
     semesterHTML +
     karensHTML + extraSickHTML + sjukObHTML + vabHTML + bidragHTML +
-    '<div class="detail-chip"><span>Bruttolön jobb</span><span>' + fc(data.jobbBrutto) + ' kr</span></div>' +
+    // ---- ÄNDRAD: Bruttolön med två decimaler ----
+    '<div class="detail-chip"><span>Bruttolön jobb</span><span>' + fd(data.jobbBruttoExact, 2) + ' kr</span></div>' +
     '<div class="detail-chip"><span>Skatt (tabell 33)</span><span>-' + fc(data.tax) + ' kr</span></div>' +
     '<div class="detail-chip"><span>Nettolön före fack</span><span>' + fc(data.netBeforeFack) + ' kr</span></div>' +
     '<div class="detail-chip"><span>IF Metall</span><span>-' + fc(data.unionFee) + ' kr</span></div>' +
