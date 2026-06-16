@@ -48,7 +48,8 @@ function calculateEverything() {
   const totalVABParental = vabD + parentalD;
   const vacationCount = [...fromvaroMap.values()].filter(v => v === 1).length;
 
-  const driftAddition = Math.round(baseSalary * DRIFT / 100);
+  // INGEN AVRUNDNING på drifttillägget – gör OB‑grundande lön exakt
+  const driftAddition = baseSalary * DRIFT / 100;
   const obGroundingBase = baseSalary + driftAddition;
 
   const ob1RatePerHour = obGroundingBase / O1D;
@@ -114,7 +115,6 @@ function calculateEverything() {
   const lockEnabled = obLockToggle.checked;
   let obData;
   if (isAuto && lockEnabled && !manualOBOverride) {
-    // Använd de avrundade timmarna från fälten (exakt som visas)
     obData = {
         ob1: Math.round(p(ob1Hours.value)),
         ob2: Math.round(p(ob2Hours.value)),
@@ -140,7 +140,6 @@ function calculateEverything() {
   }
 
   const otH = p(otHours.value), otEnkelH = p(otEnkelHours.value);
-  // ---- INGEN AVRUNDNING PÅ OB-BELOPPEN ----
   const ob1Amount = obData.ob1 * ob1RatePerHour;
   const ob2Amount = obData.ob2 * ob2RatePerHour;
   const ob3Amount = obData.ob3 * ob3RatePerHour;
@@ -159,7 +158,6 @@ function calculateEverything() {
   const totalSjukOBGain = sjukOb1Gain + sjukOb2Gain + sjukOb3Gain;
 
   const totalBeforeKarens = obGroundingBase + totalOB + semesterTillagg;
-  // Öresavrunda bruttolönen till hela kronor INNAN skatten beräknas
   const jobbBruttoExact = totalBeforeKarens - totalSickLoss + totalSjukOBGain - vabParentalDeduction;
   const jobbBrutto = Math.round(jobbBruttoExact);
   const tax = f2(taxFromTable33Col1(jobbBrutto));
@@ -226,6 +224,7 @@ function renderUI(data) {
   finalNetSalary.innerText = fc(data.netSalary) + ' kr';
   overviewTotalNet.innerText = fc(data.netSalary) + ' kr';
 
+  // Här kommer översikten, dagsschemat osv. (oförändrat)
   let obOTHTML = '';
   if (data.totalOBOnlyHours > 0) {
     obOTHTML = '<div class="expandable-chip" onclick="toggleExpand(this)">' +
@@ -313,6 +312,7 @@ function renderUI(data) {
   }
 }
 
+// Resten av filen (showMainIfValid, updateUI, resetOB, toggles, diagram etc.) är oförändrad.
 function showMainIfValid() {
   const main = document.getElementById('mainContent');
   if (!main) return;
@@ -330,14 +330,11 @@ function updateUI() {
   const data = calculateEverything();
   renderUI(data);
   updateSettingsLabel();
-
-  // Tvinga fram nya OB‑timmar direkt vid byte av månad/lag (låst läge)
   if (data.isAuto && data.lockEnabled && !manualOBOverride && data.autoOB) {
     ob1Hours.value = fd(data.autoOB.ob1, 2);
     ob2Hours.value = fd(data.autoOB.ob2, 2);
     ob3Hours.value = fd(data.autoOB.ob3, 2);
   }
-
   closeSettingsBoxIfNeeded();
   renderOBChart();
   showMainIfValid();
@@ -395,14 +392,12 @@ function updateYearSummary() {
     return;
   }
   document.getElementById('yearSummaryYear').innerText = y;
-
   const bs = p(salaryInput.value) || 0;
-  const da = Math.round(bs * DRIFT / 100);
+  const da = bs * DRIFT / 100;
   const obBase = bs + da;
   const o1r = obBase / O1D;
   const o2r = obBase / O2D;
   const o3r = obBase / O3D;
-
   let totBrutto = 0, totNetto = 0, totSkatt = 0, totFack = 0, totOB = 0;
   for (let m = 1; m <= 12; m++) {
     const obData = getOBForMonth(y, m, lag);
@@ -420,7 +415,6 @@ function updateYearSummary() {
     totSkatt += tax;
     totFack += uf;
   }
-
   document.getElementById('yearSummaryGrid').innerHTML =
     `<div>Total bruttolön: ${fc(totBrutto)} kr</div>` +
     `<div>Total nettolön: ${fc(totNetto)} kr</div>` +
@@ -450,36 +444,27 @@ function toggleSettings() {
 }
 
 let obChartInstance = null;
-
 function renderOBChart() {
     const lag = lagSelect.value;
     if (lag === 'manual' || lag === '') return;
-
     const year = parseInt(yearSelect.value);
     const bs = p(salaryInput.value) || 0;
-    const da = Math.round(bs * DRIFT / 100);
+    const da = bs * DRIFT / 100;
     const obBase = bs + da;
     const o1r = obBase / O1D;
     const o2r = obBase / O2D;
     const o3r = obBase / O3D;
-
     const labels = [];
     const data = [];
-
     for (let m = 1; m <= 12; m++) {
         const obData = getOBForMonth(year, m, lag);
         const amount = Math.round(obData.ob1 * o1r + obData.ob2 * o2r + obData.ob3 * o3r);
         labels.push(MONTHS[m-1]);
         data.push(amount);
     }
-
     const ctx = document.getElementById('obChart');
     if (!ctx) return;
-
-    if (obChartInstance) {
-        obChartInstance.destroy();
-    }
-
+    if (obChartInstance) obChartInstance.destroy();
     obChartInstance = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -496,17 +481,10 @@ function renderOBChart() {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: { color: '#8b949e' }
-                },
-                x: {
-                    ticks: { color: '#8b949e' }
-                }
+                y: { beginAtZero: true, ticks: { color: '#8b949e' } },
+                x: { ticks: { color: '#8b949e' } }
             },
-            plugins: {
-                legend: { labels: { color: '#8b949e' } }
-            }
+            plugins: { legend: { labels: { color: '#8b949e' } } }
         }
     });
 }
