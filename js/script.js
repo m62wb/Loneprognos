@@ -36,7 +36,7 @@ function calculateEverything() {
   const selectedMonth = parseInt(monthSelect.value);
   const karensDays = parseInt(karensSelect.value);
   const lag = lagSelect.value;
-  const isAuto = (lag !== 'manual');
+  const isAuto = (lag !== 'manual' && lag !== '');
 
   const ftpD = parseInt(ftpDays.value);
   const sgiVal = Math.min(p(sgiInput.value) || 0, SGI_TAK_PARENTAL);
@@ -304,12 +304,13 @@ function renderUI(data) {
 function updateUI() {
   const data = calculateEverything();
   renderUI(data);
+  updateSettingsLabel();
 }
 
-// ---- RESET OB (flyttad hit, fungerar alltid) ----
+// ---- Reset OB (inbyggd i script.js) ----
 function resetOB() {
   const lag = lagSelect.value;
-  if (lag !== 'manual') {
+  if (lag !== 'manual' && lag !== '') {
     let y = parseInt(yearSelect.value);
     let m = parseInt(monthSelect.value);
     let om = m - 1;
@@ -333,6 +334,27 @@ function toggleVAB(){ let c=document.getElementById('vabContent'), a=document.ge
 function toggleOB(){ let c=document.getElementById('obContent'), a=document.getElementById('obArrow'); c.classList.toggle('open'); a.innerText=c.classList.contains('open')?'▲':'▼'; }
 function toggleOverview(){ let c=document.getElementById('overviewContent'); c.style.display = c.style.display==='none'?'block':'none'; }
 function toggleYearSummary(){ let d=document.getElementById('yearDetails'), a=document.getElementById('yearArrow'); if(d.style.display==='none'){ d.style.display='block'; a.innerText='▲'; updateYearSummary(); } else { d.style.display='none'; a.innerText='▼'; } }
+
+// ---- Ny funktion för inställningsbox ----
+function updateSettingsLabel() {
+    const profSelect = document.getElementById('profileSelect');
+    const lagSelectEl = document.getElementById('lagSelect');
+    const profName = (profSelect && profSelect.value) ? profSelect.value : '--';
+    const lagName = lagSelectEl && lagSelectEl.selectedIndex >= 0 ? lagSelectEl.options[lagSelectEl.selectedIndex].text : 'Välj lag';
+    const label = document.getElementById('settingsLabel');
+    if (label) {
+        label.textContent = 'Profil: ' + profName + ' | Lag: ' + lagName;
+    }
+}
+
+function toggleSettings() {
+    const c = document.getElementById('settingsContent');
+    const a = document.getElementById('settingsArrow');
+    if (c) {
+        c.classList.toggle('open');
+        if (a) a.textContent = c.classList.contains('open') ? '▲' : '▼';
+    }
+}
 
 function populateSelectors(){
   for(let y=SY;y<=EY;y++){ let o=document.createElement('option'); o.value=y; o.textContent=y; yearSelect.appendChild(o); }
@@ -378,6 +400,7 @@ window.setFromvaro=setFromvaro; window.changeShift=changeShift; window.resetSche
 window.resetAllShifts=resetAllShifts; window.toggleExpand=toggleExpand;
 window.toggleYearSummary=toggleYearSummary; window.toggleVAB=toggleVAB; window.toggleOB=toggleOB;
 window.toggleOverview=toggleOverview;
+window.toggleSettings = toggleSettings;
 window.resetOB = resetOB;
 window.manualOBOverride = manualOBOverride;
 window.updateUI = updateUI;
