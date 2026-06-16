@@ -354,7 +354,7 @@ populateSelectors();
 updateUI();
 
 window.setFromvaro=setFromvaro; window.changeShift=changeShift; window.resetSchema=resetSchema;
-window.resetAllShifts=resetAllShifts; window.resetOB=resetOB; window.toggleExpand=toggleExpand;
+window.resetAllShifts=resetAllShifts; window.toggleExpand=toggleExpand;
 window.toggleYearSummary=toggleYearSummary; window.toggleVAB=toggleVAB; window.toggleOB=toggleOB;
 window.toggleOverview=toggleOverview;
 window.updateUI = updateUI;
@@ -378,13 +378,10 @@ window.obLockToggle = obLockToggle;
 
 document.querySelectorAll('.numeric-only').forEach(function(field) {
   field.addEventListener('input', function() {
-    
     this.value = this.value.replace(/[^0-9.,]/g, '');
-    
     if (this.value.includes(',')) {
       this.value = this.value.replace(',', '.');
     }
-    
     if (field.classList.contains('numeric-hours')) {
       var match = this.value.match(/^(\d{0,3})(\.\d{0,2})?/);
       this.value = match ? match[0] : '';
