@@ -42,12 +42,61 @@
         </div>
     </div>
 
-    <!-- resten av korten är oförändrade -->
     <div class="card">
         <div class="card-title">Grundlön & Karens</div>
-        ...
+        <div class="input-group"><label>Månadslön (brutto)</label><input type="text" id="salaryInput" inputmode="decimal" class="numeric-only" placeholder="0"></div>
+        <div class="lön-summary"><span>OB-grundande (+4%)</span><span><strong id="obGroundingDisplay">38 182 kr</strong></span></div>
+        <div class="input-group"><label>Karensdagar</label><select id="karensSelect"><option value="0">0 dagar</option><option value="1">1 dag</option><option value="2">2 dagar</option><option value="3">3 dagar</option><option value="4">4 dagar</option><option value="5">5 dagar</option></select></div>
+        <div class="sick-hours-container" id="sickHoursContainer"><div class="input-group"><label>Sjuktimmar totalt</label><input type="text" id="sickHours" inputmode="decimal" class="numeric-only numeric-hours" placeholder="0"></div></div>
+        <div class="sjuk-ob-container" id="sjukOBContainer"><div class="sjuk-ob-title">Sjuk-OB</div><div class="sjuk-ob-grid"><div><span class="ob-badge sjuk" style="background:var(--danger)">OB1</span><input type="text" id="sjukOb1Hours" inputmode="decimal" class="numeric-only numeric-hours" placeholder="0"></div><div><span class="ob-badge sjuk" style="background:var(--danger)">OB2</span><input type="text" id="sjukOb2Hours" inputmode="decimal" class="numeric-only numeric-hours" placeholder="0"></div><div><span class="ob-badge sjuk" style="background:var(--danger)">OB3</span><input type="text" id="sjukOb3Hours" inputmode="decimal" class="numeric-only numeric-hours" placeholder="0"></div></div></div>
     </div>
-    <!-- ... (övriga kort exakt som tidigare) ... -->
+
+    <div class="card collapsible-section">
+        <div class="collapsible-header" onclick="toggleVAB()">VAB & Föräldraledighet <span id="vabArrow">▼</span></div>
+        <div class="collapsible-content" id="vabContent">
+            <div class="input-group"><label>SGI (kr/år, max 592 000)</label><input type="text" id="sgiInput" inputmode="decimal" class="numeric-only" placeholder="592000" value="592000"></div>
+            <div class="input-group"><label>FTP-dagar (AFA)</label><select id="ftpDays"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></div>
+            <div class="lön-summary" id="vabSummary" style="display:none;"><span>Nettoeffekt</span><span><strong id="vabInfo"></strong></span></div>
+        </div>
+    </div>
+
+    <div class="card collapsible-section">
+        <div class="collapsible-header" onclick="toggleOB()">
+            OB & Övertid <span id="obArrow">▼</span>
+        </div>
+        <div class="collapsible-content" id="obContent">
+            <div class="toggle-container">
+                <span id="lockLabel">Lås</span>
+                <label class="toggle-switch"><input type="checkbox" id="obLockToggle" checked onchange="updateUI()"><span class="slider"></span></label>
+                <button class="reset-btn" onclick="resetOB()">⟳</button>
+            </div>
+            <div class="ob-row">
+                <div class="ob-input"><span class="ob-badge">OB1</span><input type="text" id="ob1Hours" inputmode="decimal" class="numeric-only numeric-hours" placeholder="0"><div class="ob-rate" id="ob1Rate">/460</div></div>
+                <div class="ob-input"><span class="ob-badge">OB2</span><input type="text" id="ob2Hours" inputmode="decimal" class="numeric-only numeric-hours" placeholder="0"><div class="ob-rate" id="ob2Rate">/260</div></div>
+                <div class="ob-input"><span class="ob-badge">OB3</span><input type="text" id="ob3Hours" inputmode="decimal" class="numeric-only numeric-hours" placeholder="0"><div class="ob-rate" id="ob3Rate">/150</div></div>
+            </div>
+            <div class="ot-row">
+                <div class="ob-input"><span class="ob-badge ot">ÖT</span><input type="text" id="otHours" inputmode="decimal" class="numeric-only numeric-hours" placeholder="0"><div class="ob-rate" id="otRate">/72</div></div>
+                <div class="ob-input"><span class="ob-badge ot">ÖT enkel</span><input type="text" id="otEnkelHours" inputmode="decimal" class="numeric-only numeric-hours" placeholder="0"><div class="ob-rate" id="otEnkelRate">/94</div></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card"><div class="card-title">Löneperiod</div><select id="monthSelect"></select><select id="yearSelect"></select></div>
+    <div class="result-card"><div id="selectedPeriod">Februari 2026</div><div class="result-amount" id="finalNetSalary">0 kr</div><div>Totalt netto (jobb + bidrag)</div></div>
+
+    <div class="card">
+        <div class="card-title">Översikt: <strong id="overviewTotalNet">0 kr</strong> <span onclick="toggleOverview()" style="cursor:pointer;">▼</span></div>
+        <div id="overviewContent" style="display:none;"><div class="detail-grid" id="detailGrid"></div></div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">Dagschema – <span id="tableMonthLabel"></span>
+            <div style="margin-left: auto; display: flex; gap: 8px;"><button class="reset-btn" onclick="resetSchema()">↺ Schema</button><button class="reset-btn" onclick="resetAllShifts()">↺ Pass</button></div>
+        </div>
+        <div class="table-container"><table id="salaryTable" class="schema-table"><thead><tr><th>Dag</th><th>Skift</th><th>OB1</th><th>OB2</th><th>OB3</th><th>Frånvaro</th><th>Station</th><th>Pass</th></tr></thead><tbody></tbody></table></div>
+    </div>
+    <div class="year-summary-card" onclick="toggleYearSummary()"><div class="card-title">Årsöversikt <span id="yearSummaryYear">2026</span> <span id="yearArrow">▼</span></div><div id="yearDetails" style="display:none"><div class="year-summary-grid" id="yearSummaryGrid"></div></div></div>
 </div>
 
 <script src="js/skattetabell.js"></script>
