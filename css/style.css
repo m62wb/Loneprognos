@@ -153,12 +153,7 @@ input, select, textarea {
     font-size: 32px !important;   /* 32 × 0.5 = 16 px visuellt */
 }
 /* ---- STOPPA AUTOMATISK ZOOM PÅ INPUT (UTAN ATT ÄNDRA LAYOUT) ---- */
-#salaryInput,
-#ob1Hours, #ob2Hours, #ob3Hours,
-#otHours, #otEnkelHours,
-#sickHours,
-#sjukOb1Hours, #sjukOb2Hours, #sjukOb3Hours,
-#sgiInput {
+{
     font-size: 16px !important;       /* webbläsaren ser 16px → zoomar inte */
     transform: scale(0.5);            /* visuellt halvera till 8px */
     transform-origin: left top;       /* skalas från övre vänstra hörnet */
