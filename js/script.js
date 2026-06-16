@@ -1,10 +1,10 @@
-// ---------- Hjälpfunktioner ----------
+document.addEventListener('DOMContentLoaded', function() {
+
 function p(v){ if(!v) return 0; let n=String(v).replace(',','.'); let x=parseFloat(n); return isNaN(x)?0:x; }
 function fc(v){ return new Intl.NumberFormat('sv-SE').format(Math.round(v)); }
 function fd(v,d){ return v.toFixed(d).replace('.',','); }
 function f2(n){ return Math.round((n+Number.EPSILON)*100)/100; }
 
-// ---------- Konstanter ----------
 const DRIFT=4.0, VAB_HPD=12.25, UPCT=0.0165, UMAX=701, UMIN=255, HDIV=141.667;
 const O1D=460, O2D=260, O3D=150, OTD=72, OTENKELD=94, SY=2026, EY=2036;
 const PBB=59200, SGI_TAK_PARENTAL=10*PBB, SGI_TAK_VAB=7.5*PBB, FK_SKATT=0.30;
@@ -12,7 +12,6 @@ const MONTHS = ['Januari','Februari','Mars','April','Maj','Juni','Juli','Augusti
 
 function calcUnion(s){ let f=Math.round(s*UPCT); if(f<UMIN) return UMIN; if(f>UMAX) return UMAX; return f; }
 
-// ---------- Frånvaro och pass ----------
 function setFromvaro(dateStr, value){
   if(value==="") fromvaroMap.delete(dateStr);
   else if(value==="Semester") fromvaroMap.set(dateStr,1);
@@ -29,10 +28,7 @@ function changeShift(dateStr,val,lag){
   updateUI();
 }
 
-// ---------- Tillstånd ----------
 let manualOBOverride=false, lastAutoOB={ob1:0,ob2:0,ob3:0}, lastAutoLag='', lastAutoYear=0, lastAutoMonth=0;
-
-// ---------- Beräkningsfunktioner ----------
 
 function calculateEverything() {
   const baseSalary = p(salaryInput.value) || 0;
@@ -310,7 +306,6 @@ function updateUI() {
   renderUI(data);
 }
 
-// ---------- Toggle-funktioner ----------
 function toggleExpand(el){ let d=el.querySelector('.expandable-details'), a=el.querySelector('.expandable-arrow'); d.classList.toggle('open'); a.classList.toggle('open'); }
 function toggleTheme(){ let html=document.documentElement; html.setAttribute('data-theme', html.getAttribute('data-theme')==='dark'?'light':'dark'); }
 function toggleVAB(){ let c=document.getElementById('vabContent'), a=document.getElementById('vabArrow'); c.classList.toggle('open'); a.innerText=c.classList.contains('open')?'▲':'▼'; }
@@ -318,7 +313,6 @@ function toggleOB(){ let c=document.getElementById('obContent'), a=document.getE
 function toggleOverview(){ let c=document.getElementById('overviewContent'); c.style.display = c.style.display==='none'?'block':'none'; }
 function toggleYearSummary(){ let d=document.getElementById('yearDetails'), a=document.getElementById('yearArrow'); if(d.style.display==='none'){ d.style.display='block'; a.innerText='▲'; updateYearSummary(); } else { d.style.display='none'; a.innerText='▼'; } }
 
-// ---------- Populate selectors ----------
 function populateSelectors(){
   for(let y=SY;y<=EY;y++){ let o=document.createElement('option'); o.value=y; o.textContent=y; yearSelect.appendChild(o); }
   let now=new Date();
@@ -327,7 +321,6 @@ function populateSelectors(){
   monthSelect.value=now.getMonth()+1;
 }
 
-// ---------- DOM-element ----------
 let lagSelect=document.getElementById('lagSelect'), salaryInput=document.getElementById('salaryInput'),
     yearSelect=document.getElementById('yearSelect'), monthSelect=document.getElementById('monthSelect'),
     karensSelect=document.getElementById('karensSelect'), otHours=document.getElementById('otHours'),
@@ -347,7 +340,6 @@ let lagSelect=document.getElementById('lagSelect'), salaryInput=document.getElem
     yearSummaryYear=document.getElementById('yearSummaryYear'), yearSummaryGrid=document.getElementById('yearSummaryGrid'),
     obLockToggle=document.getElementById('obLockToggle'), overviewTotalNet=document.getElementById('overviewTotalNet');
 
-// ---------- Eventlyssnare ----------
 lagSelect.addEventListener('change',updateUI); salaryInput.addEventListener('input',updateUI);
 yearSelect.addEventListener('change',updateUI); monthSelect.addEventListener('change',updateUI);
 karensSelect.addEventListener('change',updateUI); otHours.addEventListener('input',updateUI);
@@ -361,7 +353,6 @@ obLockToggle.addEventListener('change',updateUI);
 populateSelectors();
 updateUI();
 
-// Exponera globala funktioner
 window.setFromvaro=setFromvaro; window.changeShift=changeShift; window.resetSchema=resetSchema;
 window.resetAllShifts=resetAllShifts; window.resetOB=resetOB; window.toggleExpand=toggleExpand;
 window.toggleYearSummary=toggleYearSummary; window.toggleVAB=toggleVAB; window.toggleOB=toggleOB;
@@ -384,3 +375,14 @@ window.sickHours = sickHours;
 window.ftpDays = ftpDays;
 window.sgiInput = sgiInput;
 window.obLockToggle = obLockToggle;
+
+document.querySelectorAll('.numeric-only').forEach(function(field) {
+  field.addEventListener('input', function(e) {
+    this.value = this.value.replace(/[^0-9.,]/g, '');
+    if (this.value.includes(',')) {
+      this.value = this.value.replace(',', '.');
+    }
+  });
+});
+
+});
