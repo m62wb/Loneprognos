@@ -13,30 +13,33 @@
         <button class="theme-toggle" onclick="toggleTheme()">Byt tema</button>
     </div>
 
-    <!-- Profiler -->
-    <div class="card">
-      <div class="card-title">Profiler</div>
-      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-        <select id="profileSelect" style="flex:1; min-width:150px;" onchange="loadScenario()">
-          <option value="">-- Välj profil --</option>
-        </select>
-        <button class="reset-btn" onclick="saveProfilePopup()" style="font-size:1rem; padding:8px 16px;">Ny profil</button>
-        <button class="reset-btn" onclick="deleteScenario()" style="font-size:1rem; padding:8px 16px;">Ta bort</button>
-        <button class="reset-btn" onclick="resetAll()" style="font-size:1rem; padding:8px 16px;">Nollställ allt</button>
-      </div>
-    </div>
-
-    <div class="card">
-        <div class="card-title">Lagval</div>
-        <select id="lagSelect">
-            <option value="" selected>Välj lag</option>
-            <option value="A">Lag A - Ekwall</option>
-            <option value="B">Lag B - Swärd</option>
-            <option value="C">Lag C - Samer</option>
-            <option value="D">Lag D - Isaac</option>
-            <option value="E">Lag E - Benji</option>
-            <option value="manual">Manuell</option>
-        </select>
+    <!-- Inställningar (Profil + Lag) -->
+    <div class="card collapsible-section">
+        <div class="collapsible-header" onclick="toggleSettings()">
+            <span id="settingsLabel">Profil: -- | Lag: Välj lag</span>
+            <span id="settingsArrow">▼</span>
+        </div>
+        <div class="collapsible-content" id="settingsContent">
+            <div class="card-title" style="margin-top:0;">Profiler</div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
+                <select id="profileSelect" style="flex:1; min-width:150px;" onchange="loadScenario()">
+                  <option value="">-- Välj profil --</option>
+                </select>
+                <button class="reset-btn" onclick="saveProfilePopup()" style="font-size:1rem; padding:8px 16px;">Ny profil</button>
+                <button class="reset-btn" onclick="deleteScenario()" style="font-size:1rem; padding:8px 16px;">Ta bort</button>
+                <button class="reset-btn" onclick="resetAll()" style="font-size:1rem; padding:8px 16px;">Nollställ allt</button>
+            </div>
+            <div class="card-title">Lagval</div>
+            <select id="lagSelect">
+                <option value="" selected>Välj lag</option>
+                <option value="A">Lag A - Ekwall</option>
+                <option value="B">Lag B - Swärd</option>
+                <option value="C">Lag C - Samer</option>
+                <option value="D">Lag D - Isaac</option>
+                <option value="E">Lag E - Benji</option>
+                <option value="manual">Manuell</option>
+            </select>
+        </div>
     </div>
 
     <div class="card">
