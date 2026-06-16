@@ -306,6 +306,7 @@ function updateUI() {
   renderUI(data);
   updateSettingsLabel();
   closeSettingsBoxIfNeeded();
+  renderOBChart();
 }
 
 function closeSettingsBoxIfNeeded() {
@@ -404,6 +405,68 @@ function toggleSettings() {
         c.classList.toggle('open');
         if (a) a.textContent = c.classList.contains('open') ? '▲' : '▼';
     }
+}
+
+let obChartInstance = null;
+
+function renderOBChart() {
+    const lag = lagSelect.value;
+    if (lag === 'manual' || lag === '') return;
+
+    const year = parseInt(yearSelect.value);
+    const bs = p(salaryInput.value) || 0;
+    const da = Math.round(bs * DRIFT / 100);
+    const obBase = bs + da;
+    const o1r = obBase / O1D;
+    const o2r = obBase / O2D;
+    const o3r = obBase / O3D;
+
+    const labels = [];
+    const data = [];
+
+    for (let m = 1; m <= 12; m++) {
+        const obData = getOBForMonth(year, m, lag);
+        const amount = Math.round(obData.ob1 * o1r + obData.ob2 * o2r + obData.ob3 * o3r);
+        labels.push(MONTHS[m-1]);
+        data.push(amount);
+    }
+
+    const ctx = document.getElementById('obChart');
+    if (!ctx) return;
+
+    if (obChartInstance) {
+        obChartInstance.destroy();
+    }
+
+    obChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'OB‑ersättning (kr)',
+                data: data,
+                backgroundColor: 'rgba(74,108,247,0.6)',
+                borderColor: 'rgba(74,108,247,1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { color: '#a0aec0' }
+                },
+                x: {
+                    ticks: { color: '#a0aec0' }
+                }
+            },
+            plugins: {
+                legend: { labels: { color: '#a0aec0' } }
+            }
+        }
+    });
 }
 
 function populateSelectors(){
