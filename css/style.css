@@ -1,6 +1,6 @@
 /* ==============================
    LÖNEKALKYLATOR – STYLESHEET
-   Modern header + varmt ljust tema + mellanrum fixat
+   Modern header + äggskalsljus tema + mellanrum
    ============================== */
 
 :root {
@@ -12,12 +12,13 @@
     --radius: 16px; --radius-sm: 12px; --input-bg: #1a202c;
 }
 
+/* ---- NYTT LJUST TEMA – äggskal/pärlvit (eggshell, off‑white) ---- */
 [data-theme="light"] {
-    --bg: #f5efe4;              /* varm beige bakgrund */
-    --card-bg: #fffaf3;         /* gräddvita kort */
-    --text: #3e3a35;            /* mjukt mörkbrun text */
+    --bg: #f7f5f0;              /* varm äggskalsbakgrund */
+    --card-bg: #fefdf9;         /* mycket ljust pärlvit */
+    --text: #3e3a35;            /* mörkgrå text */
     --text-secondary: #6b6560;
-    --border: #d9d0c7;
+    --border: #e0dcd3;          /* mjukt gråbeige kant */
     --shadow: 0 4px 6px rgba(0,0,0,0.04);
     --shadow-lg: 0 20px 40px rgba(0,0,0,0.06);
     --input-bg: #ffffff;
@@ -43,7 +44,6 @@ body {
     margin: 0 auto;
     display: flex;
     flex-direction: column;
-    /* gap är ersatt med margin-bottom på korten */
 }
 
 /* ========== HEADER ========== */
@@ -53,7 +53,7 @@ body {
     -webkit-backdrop-filter: blur(12px);
     border-radius: var(--radius);
     padding: 28px 32px;
-    margin-bottom: 20px;                        /* <-- mellanrum under headern */
+    margin-bottom: 20px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.25), var(--shadow);
     display: flex;
     justify-content: space-between;
@@ -98,7 +98,7 @@ input:checked + .slider:before { transform: translateX(20px); }
     border-radius: var(--radius);
     padding: 24px;
     box-shadow: var(--shadow);
-    margin-bottom: 20px;          /* <-- MELLANRUM MELLAN KORTEN */
+    margin-bottom: 20px;
 }
 
 .card-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
