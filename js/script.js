@@ -340,7 +340,6 @@ function resetOB() {
 
 function toggleExpand(el){ let d=el.querySelector('.expandable-details'), a=el.querySelector('.expandable-arrow'); d.classList.toggle('open'); a.classList.toggle('open'); }
 
-// NY TEMA-FUNKTION
 function toggleTheme() {
     const checkbox = document.getElementById('themeToggleCheckbox');
     const isDark = checkbox.checked;
@@ -523,7 +522,6 @@ obLockToggle.addEventListener('change',updateUI);
   });
 });
 
-// Initiera tema från localStorage (standard mörkt)
 (function() {
     const savedTheme = localStorage.getItem('theme') || 'dark';
     const html = document.documentElement;
