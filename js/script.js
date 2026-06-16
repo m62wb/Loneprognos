@@ -61,7 +61,7 @@ function calculateEverything() {
   const sickRate80 = baseSalary / 177.0837;
 
   const semesterSupplementPerDay = (baseSalary + driftAddition) / 125;
-  const semesterTillagg = vacationCount * semesterSupplementPerDay;   // INGEN f2 här
+  const semesterTillagg = vacationCount * semesterSupplementPerDay;
 
   const karensHours = karensDays * 6.8;
   const karensDeduction = karensDays > 0 ? karensHours * sickRate100 : 0;
@@ -134,11 +134,12 @@ function calculateEverything() {
   }
 
   const otH = p(otHours.value), otEnkelH = p(otEnkelHours.value);
-  const ob1Amount = Math.round(obData.ob1 * ob1RatePerHour);
-  const ob2Amount = Math.round(obData.ob2 * ob2RatePerHour);
-  const ob3Amount = Math.round(obData.ob3 * ob3RatePerHour);
-  const otAmount = Math.round(otH * otRatePerHour);
-  const otEnkelAmount = Math.round(otEnkelH * otEnkelRatePerHour);
+  // ---- INGEN AVRUNDNING PÅ OB-BELOPPEN ----
+  const ob1Amount = obData.ob1 * ob1RatePerHour;
+  const ob2Amount = obData.ob2 * ob2RatePerHour;
+  const ob3Amount = obData.ob3 * ob3RatePerHour;
+  const otAmount = otH * otRatePerHour;
+  const otEnkelAmount = otEnkelH * otEnkelRatePerHour;
   const totalOBOnly = ob1Amount + ob2Amount + ob3Amount;
   const totalOBOnlyHours = obData.ob1 + obData.ob2 + obData.ob3;
   const totalOB = totalOBOnly + otAmount + otEnkelAmount;
@@ -152,7 +153,6 @@ function calculateEverything() {
   const totalSjukOBGain = sjukOb1Gain + sjukOb2Gain + sjukOb3Gain;
 
   const totalBeforeKarens = obGroundingBase + totalOB + semesterTillagg;
-  // ENDAST jobbBrutto och tax avrundas med f2 – alla delposter är orörda
   const jobbBrutto = f2(totalBeforeKarens - totalSickLoss + totalSjukOBGain - vabParentalDeduction);
   const tax = f2(taxFromTable33Col1(jobbBrutto));
   const netBeforeFack = f2(jobbBrutto - tax);
@@ -232,7 +232,6 @@ function renderUI(data) {
   if (data.otAmount > 0) obOTHTML += '<div class="detail-chip"><span>Övertid (' + fd(data.otH || p(otHours.value), 2) + 'h x ' + fd(data.otRatePerHour, 2) + ' kr)</span><span>+' + fc(data.otAmount) + ' kr</span></div>';
   if (data.otEnkelAmount > 0) obOTHTML += '<div class="detail-chip"><span>ÖT enkel (' + fd(data.otEnkelH || p(otEnkelHours.value), 2) + 'h x ' + fd(data.otEnkelRatePerHour, 2) + ' kr)</span><span>+' + fc(data.otEnkelAmount) + ' kr</span></div>';
 
-  // Karensraden visar både belopp och antal dagar – beloppet avrundas nu med fd för att visa ören
   let karensHTML = data.karensDays > 0
     ? '<div class="detail-chip danger"><span>Karensavdrag</span><span>-' + fd(data.karensDeduction, 2) + ' kr (' + data.karensDays + ' dag' + (data.karensDays > 1 ? 'ar' : '') + ')</span></div>'
     : '';
