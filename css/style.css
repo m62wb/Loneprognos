@@ -1,6 +1,6 @@
 /* ==============================
    LÖNEKALKYLATOR – STYLESHEET
-   Uppdaterad med modern header
+   Modern header + mjukt ljust tema
    ============================== */
 
 :root {
@@ -11,10 +11,16 @@
     --gradient: linear-gradient(135deg, #4a6cf7 0%, #10b981 100%);
     --radius: 16px; --radius-sm: 12px; --input-bg: #1a202c;
 }
+
 [data-theme="light"] {
-    --bg: #f5f7fa; --card-bg: #ffffff; --text: #2d3748; --text-secondary: #718096;
-    --border: #e2e8f0; --shadow: 0 4px 6px rgba(0,0,0,0.07);
-    --shadow-lg: 0 20px 40px rgba(0,0,0,0.1); --input-bg: #f5f7fa;
+    --bg: #eef0f4;              /* mjuk grå bakgrund */
+    --card-bg: #ffffff;         /* vita kort */
+    --text: #2d3748;            /* mörkgrå text */
+    --text-secondary: #5a6577;
+    --border: #d1d5db;
+    --shadow: 0 4px 6px rgba(0,0,0,0.04);
+    --shadow-lg: 0 20px 40px rgba(0,0,0,0.06);
+    --input-bg: #ffffff;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -40,7 +46,7 @@ body {
     gap: 20px;
 }
 
-/* ========== NY MODERN HEADER ========== */
+/* ========== HEADER ========== */
 .header {
     background: linear-gradient(135deg, rgba(74,108,247,0.15) 0%, rgba(16,185,129,0.15) 100%);
     backdrop-filter: blur(12px);
@@ -68,45 +74,26 @@ body {
     letter-spacing: -0.5px;
 }
 
-.theme-toggle {
-    background: rgba(255,255,255,0.1);
-    border: 1px solid rgba(255,255,255,0.2);
-    border-radius: 50px;
-    padding: 10px 22px;
-    cursor: pointer;
-    color: var(--text);
-    font-weight: 600;
-    font-size: 0.95rem;
-    backdrop-filter: blur(4px);
-    transition: all 0.2s ease;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+/* ---------- TEMA-SLIDER ---------- */
+.theme-slider-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
-.theme-toggle:hover {
-    background: rgba(255,255,255,0.2);
-    transform: translateY(-1px);
+.theme-icon {
+    font-size: 1.5rem;
+    opacity: 0.9;
 }
 
-/* Badges för IKEM/LOKAL */
-.badge-ikem {
-    background: #f59e0b;
-    color: black;
-    padding: 2px 8px;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 700;
-    box-shadow: 0 0 12px rgba(245,158,11,0.4);
-}
-.badge-local {
-    background: var(--accent);
-    color: white;
-    padding: 2px 8px;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 700;
-    box-shadow: 0 0 12px rgba(16,185,129,0.4);
-}
+/* Återanvänd toggle-switch (oförändrad storlek) */
+.toggle-switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--border); border-radius: 24px; }
+.slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; border-radius: 50%; transition: 0.2s; }
+input:checked + .slider { background-color: var(--accent); }
+input:checked + .slider:before { transform: translateX(20px); }
 
-/* ========== KORT & ÖVRIGT (oförändrat) ========== */
+/* ========== KORT & ÖVRIGT ========== */
 .card, .result-card, .year-summary-card {
     background: var(--card-bg);
     border-radius: var(--radius);
@@ -179,12 +166,6 @@ th:nth-child(8), td:nth-child(8) { width: 54px; }
 
 .toggle-container { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; justify-content: flex-start; padding-left: 0; }
 .toggle-container .reset-btn { margin-left: 8px; font-size: 1.3rem; padding: 6px 10px; line-height: 1; }
-.toggle-switch { position: relative; display: inline-block; width: 44px; height: 24px; }
-.toggle-switch input { opacity: 0; width: 0; height: 0; }
-.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--border); border-radius: 24px; }
-.slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; border-radius: 50%; transition: 0.2s; }
-input:checked + .slider { background-color: var(--accent); }
-input:checked + .slider:before { transform: translateX(20px); }
 
 .reset-btn { background: none; border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 4px 8px; cursor: pointer; }
 .collapsible-header { display: flex; justify-content: space-between; cursor: pointer; font-weight: 700; margin-bottom: 8px; }
@@ -218,5 +199,4 @@ input:checked + .slider:before { transform: translateX(20px); }
 }
 .highlight { animation: highlightPulse 0.6s ease; }
 
-/* Diagram-container (behåller höjd) */
 canvas#obChart { width: 100% !important; height: auto !important; max-height: 300px; }
