@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
 
-function p(v){ if(!v) return 0; let n=String(v).replace(',','.'); let x=parseFloat(n); return isNaN(x)?0:x; } window.p = p;
+function p(v){ if(!v) return 0; let n=String(v).replace(',','.'); let x=parseFloat(n); return isNaN(x)?0:x; }
 function fc(v){ return new Intl.NumberFormat('sv-SE').format(Math.round(v)); }
 function fd(v,d){ return v.toFixed(d).replace('.',','); }
 function f2(n){ return Math.round((n+Number.EPSILON)*100)/100; }
@@ -344,6 +344,48 @@ function toggleOB(){ let c=document.getElementById('obContent'), a=document.getE
 function toggleOverview(){ let c=document.getElementById('overviewContent'); c.style.display = c.style.display==='none'?'block':'none'; }
 function toggleYearSummary(){ let d=document.getElementById('yearDetails'), a=document.getElementById('yearArrow'); if(d.style.display==='none'){ d.style.display='block'; a.innerText='▲'; updateYearSummary(); } else { d.style.display='none'; a.innerText='▼'; } }
 
+function updateYearSummary() {
+  const y = parseInt(yearSelect.value);
+  const lag = lagSelect.value;
+  if (lag === 'manual' || lag === '') {
+    document.getElementById('yearSummaryGrid').innerHTML = 'Välj lag';
+    return;
+  }
+  document.getElementById('yearSummaryYear').innerText = y;
+
+  const bs = p(salaryInput.value) || 0;
+  const da = Math.round(bs * DRIFT / 100);
+  const obBase = bs + da;
+  const o1r = obBase / O1D;
+  const o2r = obBase / O2D;
+  const o3r = obBase / O3D;
+
+  let totBrutto = 0, totNetto = 0, totSkatt = 0, totFack = 0, totOB = 0;
+  for (let m = 1; m <= 12; m++) {
+    const obData = getOBForMonth(y, m, lag);
+    const ob1Amt = Math.round(obData.ob1 * o1r);
+    const ob2Amt = Math.round(obData.ob2 * o2r);
+    const ob3Amt = Math.round(obData.ob3 * o3r);
+    const mOB = ob1Amt + ob2Amt + ob3Amt;
+    totOB += mOB;
+    const jb = obBase + mOB;
+    const tax = taxFromTable33Col1(jb);
+    const uf = calcUnion(jb);
+    const net = jb - tax - uf;
+    totBrutto += jb;
+    totNetto += net;
+    totSkatt += tax;
+    totFack += uf;
+  }
+
+  document.getElementById('yearSummaryGrid').innerHTML =
+    `<div>Total bruttolön: ${fc(totBrutto)} kr</div>` +
+    `<div>Total nettolön: ${fc(totNetto)} kr</div>` +
+    `<div>Total skatt: -${fc(totSkatt)} kr</div>` +
+    `<div>Fackavgift: -${fc(totFack)} kr</div>` +
+    `<div>Totalt OB: +${fc(totOB)} kr</div>`;
+}
+
 function updateSettingsLabel() {
     const profSelect = document.getElementById('profileSelect');
     const lagSelectEl = document.getElementById('lagSelect');
@@ -401,7 +443,6 @@ sjukOb3Hours.addEventListener('input',updateUI); sickHours.addEventListener('inp
 ftpDays.addEventListener('change',updateUI); sgiInput.addEventListener('input',updateUI);
 obLockToggle.addEventListener('change',updateUI);
 
-// Sätt manuell överstyrning direkt när användaren skriver i OB‑fält (upplåst läge)
 [ob1Hours, ob2Hours, ob3Hours].forEach(function(field) {
   field.addEventListener('input', function() {
     if (!obLockToggle.checked) {
