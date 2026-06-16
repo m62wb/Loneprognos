@@ -1,9 +1,3 @@
-// Årsöversikt & Reset OB
-// Denna fil förväntar sig att DRIFT, O1D, O2D, O3D, SY, EY, MONTHS,
-// getOBForMonth, taxFromTable33Col1, calcUnion, fromvaroMap, shiftOverrideMap
-// samt DOM‑elementen yearSummaryYear, yearSummaryGrid, ob1Hours, ob2Hours, ob3Hours
-// redan är tillgängliga globalt.
-
 function updateYearSummary() {
   const y = parseInt(yearSelect.value);
   const lag = lagSelect.value;
@@ -46,28 +40,4 @@ function updateYearSummary() {
     `<div>Totalt OB: +${fc(totOB)} kr</div>`;
 }
 
-function resetOB() {
-  // Återställ alltid OB-timmarna – oavsett lås eller manuell överstyrning
-  const lag = lagSelect.value;
-  if (lag !== 'manual') {
-    let y = parseInt(yearSelect.value);
-    let m = parseInt(monthSelect.value);
-    let om = m - 1;
-    if (om === 0) { om = 12; y--; }
-    const ob = getOBForMonth(y, om, lag);
-    ob1Hours.value = fd(ob.ob1, 2);
-    ob2Hours.value = fd(ob.ob2, 2);
-    ob3Hours.value = fd(ob.ob3, 2);
-  } else {
-    ob1Hours.value = '0';
-    ob2Hours.value = '0';
-    ob3Hours.value = '0';
-  }
-  // Nollställ flaggan för manuell överstyrning (så att låst läge använder auto igen)
-  if (typeof manualOBOverride !== 'undefined') manualOBOverride = false;
-  if (typeof window.manualOBOverride !== 'undefined') window.manualOBOverride = false;
-  updateUI();
-}
-
 window.updateYearSummary = updateYearSummary;
-window.resetOB = resetOB;
