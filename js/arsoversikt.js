@@ -47,8 +47,7 @@ function updateYearSummary() {
 }
 
 function resetOB() {
-  if (!manualOBOverride) return;
-  manualOBOverride = false;
+  // Återställ alltid OB-timmarna – oavsett lås eller manuell överstyrning
   const lag = lagSelect.value;
   if (lag !== 'manual') {
     let y = parseInt(yearSelect.value);
@@ -64,7 +63,11 @@ function resetOB() {
     ob2Hours.value = '0';
     ob3Hours.value = '0';
   }
+  // Nollställ flaggan för manuell överstyrning (så att låst läge använder auto igen)
+  if (typeof manualOBOverride !== 'undefined') manualOBOverride = false;
+  if (typeof window.manualOBOverride !== 'undefined') window.manualOBOverride = false;
   updateUI();
-  window.updateYearSummary = updateYearSummary;
-window.resetOB = resetOB;
 }
+
+window.updateYearSummary = updateYearSummary;
+window.resetOB = resetOB;
