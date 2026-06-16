@@ -305,7 +305,6 @@ function updateUI() {
   const data = calculateEverything();
   renderUI(data);
   updateSettingsLabel();
-  // Stäng inställningsboxen automatiskt om ett lag har valts
   closeSettingsBoxIfNeeded();
 }
 
@@ -318,7 +317,6 @@ function closeSettingsBoxIfNeeded() {
   }
 }
 
-// ---- Reset OB (inbyggd i script.js) ----
 function resetOB() {
   const lag = lagSelect.value;
   if (lag !== 'manual' && lag !== '') {
@@ -346,7 +344,6 @@ function toggleOB(){ let c=document.getElementById('obContent'), a=document.getE
 function toggleOverview(){ let c=document.getElementById('overviewContent'); c.style.display = c.style.display==='none'?'block':'none'; }
 function toggleYearSummary(){ let d=document.getElementById('yearDetails'), a=document.getElementById('yearArrow'); if(d.style.display==='none'){ d.style.display='block'; a.innerText='▲'; updateYearSummary(); } else { d.style.display='none'; a.innerText='▼'; } }
 
-// ---- Ny funktion för inställningsbox ----
 function updateSettingsLabel() {
     const profSelect = document.getElementById('profileSelect');
     const lagSelectEl = document.getElementById('lagSelect');
