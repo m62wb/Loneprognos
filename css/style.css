@@ -2,20 +2,20 @@
    LÖNEKALKYLATOR – STYLESHEET
    GitHub-inspirerat mörkt tema
    + äggskalsljus tema
-   + centrerat dagsschema
+   + centrerat dagsschema (tvingat)
    ============================== */
 
 /* ---- MÖRKT TEMA (GitHub-inspirerat) ---- */
 :root {
-    --bg: #0d1117;                 /* GitHub dark bakgrund */
-    --card-bg: #161b22;            /* GitHub dark kort */
-    --text: #e6edf3;               /* ljus text */
-    --text-secondary: #8b949e;     /* dämpad sekundär text */
-    --primary: #58a6ff;            /* GitHub blå */
-    --accent: #3fb950;             /* GitHub grön */
-    --danger: #f85149;             /* röd */
-    --warning: #d2991d;            /* orange/gul */
-    --border: #30363d;             /* GitHub kantlinje */
+    --bg: #0d1117;
+    --card-bg: #161b22;
+    --text: #e6edf3;
+    --text-secondary: #8b949e;
+    --primary: #58a6ff;
+    --accent: #3fb950;
+    --danger: #f85149;
+    --warning: #d2991d;
+    --border: #30363d;
     --shadow: 0 4px 6px rgba(0,0,0,0.4);
     --shadow-lg: 0 20px 40px rgba(0,0,0,0.6);
     --gradient: linear-gradient(135deg, #58a6ff 0%, #3fb950 100%);
@@ -160,19 +160,19 @@ select, input[type="number"], input[type="text"] {
 table { width: 100%; table-layout: fixed; border-collapse: collapse; background: var(--card-bg); }
 th { background: var(--primary); color: white; padding: 6px 4px; position: sticky; top: 0; font-size: 0.65rem; white-space: nowrap; text-align: center; }
 
-/* CENTRERA ALLA CELLER I SCHEMAT (utom första kolumnen) */
+/* ---- ALLA CELLER CENTRERAS (utom första kolumnen) ---- */
 td {
     padding: 5px 4px;
     border-bottom: 1px solid var(--border);
-    text-align: center;          /* centrera horisontellt */
-    vertical-align: middle;      /* centrera vertikalt */
+    text-align: center !important;
+    vertical-align: middle !important;
     font-size: 0.7rem;
     word-break: break-word;
 }
 
 /* Första kolumnen (dag) vänsterställd */
 td:first-child {
-    text-align: left;
+    text-align: left !important;
     font-weight: 600;
     position: sticky;
     left: 0;
@@ -188,6 +188,14 @@ th:nth-child(5), td:nth-child(5) { width: 36px; }
 th:nth-child(6), td:nth-child(6) { width: 74px; }
 th:nth-child(7), td:nth-child(7) { width: 90px; }
 th:nth-child(8), td:nth-child(8) { width: 54px; }
+
+/* Dropdowns och selects inuti schemat centreras också */
+td select {
+    text-align: center !important;
+    text-align-last: center !important;
+    width: auto;
+    margin: 0 auto;
+}
 
 .row-active { background: rgba(63,185,80,0.15) !important; }
 .row-vacation td:first-child::after { content: " 🏖️"; }
