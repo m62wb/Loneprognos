@@ -357,6 +357,7 @@ window.setFromvaro=setFromvaro; window.changeShift=changeShift; window.resetSche
 window.resetAllShifts=resetAllShifts; window.toggleExpand=toggleExpand;
 window.toggleYearSummary=toggleYearSummary; window.toggleVAB=toggleVAB; window.toggleOB=toggleOB;
 window.toggleOverview=toggleOverview;
+window.manualOBOverride = manualOBOverride;
 window.updateUI = updateUI;
 window.salaryInput = salaryInput;
 window.lagSelect = lagSelect;
