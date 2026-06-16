@@ -1,7 +1,7 @@
 function updateYearSummary() {
   const y = parseInt(yearSelect.value);
   const lag = lagSelect.value;
-  if (lag === 'manual') {
+  if (lag === 'manual' || lag === '') {
     document.getElementById('yearSummaryGrid').innerHTML = 'Välj lag';
     return;
   }
