@@ -1,5 +1,5 @@
 // Profilhanterare (popup med namn, lag & lön)
-var STORAGE_KEY = 'loneprognos_profiler_v2';   // nytt unikt namn
+var STORAGE_KEY = 'loneprognos_profiler_v3';   // ny version för att inkludera vacationOverrideMap
 
 function getAllProfiles() {
   const raw = localStorage.getItem(STORAGE_KEY);
@@ -31,6 +31,8 @@ function getCurrentState() {
     lockEnabled: obLockToggle.checked,
     fromvaro: Array.from(fromvaroMap.entries()),
     shiftOverrides: Array.from(shiftOverrideMap.entries()),
+    // Spara även vacationOverrideMap (manuella ändringar i semesterveckor)
+    vacationOverrides: Array.from(vacationOverrideMap.entries())
   };
 }
 
@@ -63,6 +65,16 @@ function applyState(state) {
   if (state.shiftOverrides) {
     for (const [key, val] of state.shiftOverrides) {
       shiftOverrideMap.set(key, val);
+    }
+  }
+
+  // Återställ vacationOverrideMap (manuella semesterundantag)
+  if (typeof vacationOverrideMap !== 'undefined') {
+    vacationOverrideMap.clear();
+    if (state.vacationOverrides) {
+      for (const [key, val] of state.vacationOverrides) {
+        vacationOverrideMap.set(key, val);
+      }
     }
   }
 
@@ -183,6 +195,7 @@ window.resetAll = function () {
     obLockToggle.checked = true;
     fromvaroMap.clear();
     shiftOverrideMap.clear();
+    if (typeof vacationOverrideMap !== 'undefined') vacationOverrideMap.clear();
     if (typeof manualOBOverride !== 'undefined') manualOBOverride = false;
     if (typeof updateUI === 'function') updateUI();
   }
