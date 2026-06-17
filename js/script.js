@@ -48,52 +48,51 @@ function calculateEverything() {
   const totalVABParental = vabD + parentalD;
   const vacationCount = [...fromvaroMap.values()].filter(v => v === 1).length;
 
-  // ---------- RÄTTNING: driftformstillägg med 2 decimaler ----------
-  const driftAddition = Math.round(baseSalary * (DRIFT / 100) * 100) / 100;
-  // ----------------------------------------------------------------
+  // Driftformstillägg avrundat till hel krona (enligt arbetsgivarens modell)
+  const driftAddition = Math.round(baseSalary * DRIFT / 100);
   const obGroundingBase = baseSalary + driftAddition;
 
-  const ob1Rate = Math.round(obGroundingBase / O1D * 100) / 100;
-  const ob2Rate = Math.round(obGroundingBase / O2D * 100) / 100;
-  const ob3Rate = Math.round(obGroundingBase / O3D * 100) / 100;
-  const otRate  = Math.round(obGroundingBase / OTD * 100) / 100;
-  const otEnkelRate = Math.round(obGroundingBase / OTENKELD * 100) / 100;
+  const ob1Rate = f2(obGroundingBase / O1D);
+  const ob2Rate = f2(obGroundingBase / O2D);
+  const ob3Rate = f2(obGroundingBase / O3D);
+  const otRate  = f2(obGroundingBase / OTD);
+  const otEnkelRate = f2(obGroundingBase / OTENKELD);
 
-  const sickRate100 = Math.round(baseSalary / (141 + 2/3) * 100) / 100;
-  const sickRate80  = Math.round(baseSalary / (177 + 1/12) * 100) / 100;
+  const sickRate100 = f2(baseSalary / (141 + 2/3));
+  const sickRate80  = f2(baseSalary / (177 + 1/12));
 
-  const semesterSupplementPerDay = Math.round((baseSalary + driftAddition) / 125 * 100) / 100;
-  const semesterTillagg = Math.round(vacationCount * semesterSupplementPerDay * 100) / 100;
+  const semesterSupplementPerDay = f2((baseSalary + driftAddition) / 125);
+  const semesterTillagg = f2(vacationCount * semesterSupplementPerDay);
 
   const karensHours = karensDays * 6.8;
-  const karensDeduction = karensDays > 0 ? Math.round(karensHours * sickRate100 * 100) / 100 : 0;
-  const sickDeduct100 = Math.round(extraSick * sickRate100 * 100) / 100;
-  const sickPay80 = Math.round(extraSick * sickRate80 * 100) / 100;
-  const sickNetLoss = Math.round((sickDeduct100 - sickPay80) * 100) / 100;
-  const totalSickLoss = Math.round((karensDeduction + sickNetLoss) * 100) / 100;
+  const karensDeduction = karensDays > 0 ? f2(karensHours * sickRate100) : 0;
+  const sickDeduct100 = extraSick > 0 ? f2(extraSick * sickRate100) : 0;
+  const sickPay80 = extraSick > 0 ? f2(extraSick * sickRate80) : 0;
+  const sickNetLoss = f2(sickDeduct100 - sickPay80);
+  const totalSickLoss = f2(karensDeduction + sickNetLoss);
 
   const vabParentalHours = totalVABParental * VAB_HPD;
-  const vabParentalDeduction = Math.round(vabParentalHours * sickRate100 * 100) / 100;
+  const vabParentalDeduction = f2(vabParentalHours * sickRate100);
 
   const sgiVab = Math.min(sgiVal, SGI_TAK_VAB);
-  const sgiVabDay = Math.round(sgiVab / 365 * 0.8 * 100) / 100;
-  const fkVabTotal = Math.round(vabD * sgiVabDay * 100) / 100;
+  const sgiVabDay = f2(sgiVab / 365 * 0.8);
+  const fkVabTotal = f2(vabD * sgiVabDay);
 
   const sgiPar = Math.min(sgiVal, SGI_TAK_PARENTAL);
-  const fpDayAmt = Math.round(Math.min(1259, sgiPar / 365 * 0.776) * 100) / 100;
-  const fkFpTotal = Math.round(parentalD * fpDayAmt * 100) / 100;
+  const fpDayAmt = f2(Math.min(1259, sgiPar / 365 * 0.776));
+  const fkFpTotal = f2(parentalD * fpDayAmt);
 
-  const fptDayAmt = Math.round(baseSalary / 30 * 0.10 * 100) / 100;
-  const fkFptTotal = Math.round(ftpD * fptDayAmt * 100) / 100;
+  const fptDayAmt = f2(baseSalary / 30 * 0.10);
+  const fkFptTotal = f2(ftpD * fptDayAmt);
 
-  const fkVabTax = Math.round(fkVabTotal * FK_SKATT * 100) / 100;
-  const fkFpTax = Math.round(fkFpTotal * FK_SKATT * 100) / 100;
-  const fkFptTax = Math.round(fkFptTotal * FK_SKATT * 100) / 100;
+  const fkVabTax = f2(fkVabTotal * FK_SKATT);
+  const fkFpTax = f2(fkFpTotal * FK_SKATT);
+  const fkFptTax = f2(fkFptTotal * FK_SKATT);
 
-  const fkVabNet = Math.round((fkVabTotal - fkVabTax) * 100) / 100;
-  const fkFpNet = Math.round((fkFpTotal - fkFpTax) * 100) / 100;
-  const fkFptNet = Math.round((fkFptTotal - fkFptTax) * 100) / 100;
-  const totalErsattningNetto = Math.round((fkVabNet + fkFpNet + fkFptNet) * 100) / 100;
+  const fkVabNet = f2(fkVabTotal - fkVabTax);
+  const fkFpNet = f2(fkFpTotal - fkFpTax);
+  const fkFptNet = f2(fkFptTotal - fkFptTax);
+  const totalErsattningNetto = f2(fkVabNet + fkFpNet + fkFptNet);
 
   let obYear = selectedYear, obMonth = selectedMonth - 1;
   if (obMonth === 0) { obMonth = 12; obYear--; }
@@ -141,33 +140,33 @@ function calculateEverything() {
 
   const otH = p(otHours.value), otEnkelH = p(otEnkelHours.value);
 
-  const ob1Amount = Math.round(obData.ob1 * ob1Rate * 100) / 100;
-  const ob2Amount = Math.round(obData.ob2 * ob2Rate * 100) / 100;
-  const ob3Amount = Math.round(obData.ob3 * ob3Rate * 100) / 100;
-  const otAmount  = Math.round(otH * otRate * 100) / 100;
-  const otEnkelAmount = Math.round(otEnkelH * otEnkelRate * 100) / 100;
-  const totalOBOnly = Math.round((ob1Amount + ob2Amount + ob3Amount) * 100) / 100;
+  const ob1Amount = f2(obData.ob1 * ob1Rate);
+  const ob2Amount = f2(obData.ob2 * ob2Rate);
+  const ob3Amount = f2(obData.ob3 * ob3Rate);
+  const otAmount  = f2(otH * otRate);
+  const otEnkelAmount = f2(otEnkelH * otEnkelRate);
+  const totalOBOnly = f2(ob1Amount + ob2Amount + ob3Amount);
   const totalOBOnlyHours = obData.ob1 + obData.ob2 + obData.ob3;
-  const totalOB = Math.round((totalOBOnly + otAmount + otEnkelAmount) * 100) / 100;
+  const totalOB = f2(totalOBOnly + otAmount + otEnkelAmount);
 
   const sjukOb1H = sickVisible ? p(sjukOb1Hours.value) : 0;
   const sjukOb2H = sickVisible ? p(sjukOb2Hours.value) : 0;
   const sjukOb3H = sickVisible ? p(sjukOb3Hours.value) : 0;
-  const sjukOb1Gain = Math.round(sjukOb1H * ob1Rate * 0.8 * 100) / 100;
-  const sjukOb2Gain = Math.round(sjukOb2H * ob2Rate * 0.8 * 100) / 100;
-  const sjukOb3Gain = Math.round(sjukOb3H * ob3Rate * 0.8 * 100) / 100;
-  const totalSjukOBGain = Math.round((sjukOb1Gain + sjukOb2Gain + sjukOb3Gain) * 100) / 100;
+  const sjukOb1Gain = f2(sjukOb1H * ob1Rate * 0.8);
+  const sjukOb2Gain = f2(sjukOb2H * ob2Rate * 0.8);
+  const sjukOb3Gain = f2(sjukOb3H * ob3Rate * 0.8);
+  const totalSjukOBGain = f2(sjukOb1Gain + sjukOb2Gain + sjukOb3Gain);
 
-  const totalBeforeKarens = Math.round((obGroundingBase + totalOB + semesterTillagg) * 100) / 100;
-  const jobbBruttoExact = Math.round((totalBeforeKarens - totalSickLoss + totalSjukOBGain - vabParentalDeduction) * 100) / 100;
+  const totalBeforeKarens = f2(obGroundingBase + totalOB + semesterTillagg);
+  const jobbBruttoExact = f2(totalBeforeKarens - totalSickLoss + totalSjukOBGain - vabParentalDeduction);
   const jobbBrutto = Math.round(jobbBruttoExact);
 
   const taxExact = taxFromTable33Col1(jobbBruttoExact);
   const tax = f2(taxExact);
 
-  const netSalaryExact = Math.round((jobbBruttoExact - taxExact - calcUnion(jobbBrutto) + totalErsattningNetto) * 100) / 100;
+  const netSalaryExact = f2(jobbBruttoExact - taxExact - calcUnion(jobbBrutto) + totalErsattningNetto);
   const netSalary = Math.round(netSalaryExact);
-  const utjämning = Math.round((netSalary - netSalaryExact) * 100) / 100;
+  const utjämning = f2(netSalary - netSalaryExact);
 
   return {
     baseSalary, selectedYear, selectedMonth, karensDays, lag, isAuto,
@@ -175,8 +174,10 @@ function calculateEverything() {
     driftAddition, obGroundingBase,
     ob1RatePerHour: ob1Rate, ob2RatePerHour: ob2Rate, ob3RatePerHour: ob3Rate,
     otRatePerHour: otRate, otEnkelRatePerHour: otEnkelRate,
+    sickRate100, sickRate80,
     semesterSupplementPerDay, semesterTillagg,
     karensDeduction, totalSickLoss,
+    sickDeduct100, sickPay80,   // <-- nya fält för separat visning
     vabParentalDeduction, totalErsattningNetto,
     obYear, obMonth, lockEnabled, obData, autoOB,
     ob1Amount, ob2Amount, ob3Amount, otAmount, otEnkelAmount,
@@ -225,29 +226,50 @@ function renderUI(data) {
   finalNetSalary.innerText = fc(data.netSalary) + ' kr';
   overviewTotalNet.innerText = fc(data.netSalary) + ' kr';
 
+  // ----- OB- och övertidsrader (med två decimaler) -----
   let obOTHTML = '';
   if (data.totalOBOnlyHours > 0) {
     obOTHTML = '<div class="expandable-chip" onclick="toggleExpand(this)">' +
-      '<div class="expandable-header"><span>Totalt OB</span><span>' + fd(data.totalOBOnlyHours, 2) + 'h / +' + fc(data.totalOBOnly) + ' kr <span class="expandable-arrow">▼</span></span></div>' +
+      '<div class="expandable-header"><span>Totalt OB</span><span>' + fd(data.totalOBOnlyHours, 2) + 'h / +' + fd(data.totalOBOnly, 2) + ' kr <span class="expandable-arrow">▼</span></span></div>' +
       '<div class="expandable-details">' +
-      '<div class="tax-detail-row">OB1 (' + fd(data.obData.ob1, 2) + 'h x ' + fd(data.ob1RatePerHour, 2) + ' kr): +' + fc(data.ob1Amount) + ' kr</div>' +
-      '<div class="tax-detail-row">OB2 (' + fd(data.obData.ob2, 2) + 'h x ' + fd(data.ob2RatePerHour, 2) + ' kr): +' + fc(data.ob2Amount) + ' kr</div>' +
-      '<div class="tax-detail-row">OB3 (' + fd(data.obData.ob3, 2) + 'h x ' + fd(data.ob3RatePerHour, 2) + ' kr): +' + fc(data.ob3Amount) + ' kr</div>' +
-      '<div class="tax-detail-row total">Summa OB: ' + fd(data.totalOBOnlyHours, 2) + 'h / +' + fc(data.totalOBOnly) + ' kr</div>' +
+      '<div class="tax-detail-row">OB1 (' + fd(data.obData.ob1, 2) + 'h x ' + fd(data.ob1RatePerHour, 2) + ' kr): +' + fd(data.ob1Amount, 2) + ' kr</div>' +
+      '<div class="tax-detail-row">OB2 (' + fd(data.obData.ob2, 2) + 'h x ' + fd(data.ob2RatePerHour, 2) + ' kr): +' + fd(data.ob2Amount, 2) + ' kr</div>' +
+      '<div class="tax-detail-row">OB3 (' + fd(data.obData.ob3, 2) + 'h x ' + fd(data.ob3RatePerHour, 2) + ' kr): +' + fd(data.ob3Amount, 2) + ' kr</div>' +
+      '<div class="tax-detail-row total">Summa OB: ' + fd(data.totalOBOnlyHours, 2) + 'h / +' + fd(data.totalOBOnly, 2) + ' kr</div>' +
       '</div></div>';
   }
-  if (data.otAmount > 0) obOTHTML += '<div class="detail-chip"><span>Övertid (' + fd(data.otH || p(otHours.value), 2) + 'h x ' + fd(data.otRatePerHour, 2) + ' kr)</span><span>+' + fc(data.otAmount) + ' kr</span></div>';
-  if (data.otEnkelAmount > 0) obOTHTML += '<div class="detail-chip"><span>ÖT enkel (' + fd(data.otEnkelH || p(otEnkelHours.value), 2) + 'h x ' + fd(data.otEnkelRatePerHour, 2) + ' kr)</span><span>+' + fc(data.otEnkelAmount) + ' kr</span></div>';
+  if (data.otAmount > 0) obOTHTML += '<div class="detail-chip"><span>Övertid (' + fd(data.otH || p(otHours.value), 2) + 'h x ' + fd(data.otRatePerHour, 2) + ' kr)</span><span>+' + fd(data.otAmount, 2) + ' kr</span></div>';
+  if (data.otEnkelAmount > 0) obOTHTML += '<div class="detail-chip"><span>ÖT enkel (' + fd(data.otEnkelH || p(otEnkelHours.value), 2) + 'h x ' + fd(data.otEnkelRatePerHour, 2) + ' kr)</span><span>+' + fd(data.otEnkelAmount, 2) + ' kr</span></div>';
 
+  // ----- Karens -----
   let karensHTML = data.karensDays > 0
     ? '<div class="detail-chip danger"><span>Karensavdrag</span><span>-' + fd(data.karensDeduction, 2) + ' kr (' + data.karensDays + ' dag' + (data.karensDays > 1 ? 'ar' : '') + ')</span></div>'
     : '';
-  let extraSickHTML = data.extraSick > 0 ? '<div class="detail-chip danger"><span>Sjuktimmar</span><span>' + fd(data.extraSick, 1) + 'h (netto -20%)</span></div>' : '';
-  let sjukObHTML = data.totalSjukOBGain > 0 ? '<div class="detail-chip success"><span>Sjuk-OB ersättning</span><span>+' + fc(data.totalSjukOBGain) + ' kr</span></div>' : '';
-  let vabHTML = data.totalVABParental > 0 ? '<div class="detail-chip danger"><span>VAB/F-ledig avdrag</span><span>-' + fc(data.vabParentalDeduction) + ' kr</span></div>' : '';
-  let semesterHTML = data.vacationCount > 0 ? '<div class="detail-chip info"><span>Semestertillägg (' + data.vacationCount + ' dgr, ' + fd(data.semesterSupplementPerDay, 2) + ' kr/d)</span><span>+' + fc(data.semesterTillagg) + ' kr</span></div>' : '';
-  let bidragHTML = (data.totalVABParental > 0 || ftpDays.value > 0) ? '<div class="detail-chip success"><span>FK/AFA netto</span><span>+' + fc(data.totalErsattningNetto) + ' kr</span></div>' : '';
 
+  // ----- Sjukfrånvaro (TVÅ separata rader) -----
+  let extraSickHTML = '';
+  if (data.extraSick > 0) {
+    extraSickHTML =
+      '<div class="detail-chip danger"><span>Sjukavdrag 100%</span><span>-' + fd(data.sickDeduct100, 2) + ' kr (' + fd(data.extraSick, 1) + 'h x ' + fd(data.sickRate100, 2) + ' kr)</span></div>' +
+      '<div class="detail-chip success"><span>Sjukersättning 80%</span><span>+' + fd(data.sickPay80, 2) + ' kr (' + fd(data.extraSick, 1) + 'h x ' + fd(data.sickRate80, 2) + ' kr)</span></div>';
+  }
+
+  // ----- Sjuk-OB (med två decimaler) -----
+  let sjukObHTML = '';
+  if (data.totalSjukOBGain > 0) {
+    sjukObHTML = '<div class="detail-chip success"><span>Sjuk-OB ersättning</span><span>+' + fd(data.totalSjukOBGain, 2) + ' kr</span></div>';
+  }
+
+  // ----- VAB/F-ledig (med två decimaler) -----
+  let vabHTML = data.totalVABParental > 0 ? '<div class="detail-chip danger"><span>VAB/F-ledig avdrag</span><span>-' + fd(data.vabParentalDeduction, 2) + ' kr</span></div>' : '';
+
+  // ----- Semester -----
+  let semesterHTML = data.vacationCount > 0 ? '<div class="detail-chip info"><span>Semestertillägg (' + data.vacationCount + ' dgr, ' + fd(data.semesterSupplementPerDay, 2) + ' kr/d)</span><span>+' + fd(data.semesterTillagg, 2) + ' kr</span></div>' : '';
+
+  // ----- Bidrag -----
+  let bidragHTML = (data.totalVABParental > 0 || ftpDays.value > 0) ? '<div class="detail-chip success"><span>FK/AFA netto</span><span>+' + fd(data.totalErsattningNetto, 2) + ' kr</span></div>' : '';
+
+  // ----- Öresutjämning -----
   let utjämningHTML = '';
   if (Math.abs(data.utjämning) > 0.001) {
     const tecken = data.utjämning > 0 ? '+' : '';
@@ -255,6 +277,7 @@ function renderUI(data) {
     utjämningHTML = `<div class="detail-chip ${färg}"><span>Öresutjämning</span><span>${tecken}${fd(Math.abs(data.utjämning), 2)} kr</span></div>`;
   }
 
+  // ----- Sammanställning av detaljer -----
   let detailHTML =
     '<div class="detail-chip"><span>Grundlön</span><span>' + fc(data.baseSalary) + ' kr</span></div>' +
     '<div class="detail-chip"><span>OB-grundande</span><span>' + fc(data.obGroundingBase) + ' kr</span></div>' +
@@ -272,6 +295,7 @@ function renderUI(data) {
 
   detailGrid.innerHTML = detailHTML;
 
+  // ---- Schema-tabell ----
   if (data.isAuto) {
     let daysInMonth = new Date(data.obYear, data.obMonth, 0).getDate();
     let shiftNames = ['Ledig', 'Dag', 'Natt'];
@@ -397,18 +421,18 @@ function updateYearSummary() {
   }
   document.getElementById('yearSummaryYear').innerText = y;
   const bs = p(salaryInput.value) || 0;
-  const da = Math.round(bs * (DRIFT / 100) * 100) / 100;  // även här 2 decimaler
+  const da = Math.round(bs * DRIFT / 100);   // hel krona
   const obBase = bs + da;
-  const o1r = Math.round(obBase / O1D * 100) / 100;
-  const o2r = Math.round(obBase / O2D * 100) / 100;
-  const o3r = Math.round(obBase / O3D * 100) / 100;
+  const o1r = f2(obBase / O1D);
+  const o2r = f2(obBase / O2D);
+  const o3r = f2(obBase / O3D);
   let totBrutto = 0, totNetto = 0, totSkatt = 0, totFack = 0, totOB = 0;
   for (let m = 1; m <= 12; m++) {
     const obData = getOBForMonth(y, m, lag);
-    const ob1Amt = Math.round(obData.ob1 * o1r * 100) / 100;
-    const ob2Amt = Math.round(obData.ob2 * o2r * 100) / 100;
-    const ob3Amt = Math.round(obData.ob3 * o3r * 100) / 100;
-    const mOB = Math.round((ob1Amt + ob2Amt + ob3Amt) * 100) / 100;
+    const ob1Amt = f2(obData.ob1 * o1r);
+    const ob2Amt = f2(obData.ob2 * o2r);
+    const ob3Amt = f2(obData.ob3 * o3r);
+    const mOB = f2(ob1Amt + ob2Amt + ob3Amt);
     totOB += mOB;
     const jb = Math.round(obBase + mOB);
     const tax = taxFromTable33Col1(jb);
@@ -448,15 +472,15 @@ function renderOBChart() {
     if (lag === 'manual' || lag === '') return;
     const year = parseInt(yearSelect.value);
     const bs = p(salaryInput.value) || 0;
-    const da = Math.round(bs * (DRIFT / 100) * 100) / 100;  // 2 decimaler
+    const da = Math.round(bs * DRIFT / 100);   // hel krona
     const obBase = bs + da;
-    const o1r = Math.round(obBase / O1D * 100) / 100;
-    const o2r = Math.round(obBase / O2D * 100) / 100;
-    const o3r = Math.round(obBase / O3D * 100) / 100;
+    const o1r = f2(obBase / O1D);
+    const o2r = f2(obBase / O2D);
+    const o3r = f2(obBase / O3D);
     const labels = []; const data = [];
     for (let m = 1; m <= 12; m++) {
         const obData = getOBForMonth(year, m, lag);
-        const amount = Math.round((obData.ob1 * o1r + obData.ob2 * o2r + obData.ob3 * o3r) * 100) / 100;
+        const amount = f2(obData.ob1 * o1r + obData.ob2 * o2r + obData.ob3 * o3r);
         labels.push(MONTHS[m-1]); data.push(amount);
     }
     const ctx = document.getElementById('obChart');
