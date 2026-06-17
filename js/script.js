@@ -403,6 +403,258 @@ function renderUI(data) {
   }
 }
 
-// ... (resten av funktionerna är oförändrade, t.ex. updateUI, resetOB, toggleTheme, etc.)
-// Jag har inte tagit med dem här för att undvika överlångt svar, men de ska vara med i din fil.
-// Klistra in hela script.js och ersätt enbart schematabell-delen och CSS-ändringarna enligt ovan.
+function showMainIfValid() {
+  const main = document.getElementById('mainContent');
+  if (!main) return;
+  const lag = lagSelect.value;
+  if (lag !== '' && lag !== 'manual') {
+    main.style.display = '';
+  } else if (lag === 'manual') {
+    main.style.display = '';
+  } else {
+    main.style.display = 'none';
+  }
+}
+
+function updateUI() {
+  applyIndustrialVacation(parseInt(yearSelect.value), lagSelect.value);
+  const data = calculateEverything();
+  renderUI(data);
+  updateSettingsLabel();
+  if (data.isAuto && data.lockEnabled && !manualOBOverride && data.autoOB) {
+    ob1Hours.value = fd(data.autoOB.ob1, 2);
+    ob2Hours.value = fd(data.autoOB.ob2, 2);
+    ob3Hours.value = fd(data.autoOB.ob3, 2);
+  }
+  closeSettingsBoxIfNeeded();
+  renderOBChart();
+  showMainIfValid();
+}
+
+function closeSettingsBoxIfNeeded() {
+  const settingsContent = document.getElementById('settingsContent');
+  const arrow = document.getElementById('settingsArrow');
+  if (settingsContent && settingsContent.classList.contains('open') && lagSelect.value !== '') {
+    settingsContent.classList.remove('open');
+    if (arrow) arrow.textContent = '▼';
+  }
+}
+
+function resetOB() {
+  const lag = lagSelect.value;
+  if (lag !== 'manual' && lag !== '') {
+    let y = parseInt(yearSelect.value);
+    let m = parseInt(monthSelect.value);
+    let om = m - 1;
+    if (om === 0) { om = 12; y--; }
+    const ob = getOBForMonth(y, om, lag);
+    ob1Hours.value = fd(ob.ob1, 2);
+    ob2Hours.value = fd(ob.ob2, 2);
+    ob3Hours.value = fd(ob.ob3, 2);
+  } else {
+    ob1Hours.value = '0'; ob2Hours.value = '0'; ob3Hours.value = '0';
+  }
+  manualOBOverride = false;
+  updateUI();
+}
+
+function toggleExpand(el){ let d=el.querySelector('.expandable-details'), a=el.querySelector('.expandable-arrow'); d.classList.toggle('open'); a.classList.toggle('open'); }
+
+function toggleTheme() {
+    const checkbox = document.getElementById('themeToggleCheckbox');
+    const isDark = checkbox.checked;
+    const html = document.documentElement;
+    html.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+}
+
+function toggleVAB(){ let c=document.getElementById('vabContent'), a=document.getElementById('vabArrow'); c.classList.toggle('open'); a.innerText=c.classList.contains('open')?'▲':'▼'; }
+function toggleOB(){ let c=document.getElementById('obContent'), a=document.getElementById('obArrow'); c.classList.toggle('open'); a.innerText=c.classList.contains('open')?'▲':'▼'; }
+function toggleOverview(){ let c=document.getElementById('overviewContent'); c.style.display = c.style.display==='none'?'block':'none'; }
+function toggleYearSummary(){ let d=document.getElementById('yearDetails'), a=document.getElementById('yearArrow'); if(d.style.display==='none'){ d.style.display='block'; a.innerText='▲'; updateYearSummary(); } else { d.style.display='none'; a.innerText='▼'; } }
+
+function updateYearSummary() {
+  const y = parseInt(yearSelect.value);
+  const lag = lagSelect.value;
+  if (lag === 'manual' || lag === '') {
+    document.getElementById('yearSummaryGrid').innerHTML = 'Välj lag';
+    return;
+  }
+  document.getElementById('yearSummaryYear').innerText = y;
+  const bs = p(salaryInput.value) || 0;
+  const da = f2(bs * DRIFT / 100);
+  const obBase = bs + da;
+  const o1r = f2(obBase / O1D);
+  const o2r = f2(obBase / O2D);
+  const o3r = f2(obBase / O3D);
+  let totBrutto = 0, totNetto = 0, totSkatt = 0, totFack = 0, totOB = 0, totSemester = 0;
+  for (let m = 1; m <= 12; m++) {
+    let obMonth = m - 1, obYear = y;
+    if (obMonth === 0) { obMonth = 12; obYear--; }
+    const obData = getOBForMonth(obYear, obMonth, lag);
+    const ob1Amt = f2(obData.ob1 * o1r);
+    const ob2Amt = f2(obData.ob2 * o2r);
+    const ob3Amt = f2(obData.ob3 * o3r);
+    const mOB = f2(ob1Amt + ob2Amt + ob3Amt);
+    totOB += mOB;
+    const vacDays = countVacationDaysInMonth(obYear, obMonth);
+    const semTillagg = f2(vacDays * f2(obBase / 125));
+    totSemester += semTillagg;
+    const jb = Math.round(obBase + mOB + semTillagg);
+    const tax = taxFromTable33Col1(jb);
+    const uf = calcUnion(jb);
+    const net = jb - tax - uf;
+    totBrutto += jb; totNetto += net; totSkatt += tax; totFack += uf;
+  }
+  document.getElementById('yearSummaryGrid').innerHTML =
+    `<div>Total bruttolön: ${fc(totBrutto)} kr</div>` +
+    `<div>Total nettolön: ${fc(totNetto)} kr</div>` +
+    `<div>Total skatt: -${fc(totSkatt)} kr</div>` +
+    `<div>Fackavgift: -${fc(totFack)} kr</div>` +
+    `<div>Totalt OB: +${fc(totOB)} kr</div>` +
+    `<div>Semestertillägg: +${fc(totSemester)} kr</div>`;
+}
+
+function updateSettingsLabel() {
+    const profSelect = document.getElementById('profileSelect');
+    const lagSelectEl = document.getElementById('lagSelect');
+    const profName = (profSelect && profSelect.value) ? profSelect.value : '--';
+    const lagName = lagSelectEl && lagSelectEl.selectedIndex >= 0 ? lagSelectEl.options[lagSelectEl.selectedIndex].text : 'Välj lag';
+    const label = document.getElementById('settingsLabel');
+    if (label) label.textContent = 'Profil: ' + profName + ' | Lag: ' + lagName;
+}
+
+function toggleSettings() {
+    const c = document.getElementById('settingsContent');
+    const a = document.getElementById('settingsArrow');
+    if (c) {
+        c.classList.toggle('open');
+        if (a) a.textContent = c.classList.contains('open') ? '▲' : '▼';
+    }
+}
+
+let obChartInstance = null;
+function renderOBChart() {
+    const lag = lagSelect.value;
+    if (lag === 'manual' || lag === '') return;
+    const year = parseInt(yearSelect.value);
+    const bs = p(salaryInput.value) || 0;
+    const da = f2(bs * DRIFT / 100);
+    const obBase = bs + da;
+    const o1r = f2(obBase / O1D);
+    const o2r = f2(obBase / O2D);
+    const o3r = f2(obBase / O3D);
+    const labels = []; const data = [];
+    for (let m = 1; m <= 12; m++) {
+        const obData = getOBForMonth(year, m, lag);
+        const amount = f2(obData.ob1 * o1r + obData.ob2 * o2r + obData.ob3 * o3r);
+        labels.push(MONTHS[m-1]); data.push(amount);
+    }
+    const ctx = document.getElementById('obChart');
+    if (!ctx) return;
+    if (obChartInstance) obChartInstance.destroy();
+    obChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'OB‑ersättning (kr)',
+                data: data,
+                backgroundColor: 'rgba(88,166,255,0.6)',
+                borderColor: 'rgba(88,166,255,1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, ticks: { color: '#8b949e' } },
+                x: { ticks: { color: '#8b949e' } }
+            },
+            plugins: { legend: { labels: { color: '#8b949e' } } }
+        }
+    });
+}
+
+function populateSelectors(){
+  for(let y=SY;y<=EY;y++){ let o=document.createElement('option'); o.value=y; o.textContent=y; yearSelect.appendChild(o); }
+  let now=new Date();
+  yearSelect.value=Math.max(SY,Math.min(EY,now.getFullYear()));
+  MONTHS.forEach((m,i)=>{ let o=document.createElement('option'); o.value=i+1; o.textContent=m; monthSelect.appendChild(o); });
+  monthSelect.value=now.getMonth()+1;
+}
+
+let lagSelect=document.getElementById('lagSelect'), salaryInput=document.getElementById('salaryInput'),
+    yearSelect=document.getElementById('yearSelect'), monthSelect=document.getElementById('monthSelect'),
+    karensSelect=document.getElementById('karensSelect'), otHours=document.getElementById('otHours'),
+    otEnkelHours=document.getElementById('otEnkelHours'), ob1Hours=document.getElementById('ob1Hours'),
+    ob2Hours=document.getElementById('ob2Hours'), ob3Hours=document.getElementById('ob3Hours'),
+    sjukOb1Hours=document.getElementById('sjukOb1Hours'), sjukOb2Hours=document.getElementById('sjukOb2Hours'),
+    sjukOb3Hours=document.getElementById('sjukOb3Hours'), sickHours=document.getElementById('sickHours'),
+    ftpDays=document.getElementById('ftpDays'), sgiInput=document.getElementById('sgiInput'),
+    ob1Rate=document.getElementById('ob1Rate'), ob2Rate=document.getElementById('ob2Rate'),
+    ob3Rate=document.getElementById('ob3Rate'), otRate=document.getElementById('otRate'),
+    otEnkelRate=document.getElementById('otEnkelRate'), selectedPeriod=document.getElementById('selectedPeriod'),
+    finalNetSalary=document.getElementById('finalNetSalary'), detailGrid=document.getElementById('detailGrid'),
+    tableBody=document.querySelector('#salaryTable tbody'), tableMonthLabel=document.getElementById('tableMonthLabel'),
+    obGroundingDisplay=document.getElementById('obGroundingDisplay'), sjukOBContainer=document.getElementById('sjukOBContainer'),
+    sickHoursContainer=document.getElementById('sickHoursContainer'), lockLabel=document.getElementById('lockLabel'),
+    vabSummary=document.getElementById('vabSummary'), vabInfo=document.getElementById('vabInfo'),
+    yearSummaryYear=document.getElementById('yearSummaryYear'), yearSummaryGrid=document.getElementById('yearSummaryGrid'),
+    obLockToggle=document.getElementById('obLockToggle'), overviewTotalNet=document.getElementById('overviewTotalNet');
+
+lagSelect.addEventListener('change',updateUI); salaryInput.addEventListener('input',updateUI);
+yearSelect.addEventListener('change',updateUI); monthSelect.addEventListener('change',updateUI);
+karensSelect.addEventListener('change',updateUI); otHours.addEventListener('input',updateUI);
+otEnkelHours.addEventListener('input',updateUI); ob1Hours.addEventListener('input',updateUI);
+ob2Hours.addEventListener('input',updateUI); ob3Hours.addEventListener('input',updateUI);
+sjukOb1Hours.addEventListener('input',updateUI); sjukOb2Hours.addEventListener('input',updateUI);
+sjukOb3Hours.addEventListener('input',updateUI); sickHours.addEventListener('input',updateUI);
+ftpDays.addEventListener('change',updateUI); sgiInput.addEventListener('input',updateUI);
+obLockToggle.addEventListener('change',updateUI);
+
+[ob1Hours, ob2Hours, ob3Hours].forEach(function(field) {
+  field.addEventListener('input', function() {
+    if (!obLockToggle.checked) { manualOBOverride = true; }
+  });
+});
+
+(function() {
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    const isDark = (savedTheme === 'dark');
+    const html = document.documentElement;
+    html.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    const checkbox = document.getElementById('themeToggleCheckbox');
+    if (checkbox) checkbox.checked = isDark;
+})();
+
+populateSelectors();
+updateUI();
+
+window.setFromvaro=setFromvaro; window.changeShift=changeShift; window.resetSchema=resetSchema;
+window.resetAllShifts=resetAllShifts; window.toggleExpand=toggleExpand;
+window.toggleYearSummary=toggleYearSummary; window.toggleVAB=toggleVAB; window.toggleOB=toggleOB;
+window.toggleOverview=toggleOverview;
+window.toggleTheme = toggleTheme; window.toggleSettings = toggleSettings;
+window.resetOB = resetOB; window.manualOBOverride = manualOBOverride;
+window.updateUI = updateUI;
+window.salaryInput = salaryInput; window.lagSelect = lagSelect;
+window.yearSelect = yearSelect; window.monthSelect = monthSelect;
+window.karensSelect = karensSelect; window.otHours = otHours; window.otEnkelHours = otEnkelHours;
+window.ob1Hours = ob1Hours; window.ob2Hours = ob2Hours; window.ob3Hours = ob3Hours;
+window.sjukOb1Hours = sjukOb1Hours; window.sjukOb2Hours = sjukOb2Hours; window.sjukOb3Hours = sjukOb3Hours;
+window.sickHours = sickHours; window.ftpDays = ftpDays; window.sgiInput = sgiInput;
+window.obLockToggle = obLockToggle;
+
+document.querySelectorAll('.numeric-only').forEach(function(field) {
+  field.addEventListener('input', function() {
+    this.value = this.value.replace(/[^0-9.,]/g, '');
+    if (this.value.includes(',')) { this.value = this.value.replace(',', '.'); }
+    if (field.classList.contains('numeric-hours')) {
+      var match = this.value.match(/^(\d{0,3})(\.\d{0,2})?/);
+      this.value = match ? match[0] : '';
+    }
+  });
+});
+
+});
