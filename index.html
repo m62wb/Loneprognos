@@ -159,12 +159,10 @@ function calculateEverything() {
   const taxExact = taxFromTable33Col1(jobbBrutto);
   const tax = f2(taxExact);
 
-  // Räkna ut nettolön EXAKT så som den blir efter öresavrundning av bruttolön
   const netSalaryExact = jobbBrutto - taxExact - calcUnion(jobbBrutto) + totalErsattningNettoExact;
   const netSalary = Math.round(netSalaryExact);
   const utjämning = netSalary - netSalaryExact;
 
-  // För visning av delposter (avrundade för snygghet)
   const ob1Amount = Math.round(ob1AmountExact);
   const ob2Amount = Math.round(ob2AmountExact);
   const ob3Amount = Math.round(ob3AmountExact);
