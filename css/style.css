@@ -2,8 +2,7 @@
    LÖNEKALKYLATOR – STYLESHEET
    GitHub-inspirerat mörkt tema
    + äggskalsljus tema
-   + grön färg endast kolumn 2-8
-   + emojis högerställda i dag-kolumnen
+   + Grön/Blå/Gul färg endast från kolumn 2
    ============================== */
 
 /* ---- MÖRKT TEMA ---- */
@@ -211,10 +210,16 @@ td select {
     background: rgba(63,185,80,0.15) !important;
 }
 
-/* Frånvaromarkeringar (för hela raden) */
-.row-vacation td { background: rgba(255,193,7,0.2); }      /* gul ton för semester */
-.row-vab td { background: rgba(255,87,34,0.2); }           /* röd ton för VAB */
-.row-parental td { background: rgba(156,39,176,0.2); }     /* lila ton för f-ledig */
+/* FRÅNVAROFÄRGER (endast kolumn 2-8) */
+.row-vacation td:not(:first-child) {
+    background: rgba(255,193,7,0.2);      /* gul ton */
+}
+.row-vab td:not(:first-child) {
+    background: rgba(255,87,34,0.2);       /* röd ton */
+}
+.row-parental td:not(:first-child) {
+    background: rgba(156,39,176,0.2);      /* lila ton */
+}
 
 /* Emojis i dag-kolumnen – högerställda */
 .day-emoji {
@@ -223,7 +228,7 @@ td select {
     font-style: normal;
 }
 
-/* Blå veckomarkering ENDAST på dag‑cellen (och bara om inte arbetsdag) */
+/* Blå veckomarkering (dagcellen) – alla dagar i blå vecka */
 td.blue-week-cell {
     background: rgba(88,166,255,0.08) !important;
 }
