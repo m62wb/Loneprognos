@@ -10,6 +10,9 @@ const O1D=460, O2D=260, O3D=150, OTD=72, OTENKELD=94, SY=2026, EY=2036;
 const PBB=59200, SGI_TAK_PARENTAL=10*PBB, SGI_TAK_VAB=7.5*PBB, FK_SKATT=0.30;
 const MONTHS = ['Januari','Februari','Mars','April','Maj','Juni','Juli','Augusti','September','Oktober','November','December'];
 
+// ---- Ny karta för att förhindra att automatisk semester återställs ----
+const vacationOverrideMap = new Map(); // true = användaren har gjort ett aktivt val
+
 function calcUnion(s){ let f=Math.round(s*UPCT); if(f<UMIN) return UMIN; if(f>UMAX) return UMAX; return f; }
 
 // ---- Veckonummer (ISO 8601) ----
@@ -40,6 +43,8 @@ function applyIndustrialVacation(year, lag) {
       const date = new Date(monday);
       date.setDate(monday.getDate() + d);
       const key = date.toISOString().split('T')[0];
+      // Hoppa över datum som användaren redan har ändrat manuellt
+      if (vacationOverrideMap.has(key)) continue;
       if (!fromvaroMap.has(key)) {
         const shift = getOrdinaryShift(date, lag);
         if (shift > 0) {
@@ -62,13 +67,24 @@ function countVacationDaysInMonth(year, month) {
 }
 
 function setFromvaro(dateStr, value){
+  const date = new Date(dateStr);
+  const week = getWeekNumber(date);
+  // Om dagen ligger i en potentiell semestervecka, markera den som manuellt överstyrd
+  if (week >= 28 && week <= 31) {
+    vacationOverrideMap.set(dateStr, true);
+  }
+
   if(value==="") fromvaroMap.delete(dateStr);
   else if(value==="Semester") fromvaroMap.set(dateStr,1);
   else if(value==="VAB") fromvaroMap.set(dateStr,2);
   else if(value==="F-ledig") fromvaroMap.set(dateStr,3);
   updateUI();
 }
-function resetSchema(){ fromvaroMap.clear(); updateUI(); }
+function resetSchema(){ 
+  fromvaroMap.clear(); 
+  vacationOverrideMap.clear(); 
+  updateUI(); 
+}
 function resetAllShifts(){ shiftOverrideMap.clear(); updateUI(); }
 function changeShift(dateStr,val,lag){
   let nv = parseInt(val, 10);
@@ -391,7 +407,7 @@ function renderUI(data) {
         <option value="1" ${shift===1?'selected':''}>Dag</option>
         <option value="2" ${shift===2?'selected':''}>Natt</option>
       </select>`;
-      // Blå cell för ALLA dagar i blå vecka (även arbetsdagar)
+      // Blå cell för ALLA dagar i blå vecka
       let weekCellClass = isBlueWeek ? 'blue-week-cell' : '';
       let dayCellContent = `${d} ${dayName}${weekLabel}`;
       if (emoji) dayCellContent += `<span class="day-emoji">${emoji}</span>`;
