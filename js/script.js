@@ -342,7 +342,7 @@ function renderUI(data) {
 
   detailGrid.innerHTML = detailHTML;
 
-  // ===== SCHEMATELL MED SEPARERADE FÄRGER OCH HÖGERSTÄLLD EMOJI =====
+  // ===== SCHEMATELL =====
   if (data.isAuto) {
     let daysInMonth = new Date(data.obYear, data.obMonth, 0).getDate();
     let shiftNames = ['Ledig', 'Dag', 'Natt'];
@@ -391,8 +391,8 @@ function renderUI(data) {
         <option value="1" ${shift===1?'selected':''}>Dag</option>
         <option value="2" ${shift===2?'selected':''}>Natt</option>
       </select>`;
-      // Blå cell endast om blå vecka OCH inte arbetsdag
-      let weekCellClass = (isBlueWeek && !isActiveDay) ? 'blue-week-cell' : '';
+      // Blå cell för ALLA dagar i blå vecka (även arbetsdagar)
+      let weekCellClass = isBlueWeek ? 'blue-week-cell' : '';
       let dayCellContent = `${d} ${dayName}${weekLabel}`;
       if (emoji) dayCellContent += `<span class="day-emoji">${emoji}</span>`;
       tbody += `<tr class="${rowClass.trim()}"><td class="${weekCellClass}">${dayCellContent}</td><td>${shiftText}</td><td>${fd(ob.ob1,2)}h</td><td>${fd(ob.ob2,2)}h</td><td>${fd(ob.ob3,2)}h</td><td>${fromvaroCell}</td><td>${station}</td><td>${passSelect}</td></tr>`;
