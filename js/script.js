@@ -48,32 +48,45 @@ function calculateEverything() {
   const totalVABParental = vabD + parentalD;
   const vacationCount = [...fromvaroMap.values()].filter(v => v === 1).length;
 
-  // Driftformstillägg avrundat till hel krona (enligt arbetsgivarens modell)
-  const driftAddition = Math.round(baseSalary * DRIFT / 100);
-  const obGroundingBase = baseSalary + driftAddition;
+  // Driftformstillägg med 2 decimaler (exakt enligt avtal)
+  const driftAddition = f2(baseSalary * DRIFT / 100);
+  const obGroundingBase = f2(baseSalary + driftAddition);
 
-  const ob1Rate = f2(obGroundingBase / O1D);
-  const ob2Rate = f2(obGroundingBase / O2D);
-  const ob3Rate = f2(obGroundingBase / O3D);
-  const otRate  = f2(obGroundingBase / OTD);
-  const otEnkelRate = f2(obGroundingBase / OTENKELD);
+  // Exakta OB- och ÖT-timlöner (avrundas först vid slutbeloppet)
+  const ob1RateExact = obGroundingBase / O1D;
+  const ob2RateExact = obGroundingBase / O2D;
+  const ob3RateExact = obGroundingBase / O3D;
+  const otRateExact  = obGroundingBase / OTD;
+  const otEnkelRateExact = obGroundingBase / OTENKELD;
 
-  const sickRate100 = f2(baseSalary / (141 + 2/3));
-  const sickRate80  = f2(baseSalary / (177 + 1/12));
+  // Avrundade timlöner för visning
+  const ob1Rate = f2(ob1RateExact);
+  const ob2Rate = f2(ob2RateExact);
+  const ob3Rate = f2(ob3RateExact);
+  const otRate  = f2(otRateExact);
+  const otEnkelRate = f2(otEnkelRateExact);
 
-  const semesterSupplementPerDay = f2((baseSalary + driftAddition) / 125);
+  // Sjuklöner – exakta divisorer
+  const sickRate100Exact = baseSalary / (141 + 2/3);
+  const sickRate80Exact  = baseSalary / (177 + 1/12);
+  const sickRate100 = f2(sickRate100Exact);
+  const sickRate80  = f2(sickRate80Exact);
+
+  const semesterSupplementPerDay = f2(obGroundingBase / 125);
   const semesterTillagg = f2(vacationCount * semesterSupplementPerDay);
 
+  // Karens
   const karensHours = karensDays * 6.8;
   const karensDeduction = karensDays > 0 ? f2(karensHours * sickRate100) : 0;
+
+  // Sjukfrånvaro – separata 100% avdrag och 80% ersättning
   const sickDeduct100 = extraSick > 0 ? f2(extraSick * sickRate100) : 0;
   const sickPay80 = extraSick > 0 ? f2(extraSick * sickRate80) : 0;
-  const sickNetLoss = f2(sickDeduct100 - sickPay80);
-  const totalSickLoss = f2(karensDeduction + sickNetLoss);
 
   const vabParentalHours = totalVABParental * VAB_HPD;
   const vabParentalDeduction = f2(vabParentalHours * sickRate100);
 
+  // FK-ersättningar
   const sgiVab = Math.min(sgiVal, SGI_TAK_VAB);
   const sgiVabDay = f2(sgiVab / 365 * 0.8);
   const fkVabTotal = f2(vabD * sgiVabDay);
@@ -94,6 +107,7 @@ function calculateEverything() {
   const fkFptNet = f2(fkFptTotal - fkFptTax);
   const totalErsattningNetto = f2(fkVabNet + fkFpNet + fkFptNet);
 
+  // OB-månad (föregående månad)
   let obYear = selectedYear, obMonth = selectedMonth - 1;
   if (obMonth === 0) { obMonth = 12; obYear--; }
 
@@ -140,25 +154,28 @@ function calculateEverything() {
 
   const otH = p(otHours.value), otEnkelH = p(otEnkelHours.value);
 
-  const ob1Amount = f2(obData.ob1 * ob1Rate);
-  const ob2Amount = f2(obData.ob2 * ob2Rate);
-  const ob3Amount = f2(obData.ob3 * ob3Rate);
-  const otAmount  = f2(otH * otRate);
-  const otEnkelAmount = f2(otEnkelH * otEnkelRate);
+  // OB- och ÖT-belopp – multiplicera först, avrunda sen (exakta timlöner)
+  const ob1Amount = f2(obData.ob1 * ob1RateExact);
+  const ob2Amount = f2(obData.ob2 * ob2RateExact);
+  const ob3Amount = f2(obData.ob3 * ob3RateExact);
+  const otAmount  = f2(otH * otRateExact);
+  const otEnkelAmount = f2(otEnkelH * otEnkelRateExact);
   const totalOBOnly = f2(ob1Amount + ob2Amount + ob3Amount);
   const totalOBOnlyHours = obData.ob1 + obData.ob2 + obData.ob3;
   const totalOB = f2(totalOBOnly + otAmount + otEnkelAmount);
 
+  // Sjuk-OB (80% av OB-ersättning, med exakta timlöner)
   const sjukOb1H = sickVisible ? p(sjukOb1Hours.value) : 0;
   const sjukOb2H = sickVisible ? p(sjukOb2Hours.value) : 0;
   const sjukOb3H = sickVisible ? p(sjukOb3Hours.value) : 0;
-  const sjukOb1Gain = f2(sjukOb1H * ob1Rate * 0.8);
-  const sjukOb2Gain = f2(sjukOb2H * ob2Rate * 0.8);
-  const sjukOb3Gain = f2(sjukOb3H * ob3Rate * 0.8);
+  const sjukOb1Gain = f2(sjukOb1H * ob1RateExact * 0.8);
+  const sjukOb2Gain = f2(sjukOb2H * ob2RateExact * 0.8);
+  const sjukOb3Gain = f2(sjukOb3H * ob3RateExact * 0.8);
   const totalSjukOBGain = f2(sjukOb1Gain + sjukOb2Gain + sjukOb3Gain);
 
-  const totalBeforeKarens = f2(obGroundingBase + totalOB + semesterTillagg);
-  const jobbBruttoExact = f2(totalBeforeKarens - totalSickLoss + totalSjukOBGain - vabParentalDeduction);
+  // BRUTTOLÖN – enligt lönespecifikationens struktur
+  const totalBeforeDeductions = f2(obGroundingBase + totalOB + semesterTillagg);
+  const jobbBruttoExact = f2(totalBeforeDeductions - karensDeduction - sickDeduct100 + sickPay80 + totalSjukOBGain - vabParentalDeduction);
   const jobbBrutto = Math.round(jobbBruttoExact);
 
   const taxExact = taxFromTable33Col1(jobbBruttoExact);
@@ -176,8 +193,7 @@ function calculateEverything() {
     otRatePerHour: otRate, otEnkelRatePerHour: otEnkelRate,
     sickRate100, sickRate80,
     semesterSupplementPerDay, semesterTillagg,
-    karensDeduction, totalSickLoss,
-    sickDeduct100, sickPay80,   // <-- nya fält för separat visning
+    karensDeduction, sickDeduct100, sickPay80,
     vabParentalDeduction, totalErsattningNetto,
     obYear, obMonth, lockEnabled, obData, autoOB,
     ob1Amount, ob2Amount, ob3Amount, otAmount, otEnkelAmount,
@@ -226,7 +242,7 @@ function renderUI(data) {
   finalNetSalary.innerText = fc(data.netSalary) + ' kr';
   overviewTotalNet.innerText = fc(data.netSalary) + ' kr';
 
-  // ----- OB- och övertidsrader (med två decimaler) -----
+  // OB och övertid med 2 decimaler
   let obOTHTML = '';
   if (data.totalOBOnlyHours > 0) {
     obOTHTML = '<div class="expandable-chip" onclick="toggleExpand(this)">' +
@@ -241,12 +257,12 @@ function renderUI(data) {
   if (data.otAmount > 0) obOTHTML += '<div class="detail-chip"><span>Övertid (' + fd(data.otH || p(otHours.value), 2) + 'h x ' + fd(data.otRatePerHour, 2) + ' kr)</span><span>+' + fd(data.otAmount, 2) + ' kr</span></div>';
   if (data.otEnkelAmount > 0) obOTHTML += '<div class="detail-chip"><span>ÖT enkel (' + fd(data.otEnkelH || p(otEnkelHours.value), 2) + 'h x ' + fd(data.otEnkelRatePerHour, 2) + ' kr)</span><span>+' + fd(data.otEnkelAmount, 2) + ' kr</span></div>';
 
-  // ----- Karens -----
+  // Karens
   let karensHTML = data.karensDays > 0
     ? '<div class="detail-chip danger"><span>Karensavdrag</span><span>-' + fd(data.karensDeduction, 2) + ' kr (' + data.karensDays + ' dag' + (data.karensDays > 1 ? 'ar' : '') + ')</span></div>'
     : '';
 
-  // ----- Sjukfrånvaro (TVÅ separata rader) -----
+  // Sjukfrånvaro – TVÅ rader
   let extraSickHTML = '';
   if (data.extraSick > 0) {
     extraSickHTML =
@@ -254,22 +270,21 @@ function renderUI(data) {
       '<div class="detail-chip success"><span>Sjukersättning 80%</span><span>+' + fd(data.sickPay80, 2) + ' kr (' + fd(data.extraSick, 1) + 'h x ' + fd(data.sickRate80, 2) + ' kr)</span></div>';
   }
 
-  // ----- Sjuk-OB (med två decimaler) -----
-  let sjukObHTML = '';
-  if (data.totalSjukOBGain > 0) {
-    sjukObHTML = '<div class="detail-chip success"><span>Sjuk-OB ersättning</span><span>+' + fd(data.totalSjukOBGain, 2) + ' kr</span></div>';
-  }
+  // Sjuk-OB
+  let sjukObHTML = data.totalSjukOBGain > 0
+    ? '<div class="detail-chip success"><span>Sjuk-OB ersättning</span><span>+' + fd(data.totalSjukOBGain, 2) + ' kr</span></div>'
+    : '';
 
-  // ----- VAB/F-ledig (med två decimaler) -----
+  // VAB/F-ledig
   let vabHTML = data.totalVABParental > 0 ? '<div class="detail-chip danger"><span>VAB/F-ledig avdrag</span><span>-' + fd(data.vabParentalDeduction, 2) + ' kr</span></div>' : '';
 
-  // ----- Semester -----
+  // Semester
   let semesterHTML = data.vacationCount > 0 ? '<div class="detail-chip info"><span>Semestertillägg (' + data.vacationCount + ' dgr, ' + fd(data.semesterSupplementPerDay, 2) + ' kr/d)</span><span>+' + fd(data.semesterTillagg, 2) + ' kr</span></div>' : '';
 
-  // ----- Bidrag -----
+  // Bidrag
   let bidragHTML = (data.totalVABParental > 0 || ftpDays.value > 0) ? '<div class="detail-chip success"><span>FK/AFA netto</span><span>+' + fd(data.totalErsattningNetto, 2) + ' kr</span></div>' : '';
 
-  // ----- Öresutjämning -----
+  // Öresutjämning
   let utjämningHTML = '';
   if (Math.abs(data.utjämning) > 0.001) {
     const tecken = data.utjämning > 0 ? '+' : '';
@@ -277,7 +292,7 @@ function renderUI(data) {
     utjämningHTML = `<div class="detail-chip ${färg}"><span>Öresutjämning</span><span>${tecken}${fd(Math.abs(data.utjämning), 2)} kr</span></div>`;
   }
 
-  // ----- Sammanställning av detaljer -----
+  // Sammanställning
   let detailHTML =
     '<div class="detail-chip"><span>Grundlön</span><span>' + fc(data.baseSalary) + ' kr</span></div>' +
     '<div class="detail-chip"><span>OB-grundande</span><span>' + fc(data.obGroundingBase) + ' kr</span></div>' +
@@ -295,7 +310,7 @@ function renderUI(data) {
 
   detailGrid.innerHTML = detailHTML;
 
-  // ---- Schema-tabell ----
+  // Schematabell
   if (data.isAuto) {
     let daysInMonth = new Date(data.obYear, data.obMonth, 0).getDate();
     let shiftNames = ['Ledig', 'Dag', 'Natt'];
@@ -421,7 +436,7 @@ function updateYearSummary() {
   }
   document.getElementById('yearSummaryYear').innerText = y;
   const bs = p(salaryInput.value) || 0;
-  const da = Math.round(bs * DRIFT / 100);   // hel krona
+  const da = f2(bs * DRIFT / 100);        // 2 decimaler
   const obBase = bs + da;
   const o1r = f2(obBase / O1D);
   const o2r = f2(obBase / O2D);
@@ -472,7 +487,7 @@ function renderOBChart() {
     if (lag === 'manual' || lag === '') return;
     const year = parseInt(yearSelect.value);
     const bs = p(salaryInput.value) || 0;
-    const da = Math.round(bs * DRIFT / 100);   // hel krona
+    const da = f2(bs * DRIFT / 100);        // 2 decimaler
     const obBase = bs + da;
     const o1r = f2(obBase / O1D);
     const o2r = f2(obBase / O2D);
