@@ -210,11 +210,11 @@ td select {
 .row-vab td:first-child::after { content: " 👶"; }
 .row-parental td:first-child::after { content: " 🍼"; }
 
-/* Blå veckomarkering (varannan vecka) */
-.row-week-blue {
+/* Blå veckomarkering ENDAST på dag‑ och vecko‑cellen */
+td.blue-week-cell {
     background: rgba(88,166,255,0.08) !important;
 }
-[data-theme="light"] .row-week-blue {
+[data-theme="light"] td.blue-week-cell {
     background: rgba(88,166,255,0.12) !important;
 }
 
