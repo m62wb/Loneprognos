@@ -358,7 +358,7 @@ function renderUI(data) {
 
   detailGrid.innerHTML = detailHTML;
 
-  // ===== SCHEMATELL =====
+  // ===== SCHEMATELL MED DAG/NATT-FÄRGER =====
   if (data.isAuto) {
     let daysInMonth = new Date(data.obYear, data.obMonth, 0).getDate();
     let shiftNames = ['Ledig', 'Dag', 'Natt'];
@@ -387,9 +387,12 @@ function renderUI(data) {
       else if (fromvaroVal === 2) { fromvaroText = 'VAB'; emoji = '👶'; }
       else if (fromvaroVal === 3) { fromvaroText = 'F-ledig'; emoji = '🍼'; }
       let station = (data.lag === 'E') ? getStationE(date, shift, data.lag) : '-';
-      const isActiveDay = (shift > 0 && !isPerm && fromvaroVal === 0);
+      // Bestäm radens klass utifrån skift och frånvaro
       let rowClass = '';
-      if (isActiveDay) rowClass += ' row-active';
+      if (fromvaroVal === 0 && shift > 0 && !isPerm) {
+        // Arbetspass – ge klass baserat på typ
+        rowClass = (shift === 1) ? 'row-day' : 'row-night';
+      }
       if (fromvaroVal === 1) rowClass += ' row-vacation';
       else if (fromvaroVal === 2) rowClass += ' row-vab';
       else if (fromvaroVal === 3) rowClass += ' row-parental';
