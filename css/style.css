@@ -2,7 +2,7 @@
    LÖNEKALKYLATOR – STYLESHEET
    GitHub-inspirerat mörkt tema
    + äggskalsljus tema
-   + Grön/Blå/Gul färg endast från kolumn 2
+   + Grön dag / Indigo natt / Blå vecka
    ============================== */
 
 /* ---- MÖRKT TEMA ---- */
@@ -205,9 +205,14 @@ td select {
     margin: 0 auto;
 }
 
-/* GRÖN ARBETSDAGSFÄRG (endast kolumn 2-8) */
-.row-active td:not(:first-child) {
+/* DAGPASS (grön) – endast kolumn 2-8 */
+.row-day td:not(:first-child) {
     background: rgba(63,185,80,0.15) !important;
+}
+
+/* NATTPASS (indigo/lila) – endast kolumn 2-8 */
+.row-night td:not(:first-child) {
+    background: rgba(102,51,153,0.18) !important;
 }
 
 /* FRÅNVAROFÄRGER (endast kolumn 2-8) */
