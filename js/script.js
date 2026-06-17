@@ -346,7 +346,7 @@ function renderUI(data) {
 
   detailGrid.innerHTML = detailHTML;
 
-  // ===== SCHEMATELL MED VECKONUMMER OCH BLÅ MARKERING =====
+  // ===== SCHEMATELL MED BLÅ CELL (EJ RAD) =====
   if (data.isAuto) {
     let daysInMonth = new Date(data.obYear, data.obMonth, 0).getDate();
     let shiftNames = ['Ledig', 'Dag', 'Natt'];
@@ -375,7 +375,7 @@ function renderUI(data) {
       else if (fromvaroVal === 3) fromvaroText = 'F-ledig';
       let station = (data.lag === 'E') ? getStationE(date, shift, data.lag) : '-';
       let rowClass = '';
-      if (isBlueWeek) rowClass += 'row-week-blue';
+      // Ingen row-week-blue här – vi lägger den på cellen istället
       if (shift > 0 && !isPerm && fromvaroVal === 0) rowClass += ' row-active';
       if (fromvaroVal === 1) rowClass += ' row-vacation';
       else if (fromvaroVal === 2) rowClass += ' row-vab';
@@ -394,7 +394,9 @@ function renderUI(data) {
         <option value="1" ${shift===1?'selected':''}>Dag</option>
         <option value="2" ${shift===2?'selected':''}>Natt</option>
       </select>`;
-      tbody += `<tr class="${rowClass.trim()}"><td>${d} ${dayName}${weekLabel}</td><td>${shiftText}</td><td>${fd(ob.ob1,2)}h</td><td>${fd(ob.ob2,2)}h</td><td>${fd(ob.ob3,2)}h</td><td>${fromvaroCell}</td><td>${station}</td><td>${passSelect}</td></tr>`;
+      // Första cellen får blå klass om isBlueWeek
+      let weekCellClass = isBlueWeek ? 'blue-week-cell' : '';
+      tbody += `<tr class="${rowClass.trim()}"><td class="${weekCellClass}">${d} ${dayName}${weekLabel}</td><td>${shiftText}</td><td>${fd(ob.ob1,2)}h</td><td>${fd(ob.ob2,2)}h</td><td>${fd(ob.ob3,2)}h</td><td>${fromvaroCell}</td><td>${station}</td><td>${passSelect}</td></tr>`;
     }
     tableBody.innerHTML = tbody;
   } else {
