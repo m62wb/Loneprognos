@@ -1,4 +1,10 @@
+// ---- Global karta för semesterundantag (måste ligga utanför DOMContentLoaded) ----
+let vacationOverrideMap;
+
 document.addEventListener('DOMContentLoaded', function() {
+
+// Initiera kartan här
+vacationOverrideMap = new Map();
 
 function p(v){ if(!v) return 0; let n=String(v).replace(',','.'); let x=parseFloat(n); return isNaN(x)?0:x; }
 function fc(v){ return new Intl.NumberFormat('sv-SE').format(Math.round(v)); }
@@ -9,9 +15,6 @@ const DRIFT=4.0, VAB_HPD=12.25, UPCT=0.0165, UMAX=701, UMIN=255, HDIV=141.667;
 const O1D=460, O2D=260, O3D=150, OTD=72, OTENKELD=94, SY=2026, EY=2036;
 const PBB=59200, SGI_TAK_PARENTAL=10*PBB, SGI_TAK_VAB=7.5*PBB, FK_SKATT=0.30;
 const MONTHS = ['Januari','Februari','Mars','April','Maj','Juni','Juli','Augusti','September','Oktober','November','December'];
-
-// ---- Kartor ----
-const vacationOverrideMap = new Map();   // true = användaren har gjort ett aktivt val i semesterveckor
 
 function calcUnion(s){ let f=Math.round(s*UPCT); if(f<UMIN) return UMIN; if(f>UMAX) return UMAX; return f; }
 
@@ -43,7 +46,6 @@ function applyIndustrialVacation(year, lag) {
       const date = new Date(monday);
       date.setDate(monday.getDate() + d);
       const key = date.toISOString().split('T')[0];
-      // Hoppa över datum som användaren redan har ändrat manuellt
       if (vacationOverrideMap.has(key)) continue;
       if (!fromvaroMap.has(key)) {
         const shift = getOrdinaryShift(date, lag);
@@ -69,7 +71,6 @@ function countVacationDaysInMonth(year, month) {
 function setFromvaro(dateStr, value){
   const date = new Date(dateStr);
   const week = getWeekNumber(date);
-  // Om dagen ligger i en potentiell semestervecka, markera den som manuellt överstyrd
   if (week >= 28 && week <= 31) {
     vacationOverrideMap.set(dateStr, true);
   }
@@ -387,10 +388,8 @@ function renderUI(data) {
       else if (fromvaroVal === 2) { fromvaroText = 'VAB'; emoji = '👶'; }
       else if (fromvaroVal === 3) { fromvaroText = 'F-ledig'; emoji = '🍼'; }
       let station = (data.lag === 'E') ? getStationE(date, shift, data.lag) : '-';
-      // Bestäm radens klass utifrån skift och frånvaro
       let rowClass = '';
       if (fromvaroVal === 0 && shift > 0 && !isPerm) {
-        // Arbetspass – ge klass baserat på typ
         rowClass = (shift === 1) ? 'row-day' : 'row-night';
       }
       if (fromvaroVal === 1) rowClass += ' row-vacation';
@@ -410,7 +409,6 @@ function renderUI(data) {
         <option value="1" ${shift===1?'selected':''}>Dag</option>
         <option value="2" ${shift===2?'selected':''}>Natt</option>
       </select>`;
-      // Blå cell för ALLA dagar i blå vecka
       let weekCellClass = isBlueWeek ? 'blue-week-cell' : '';
       let dayCellContent = `${d} ${dayName}${weekLabel}`;
       if (emoji) dayCellContent += `<span class="day-emoji">${emoji}</span>`;
