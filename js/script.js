@@ -48,25 +48,21 @@ function calculateEverything() {
   const totalVABParental = vabD + parentalD;
   const vacationCount = [...fromvaroMap.values()].filter(v => v === 1).length;
 
-  // Drifttillägg – avrunda till heltal (som specen)
   const driftAddition = Math.round(baseSalary * DRIFT / 100);
   const obGroundingBase = baseSalary + driftAddition;
 
-  // Timpriser – avrundas till 2 decimaler (exakt som arbetsgivaren)
   const ob1Rate = Math.round(obGroundingBase / O1D * 100) / 100;
   const ob2Rate = Math.round(obGroundingBase / O2D * 100) / 100;
   const ob3Rate = Math.round(obGroundingBase / O3D * 100) / 100;
   const otRate  = Math.round(obGroundingBase / OTD * 100) / 100;
   const otEnkelRate = Math.round(obGroundingBase / OTENKELD * 100) / 100;
 
-  // Sjuklönetimpriser – avrundas till 2 decimaler
   const sickRate100 = Math.round(baseSalary / (141 + 2/3) * 100) / 100;
   const sickRate80  = Math.round(baseSalary / (177 + 1/12) * 100) / 100;
 
   const semesterSupplementPerDay = Math.round((baseSalary + driftAddition) / 125 * 100) / 100;
   const semesterTillagg = Math.round(vacationCount * semesterSupplementPerDay * 100) / 100;
 
-  // Karens och sjukavdrag – exakt som specen
   const karensHours = karensDays * 6.8;
   const karensDeduction = karensDays > 0 ? Math.round(karensHours * sickRate100 * 100) / 100 : 0;
   const sickDeduct100 = Math.round(extraSick * sickRate100 * 100) / 100;
@@ -77,7 +73,6 @@ function calculateEverything() {
   const vabParentalHours = totalVABParental * VAB_HPD;
   const vabParentalDeduction = Math.round(vabParentalHours * sickRate100 * 100) / 100;
 
-  // Försäkringskassan – behålls med ören för att kunna ge öresutjämning
   const sgiVab = Math.min(sgiVal, SGI_TAK_VAB);
   const sgiVabDay = Math.round(sgiVab / 365 * 0.8 * 100) / 100;
   const fkVabTotal = Math.round(vabD * sgiVabDay * 100) / 100;
@@ -144,7 +139,6 @@ function calculateEverything() {
 
   const otH = p(otHours.value), otEnkelH = p(otEnkelHours.value);
 
-  // Alla delposter – avrundas till 2 decimaler (precis som specen)
   const ob1Amount = Math.round(obData.ob1 * ob1Rate * 100) / 100;
   const ob2Amount = Math.round(obData.ob2 * ob2Rate * 100) / 100;
   const ob3Amount = Math.round(obData.ob3 * ob3Rate * 100) / 100;
@@ -166,10 +160,10 @@ function calculateEverything() {
   const jobbBruttoExact = Math.round((totalBeforeKarens - totalSickLoss + totalSjukOBGain - vabParentalDeduction) * 100) / 100;
   const jobbBrutto = Math.round(jobbBruttoExact);
 
-  const taxExact = taxFromTable33Col1(jobbBrutto);
+  const taxExact = taxFromTable33Col1(jobbBruttoExact);
   const tax = f2(taxExact);
 
-  const netSalaryExact = Math.round((jobbBrutto - taxExact - calcUnion(jobbBrutto) + totalErsattningNetto) * 100) / 100;
+  const netSalaryExact = Math.round((jobbBruttoExact - taxExact - calcUnion(jobbBrutto) + totalErsattningNetto) * 100) / 100;
   const netSalary = Math.round(netSalaryExact);
   const utjämning = Math.round((netSalary - netSalaryExact) * 100) / 100;
 
