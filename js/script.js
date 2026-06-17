@@ -48,7 +48,9 @@ function calculateEverything() {
   const totalVABParental = vabD + parentalD;
   const vacationCount = [...fromvaroMap.values()].filter(v => v === 1).length;
 
-  const driftAddition = Math.round(baseSalary * DRIFT / 100);
+  // ---------- RÄTTNING: driftformstillägg med 2 decimaler ----------
+  const driftAddition = Math.round(baseSalary * (DRIFT / 100) * 100) / 100;
+  // ----------------------------------------------------------------
   const obGroundingBase = baseSalary + driftAddition;
 
   const ob1Rate = Math.round(obGroundingBase / O1D * 100) / 100;
@@ -395,7 +397,7 @@ function updateYearSummary() {
   }
   document.getElementById('yearSummaryYear').innerText = y;
   const bs = p(salaryInput.value) || 0;
-  const da = Math.round(bs * DRIFT / 100);
+  const da = Math.round(bs * (DRIFT / 100) * 100) / 100;  // även här 2 decimaler
   const obBase = bs + da;
   const o1r = Math.round(obBase / O1D * 100) / 100;
   const o2r = Math.round(obBase / O2D * 100) / 100;
@@ -446,7 +448,7 @@ function renderOBChart() {
     if (lag === 'manual' || lag === '') return;
     const year = parseInt(yearSelect.value);
     const bs = p(salaryInput.value) || 0;
-    const da = Math.round(bs * DRIFT / 100);
+    const da = Math.round(bs * (DRIFT / 100) * 100) / 100;  // 2 decimaler
     const obBase = bs + da;
     const o1r = Math.round(obBase / O1D * 100) / 100;
     const o2r = Math.round(obBase / O2D * 100) / 100;
