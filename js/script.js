@@ -10,8 +10,8 @@ const O1D=460, O2D=260, O3D=150, OTD=72, OTENKELD=94, SY=2026, EY=2036;
 const PBB=59200, SGI_TAK_PARENTAL=10*PBB, SGI_TAK_VAB=7.5*PBB, FK_SKATT=0.30;
 const MONTHS = ['Januari','Februari','Mars','April','Maj','Juni','Juli','Augusti','September','Oktober','November','December'];
 
-// ---- Ny karta för att förhindra att automatisk semester återställs ----
-const vacationOverrideMap = new Map(); // true = användaren har gjort ett aktivt val
+// ---- Kartor ----
+const vacationOverrideMap = new Map();   // true = användaren har gjort ett aktivt val i semesterveckor
 
 function calcUnion(s){ let f=Math.round(s*UPCT); if(f<UMIN) return UMIN; if(f>UMAX) return UMAX; return f; }
 
@@ -619,7 +619,15 @@ let lagSelect=document.getElementById('lagSelect'), salaryInput=document.getElem
     yearSummaryYear=document.getElementById('yearSummaryYear'), yearSummaryGrid=document.getElementById('yearSummaryGrid'),
     obLockToggle=document.getElementById('obLockToggle'), overviewTotalNet=document.getElementById('overviewTotalNet');
 
-lagSelect.addEventListener('change',updateUI); salaryInput.addEventListener('input',updateUI);
+// ---- Lagbyte rensar hela schemat ----
+lagSelect.addEventListener('change', function() {
+  fromvaroMap.clear();
+  vacationOverrideMap.clear();
+  shiftOverrideMap.clear();
+  updateUI();
+});
+
+salaryInput.addEventListener('input',updateUI);
 yearSelect.addEventListener('change',updateUI); monthSelect.addEventListener('change',updateUI);
 karensSelect.addEventListener('change',updateUI); otHours.addEventListener('input',updateUI);
 otEnkelHours.addEventListener('input',updateUI); ob1Hours.addEventListener('input',updateUI);
