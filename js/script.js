@@ -346,11 +346,12 @@ function renderUI(data) {
 
   detailGrid.innerHTML = detailHTML;
 
-  // Schematabell med veckonummer
+  // ===== SCHEMATELL MED VECKONUMMER OCH BLÅ MARKERING =====
   if (data.isAuto) {
     let daysInMonth = new Date(data.obYear, data.obMonth, 0).getDate();
     let shiftNames = ['Ledig', 'Dag', 'Natt'];
     let tbody = '';
+    let isBlueWeek = false;
     for (let d = 1; d <= daysInMonth; d++) {
       let date = new Date(data.obYear, data.obMonth - 1, d);
       let dateStr = date.toISOString().split('T')[0];
@@ -361,6 +362,11 @@ function renderUI(data) {
       if (fromvaroVal !== 0) ob = {ob1:0, ob2:0, ob3:0};
       let dayName = ['Sön','Mån','Tis','Ons','Tor','Fre','Lör'][date.getDay()];
       let weekNum = getWeekNumber(date);
+      let weekLabel = '';
+      if (date.getDay() === 1) { // måndag
+        isBlueWeek = !isBlueWeek;
+        weekLabel = ' v' + weekNum;
+      }
       let shiftText = isPerm ? 'Perm' : shiftNames[shift];
       if (shiftOverrideMap.has(dateStr) && !isPerm) shiftText += '*';
       let fromvaroText = '';
@@ -369,7 +375,8 @@ function renderUI(data) {
       else if (fromvaroVal === 3) fromvaroText = 'F-ledig';
       let station = (data.lag === 'E') ? getStationE(date, shift, data.lag) : '-';
       let rowClass = '';
-      if (shift > 0 && !isPerm && fromvaroVal === 0) rowClass = 'row-active';
+      if (isBlueWeek) rowClass += 'row-week-blue';
+      if (shift > 0 && !isPerm && fromvaroVal === 0) rowClass += ' row-active';
       if (fromvaroVal === 1) rowClass += ' row-vacation';
       else if (fromvaroVal === 2) rowClass += ' row-vab';
       else if (fromvaroVal === 3) rowClass += ' row-parental';
@@ -387,7 +394,7 @@ function renderUI(data) {
         <option value="1" ${shift===1?'selected':''}>Dag</option>
         <option value="2" ${shift===2?'selected':''}>Natt</option>
       </select>`;
-      tbody += `<tr class="${rowClass}"><td>${d} ${dayName} v${weekNum}</td><td>${shiftText}</td><td>${fd(ob.ob1,2)}h</td><td>${fd(ob.ob2,2)}h</td><td>${fd(ob.ob3,2)}h</td><td>${fromvaroCell}</td><td>${station}</td><td>${passSelect}</td></tr>`;
+      tbody += `<tr class="${rowClass.trim()}"><td>${d} ${dayName}${weekLabel}</td><td>${shiftText}</td><td>${fd(ob.ob1,2)}h</td><td>${fd(ob.ob2,2)}h</td><td>${fd(ob.ob3,2)}h</td><td>${fromvaroCell}</td><td>${station}</td><td>${passSelect}</td></tr>`;
     }
     tableBody.innerHTML = tbody;
   } else {
@@ -409,7 +416,6 @@ function showMainIfValid() {
 }
 
 function updateUI() {
-  // Förinställd semester v28-31
   applyIndustrialVacation(parseInt(yearSelect.value));
   const data = calculateEverything();
   renderUI(data);
@@ -475,7 +481,7 @@ function updateYearSummary() {
   }
   document.getElementById('yearSummaryYear').innerText = y;
   const bs = p(salaryInput.value) || 0;
-  const da = f2(bs * DRIFT / 100);        // 2 decimaler
+  const da = f2(bs * DRIFT / 100);
   const obBase = bs + da;
   const o1r = f2(obBase / O1D);
   const o2r = f2(obBase / O2D);
@@ -526,7 +532,7 @@ function renderOBChart() {
     if (lag === 'manual' || lag === '') return;
     const year = parseInt(yearSelect.value);
     const bs = p(salaryInput.value) || 0;
-    const da = f2(bs * DRIFT / 100);        // 2 decimaler
+    const da = f2(bs * DRIFT / 100);
     const obBase = bs + da;
     const o1r = f2(obBase / O1D);
     const o2r = f2(obBase / O2D);
