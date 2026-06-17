@@ -1,9 +1,11 @@
-// ---- Global karta för semesterundantag (måste ligga utanför DOMContentLoaded) ----
+// ---- Global karta för semesterundantag ----
 let vacationOverrideMap;
+
+// ---- Autosave-nyckel ----
+const AUTOSAVE_KEY = 'loneprognos_autosave_v1';
 
 document.addEventListener('DOMContentLoaded', function() {
 
-// Initiera kartan här
 vacationOverrideMap = new Map();
 
 function p(v){ if(!v) return 0; let n=String(v).replace(',','.'); let x=parseFloat(n); return isNaN(x)?0:x; }
@@ -433,6 +435,14 @@ function showMainIfValid() {
   }
 }
 
+// ---- AUTOSAVE ----
+function autoSaveState() {
+  if (typeof getCurrentState === 'function') {
+    const state = getCurrentState();
+    localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(state));
+  }
+}
+
 function updateUI() {
   applyIndustrialVacation(parseInt(yearSelect.value), lagSelect.value);
   const data = calculateEverything();
@@ -446,6 +456,7 @@ function updateUI() {
   closeSettingsBoxIfNeeded();
   renderOBChart();
   showMainIfValid();
+  autoSaveState();   // <-- spara automatiskt
 }
 
 function closeSettingsBoxIfNeeded() {
@@ -654,7 +665,23 @@ obLockToggle.addEventListener('change',updateUI);
 })();
 
 populateSelectors();
-updateUI();
+
+// ---- Försök ladda autosave vid start ----
+const savedAutosave = localStorage.getItem(AUTOSAVE_KEY);
+if (savedAutosave) {
+  try {
+    const state = JSON.parse(savedAutosave);
+    if (typeof applyState === 'function') {
+      applyState(state);
+    } else {
+      updateUI();
+    }
+  } catch(e) {
+    updateUI();
+  }
+} else {
+  updateUI();
+}
 
 window.setFromvaro=setFromvaro; window.changeShift=changeShift; window.resetSchema=resetSchema;
 window.resetAllShifts=resetAllShifts; window.toggleExpand=toggleExpand;
