@@ -159,7 +159,7 @@ function calculateEverything() {
   const taxExact = taxFromTable33Col1(jobbBrutto);
   const tax = f2(taxExact);
 
-  const netSalaryExact = jobbBruttoExact - taxExact - calcUnion(jobbBrutto) + totalErsattningNettoExact;
+  const netSalaryExact = jobbBrutto - taxExact - calcUnion(jobbBrutto) + totalErsattningNettoExact;
   const netSalary = Math.round(netSalaryExact);
   const utjämning = netSalary - netSalaryExact;
 
@@ -274,7 +274,6 @@ function renderUI(data) {
     obOTHTML +
     semesterHTML +
     karensHTML + extraSickHTML + sjukObHTML + vabHTML + bidragHTML +
-    // ---- ÄNDRAD: Bruttolön med två decimaler ----
     '<div class="detail-chip"><span>Bruttolön jobb</span><span>' + fd(data.jobbBruttoExact, 2) + ' kr</span></div>' +
     '<div class="detail-chip"><span>Skatt (tabell 33)</span><span>-' + fc(data.tax) + ' kr</span></div>' +
     '<div class="detail-chip"><span>Nettolön före fack</span><span>' + fc(data.netBeforeFack) + ' kr</span></div>' +
