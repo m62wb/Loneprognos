@@ -25,7 +25,7 @@ function getWeekNumber(date) {
 // ---- Hjälp: första dagen (måndag) i en ISO-vecka ----
 function getMondayOfISOWeek(w, year) {
   const jan1 = new Date(year, 0, 1);
-  const dayOfWeek = jan1.getDay(); // 0=sön
+  const dayOfWeek = jan1.getDay();
   const firstMonday = new Date(jan1);
   firstMonday.setDate(jan1.getDate() + (dayOfWeek <= 4 ? 1 - dayOfWeek : 8 - dayOfWeek));
   const monday = new Date(firstMonday);
@@ -33,19 +33,36 @@ function getMondayOfISOWeek(w, year) {
   return monday;
 }
 
-// ---- Sätt automatiskt semester för vecka 28-31 ----
-function applyIndustrialVacation(year) {
+// ---- Sätt automatiskt semester ENDAST för arbetsdagar vecka 28-31 ----
+function applyIndustrialVacation(year, lag) {
+  if (!['A','B','C','D','E'].includes(lag)) return;   // endast automatiska lag
   for (let w = 28; w <= 31; w++) {
     const monday = getMondayOfISOWeek(w, year);
     for (let d = 0; d < 7; d++) {
       const date = new Date(monday);
       date.setDate(monday.getDate() + d);
       const key = date.toISOString().split('T')[0];
+      // Endast om dagen redan inte har ett manuellt val OCH är en arbetsdag
       if (!fromvaroMap.has(key)) {
-        fromvaroMap.set(key, 1); // semester
+        const shift = getOrdinaryShift(date, lag);
+        if (shift > 0) {
+          fromvaroMap.set(key, 1); // semester
+        }
       }
     }
   }
+}
+
+// ---- Hjälpfunktion: räkna semesterdagar i en specifik månad ----
+function countVacationDaysInMonth(year, month) {
+  const daysInMonth = new Date(year, month, 0).getDate();
+  let cnt = 0;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(year, month - 1, d);
+    const key = date.toISOString().split('T')[0];
+    if (fromvaroMap.get(key) === 1) cnt++;
+  }
+  return cnt;
 }
 
 function setFromvaro(dateStr, value){
@@ -82,27 +99,25 @@ function calculateEverything() {
   const vabD = [...fromvaroMap.values()].filter(v => v === 2).length;
   const parentalD = [...fromvaroMap.values()].filter(v => v === 3).length;
   const totalVABParental = vabD + parentalD;
-  const vacationCount = [...fromvaroMap.values()].filter(v => v === 1).length;
 
-  // Driftformstillägg med 2 decimaler (exakt enligt avtal)
+  // Räkna endast semesterdagar inom vald månad
+  const vacationCount = countVacationDaysInMonth(selectedYear, selectedMonth);
+
   const driftAddition = f2(baseSalary * DRIFT / 100);
   const obGroundingBase = f2(baseSalary + driftAddition);
 
-  // Exakta OB- och ÖT-timlöner (avrundas först vid slutbeloppet)
   const ob1RateExact = obGroundingBase / O1D;
   const ob2RateExact = obGroundingBase / O2D;
   const ob3RateExact = obGroundingBase / O3D;
   const otRateExact  = obGroundingBase / OTD;
   const otEnkelRateExact = obGroundingBase / OTENKELD;
 
-  // Avrundade timlöner för visning
   const ob1Rate = f2(ob1RateExact);
   const ob2Rate = f2(ob2RateExact);
   const ob3Rate = f2(ob3RateExact);
   const otRate  = f2(otRateExact);
   const otEnkelRate = f2(otEnkelRateExact);
 
-  // Sjuklöner – exakta divisorer
   const sickRate100Exact = baseSalary / (141 + 2/3);
   const sickRate80Exact  = baseSalary / (177 + 1/12);
   const sickRate100 = f2(sickRate100Exact);
@@ -111,18 +126,15 @@ function calculateEverything() {
   const semesterSupplementPerDay = f2(obGroundingBase / 125);
   const semesterTillagg = f2(vacationCount * semesterSupplementPerDay);
 
-  // Karens
   const karensHours = karensDays * 6.8;
   const karensDeduction = karensDays > 0 ? f2(karensHours * sickRate100) : 0;
 
-  // Sjukfrånvaro – separata 100% avdrag och 80% ersättning
   const sickDeduct100 = extraSick > 0 ? f2(extraSick * sickRate100) : 0;
   const sickPay80 = extraSick > 0 ? f2(extraSick * sickRate80) : 0;
 
   const vabParentalHours = totalVABParental * VAB_HPD;
   const vabParentalDeduction = f2(vabParentalHours * sickRate100);
 
-  // FK-ersättningar
   const sgiVab = Math.min(sgiVal, SGI_TAK_VAB);
   const sgiVabDay = f2(sgiVab / 365 * 0.8);
   const fkVabTotal = f2(vabD * sgiVabDay);
@@ -143,7 +155,6 @@ function calculateEverything() {
   const fkFptNet = f2(fkFptTotal - fkFptTax);
   const totalErsattningNetto = f2(fkVabNet + fkFpNet + fkFptNet);
 
-  // OB-månad (föregående månad)
   let obYear = selectedYear, obMonth = selectedMonth - 1;
   if (obMonth === 0) { obMonth = 12; obYear--; }
 
@@ -190,7 +201,6 @@ function calculateEverything() {
 
   const otH = p(otHours.value), otEnkelH = p(otEnkelHours.value);
 
-  // OB- och ÖT-belopp – multiplicera först, avrunda sen (exakta timlöner)
   const ob1Amount = f2(obData.ob1 * ob1RateExact);
   const ob2Amount = f2(obData.ob2 * ob2RateExact);
   const ob3Amount = f2(obData.ob3 * ob3RateExact);
@@ -200,7 +210,6 @@ function calculateEverything() {
   const totalOBOnlyHours = obData.ob1 + obData.ob2 + obData.ob3;
   const totalOB = f2(totalOBOnly + otAmount + otEnkelAmount);
 
-  // Sjuk-OB (80% av OB-ersättning, med exakta timlöner)
   const sjukOb1H = sickVisible ? p(sjukOb1Hours.value) : 0;
   const sjukOb2H = sickVisible ? p(sjukOb2Hours.value) : 0;
   const sjukOb3H = sickVisible ? p(sjukOb3Hours.value) : 0;
@@ -209,7 +218,6 @@ function calculateEverything() {
   const sjukOb3Gain = f2(sjukOb3H * ob3RateExact * 0.8);
   const totalSjukOBGain = f2(sjukOb1Gain + sjukOb2Gain + sjukOb3Gain);
 
-  // BRUTTOLÖN – enligt lönespecifikationens struktur
   const totalBeforeDeductions = f2(obGroundingBase + totalOB + semesterTillagg);
   const jobbBruttoExact = f2(totalBeforeDeductions - karensDeduction - sickDeduct100 + sickPay80 + totalSjukOBGain - vabParentalDeduction);
   const jobbBrutto = Math.round(jobbBruttoExact);
@@ -278,7 +286,6 @@ function renderUI(data) {
   finalNetSalary.innerText = fc(data.netSalary) + ' kr';
   overviewTotalNet.innerText = fc(data.netSalary) + ' kr';
 
-  // OB och övertid med 2 decimaler
   let obOTHTML = '';
   if (data.totalOBOnlyHours > 0) {
     obOTHTML = '<div class="expandable-chip" onclick="toggleExpand(this)">' +
@@ -293,12 +300,10 @@ function renderUI(data) {
   if (data.otAmount > 0) obOTHTML += '<div class="detail-chip"><span>Övertid (' + fd(data.otH || p(otHours.value), 2) + 'h x ' + fd(data.otRatePerHour, 2) + ' kr)</span><span>+' + fd(data.otAmount, 2) + ' kr</span></div>';
   if (data.otEnkelAmount > 0) obOTHTML += '<div class="detail-chip"><span>ÖT enkel (' + fd(data.otEnkelH || p(otEnkelHours.value), 2) + 'h x ' + fd(data.otEnkelRatePerHour, 2) + ' kr)</span><span>+' + fd(data.otEnkelAmount, 2) + ' kr</span></div>';
 
-  // Karens
   let karensHTML = data.karensDays > 0
     ? '<div class="detail-chip danger"><span>Karensavdrag</span><span>-' + fd(data.karensDeduction, 2) + ' kr (' + data.karensDays + ' dag' + (data.karensDays > 1 ? 'ar' : '') + ')</span></div>'
     : '';
 
-  // Sjukfrånvaro – TVÅ rader
   let extraSickHTML = '';
   if (data.extraSick > 0) {
     extraSickHTML =
@@ -306,21 +311,16 @@ function renderUI(data) {
       '<div class="detail-chip success"><span>Sjukersättning 80%</span><span>+' + fd(data.sickPay80, 2) + ' kr (' + fd(data.extraSick, 1) + 'h x ' + fd(data.sickRate80, 2) + ' kr)</span></div>';
   }
 
-  // Sjuk-OB
   let sjukObHTML = data.totalSjukOBGain > 0
     ? '<div class="detail-chip success"><span>Sjuk-OB ersättning</span><span>+' + fd(data.totalSjukOBGain, 2) + ' kr</span></div>'
     : '';
 
-  // VAB/F-ledig
   let vabHTML = data.totalVABParental > 0 ? '<div class="detail-chip danger"><span>VAB/F-ledig avdrag</span><span>-' + fd(data.vabParentalDeduction, 2) + ' kr</span></div>' : '';
 
-  // Semester
   let semesterHTML = data.vacationCount > 0 ? '<div class="detail-chip info"><span>Semestertillägg (' + data.vacationCount + ' dgr, ' + fd(data.semesterSupplementPerDay, 2) + ' kr/d)</span><span>+' + fd(data.semesterTillagg, 2) + ' kr</span></div>' : '';
 
-  // Bidrag
   let bidragHTML = (data.totalVABParental > 0 || ftpDays.value > 0) ? '<div class="detail-chip success"><span>FK/AFA netto</span><span>+' + fd(data.totalErsattningNetto, 2) + ' kr</span></div>' : '';
 
-  // Öresutjämning
   let utjämningHTML = '';
   if (Math.abs(data.utjämning) > 0.001) {
     const tecken = data.utjämning > 0 ? '+' : '';
@@ -328,7 +328,6 @@ function renderUI(data) {
     utjämningHTML = `<div class="detail-chip ${färg}"><span>Öresutjämning</span><span>${tecken}${fd(Math.abs(data.utjämning), 2)} kr</span></div>`;
   }
 
-  // Sammanställning
   let detailHTML =
     '<div class="detail-chip"><span>Grundlön</span><span>' + fc(data.baseSalary) + ' kr</span></div>' +
     '<div class="detail-chip"><span>OB-grundande</span><span>' + fc(data.obGroundingBase) + ' kr</span></div>' +
@@ -346,7 +345,7 @@ function renderUI(data) {
 
   detailGrid.innerHTML = detailHTML;
 
-  // ===== SCHEMATELL MED BLÅ CELL (EJ RAD) =====
+  // ===== SCHEMATELL MED BLÅ CELL (ENDAST FÖRSTA KOLUMNEN) =====
   if (data.isAuto) {
     let daysInMonth = new Date(data.obYear, data.obMonth, 0).getDate();
     let shiftNames = ['Ledig', 'Dag', 'Natt'];
@@ -363,7 +362,7 @@ function renderUI(data) {
       let dayName = ['Sön','Mån','Tis','Ons','Tor','Fre','Lör'][date.getDay()];
       let weekNum = getWeekNumber(date);
       let weekLabel = '';
-      if (date.getDay() === 1) { // måndag
+      if (date.getDay() === 1) {
         isBlueWeek = !isBlueWeek;
         weekLabel = ' v' + weekNum;
       }
@@ -375,7 +374,6 @@ function renderUI(data) {
       else if (fromvaroVal === 3) fromvaroText = 'F-ledig';
       let station = (data.lag === 'E') ? getStationE(date, shift, data.lag) : '-';
       let rowClass = '';
-      // Ingen row-week-blue här – vi lägger den på cellen istället
       if (shift > 0 && !isPerm && fromvaroVal === 0) rowClass += ' row-active';
       if (fromvaroVal === 1) rowClass += ' row-vacation';
       else if (fromvaroVal === 2) rowClass += ' row-vab';
@@ -394,7 +392,6 @@ function renderUI(data) {
         <option value="1" ${shift===1?'selected':''}>Dag</option>
         <option value="2" ${shift===2?'selected':''}>Natt</option>
       </select>`;
-      // Första cellen får blå klass om isBlueWeek
       let weekCellClass = isBlueWeek ? 'blue-week-cell' : '';
       tbody += `<tr class="${rowClass.trim()}"><td class="${weekCellClass}">${d} ${dayName}${weekLabel}</td><td>${shiftText}</td><td>${fd(ob.ob1,2)}h</td><td>${fd(ob.ob2,2)}h</td><td>${fd(ob.ob3,2)}h</td><td>${fromvaroCell}</td><td>${station}</td><td>${passSelect}</td></tr>`;
     }
@@ -418,7 +415,7 @@ function showMainIfValid() {
 }
 
 function updateUI() {
-  applyIndustrialVacation(parseInt(yearSelect.value));
+  applyIndustrialVacation(parseInt(yearSelect.value), lagSelect.value);
   const data = calculateEverything();
   renderUI(data);
   updateSettingsLabel();
