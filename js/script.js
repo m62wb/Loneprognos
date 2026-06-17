@@ -48,50 +48,55 @@ function calculateEverything() {
   const totalVABParental = vabD + parentalD;
   const vacationCount = [...fromvaroMap.values()].filter(v => v === 1).length;
 
-  const driftAddition = baseSalary * DRIFT / 100;
+  // Drifttillägg – avrunda till heltal (som specen)
+  const driftAddition = Math.round(baseSalary * DRIFT / 100);
   const obGroundingBase = baseSalary + driftAddition;
 
-  const ob1RatePerHour = obGroundingBase / O1D;
-  const ob2RatePerHour = obGroundingBase / O2D;
-  const ob3RatePerHour = obGroundingBase / O3D;
-  const otRatePerHour = obGroundingBase / OTD;
-  const otEnkelRatePerHour = obGroundingBase / OTENKELD;
+  // Timpriser – avrundas till 2 decimaler (exakt som arbetsgivaren)
+  const ob1Rate = Math.round(obGroundingBase / O1D * 100) / 100;
+  const ob2Rate = Math.round(obGroundingBase / O2D * 100) / 100;
+  const ob3Rate = Math.round(obGroundingBase / O3D * 100) / 100;
+  const otRate  = Math.round(obGroundingBase / OTD * 100) / 100;
+  const otEnkelRate = Math.round(obGroundingBase / OTENKELD * 100) / 100;
 
-  const sickRate100 = baseSalary / (141 + 2/3);
-  const sickRate80  = baseSalary / (177 + 1/12);
+  // Sjuklönetimpriser – avrundas till 2 decimaler
+  const sickRate100 = Math.round(baseSalary / (141 + 2/3) * 100) / 100;
+  const sickRate80  = Math.round(baseSalary / (177 + 1/12) * 100) / 100;
 
-  const semesterSupplementPerDay = (baseSalary + driftAddition) / 125;
-  const semesterTillaggExact = vacationCount * semesterSupplementPerDay;
+  const semesterSupplementPerDay = Math.round((baseSalary + driftAddition) / 125 * 100) / 100;
+  const semesterTillagg = Math.round(vacationCount * semesterSupplementPerDay * 100) / 100;
 
+  // Karens och sjukavdrag – exakt som specen
   const karensHours = karensDays * 6.8;
-  const karensDeductionExact = karensDays > 0 ? karensHours * sickRate100 : 0;
-  const sickDeduct100Exact = extraSick * sickRate100;
-  const sickPay80Exact = extraSick * sickRate80;
-  const sickNetLossExact = sickDeduct100Exact - sickPay80Exact;
-  const totalSickLossExact = karensDeductionExact + sickNetLossExact;
+  const karensDeduction = karensDays > 0 ? Math.round(karensHours * sickRate100 * 100) / 100 : 0;
+  const sickDeduct100 = Math.round(extraSick * sickRate100 * 100) / 100;
+  const sickPay80 = Math.round(extraSick * sickRate80 * 100) / 100;
+  const sickNetLoss = Math.round((sickDeduct100 - sickPay80) * 100) / 100;
+  const totalSickLoss = Math.round((karensDeduction + sickNetLoss) * 100) / 100;
 
   const vabParentalHours = totalVABParental * VAB_HPD;
-  const vabParentalDeductionExact = vabParentalHours * sickRate100;
+  const vabParentalDeduction = Math.round(vabParentalHours * sickRate100 * 100) / 100;
 
+  // Försäkringskassan – behålls med ören för att kunna ge öresutjämning
   const sgiVab = Math.min(sgiVal, SGI_TAK_VAB);
-  const sgiVabDay = sgiVab / 365 * 0.8;
-  const fkVabTotalExact = vabD * sgiVabDay;
+  const sgiVabDay = Math.round(sgiVab / 365 * 0.8 * 100) / 100;
+  const fkVabTotal = Math.round(vabD * sgiVabDay * 100) / 100;
 
   const sgiPar = Math.min(sgiVal, SGI_TAK_PARENTAL);
-  const fpDayAmtExact = Math.min(1259, sgiPar / 365 * 0.776);
-  const fkFpTotalExact = parentalD * fpDayAmtExact;
+  const fpDayAmt = Math.round(Math.min(1259, sgiPar / 365 * 0.776) * 100) / 100;
+  const fkFpTotal = Math.round(parentalD * fpDayAmt * 100) / 100;
 
-  const fptDayAmtExact = baseSalary / 30 * 0.10;
-  const fkFptTotalExact = ftpD * fptDayAmtExact;
+  const fptDayAmt = Math.round(baseSalary / 30 * 0.10 * 100) / 100;
+  const fkFptTotal = Math.round(ftpD * fptDayAmt * 100) / 100;
 
-  const fkVabTaxExact = fkVabTotalExact * FK_SKATT;
-  const fkFpTaxExact = fkFpTotalExact * FK_SKATT;
-  const fkFptTaxExact = fkFptTotalExact * FK_SKATT;
+  const fkVabTax = Math.round(fkVabTotal * FK_SKATT * 100) / 100;
+  const fkFpTax = Math.round(fkFpTotal * FK_SKATT * 100) / 100;
+  const fkFptTax = Math.round(fkFptTotal * FK_SKATT * 100) / 100;
 
-  const fkVabNetExact = fkVabTotalExact - fkVabTaxExact;
-  const fkFpNetExact = fkFpTotalExact - fkFpTaxExact;
-  const fkFptNetExact = fkFptTotalExact - fkFptTaxExact;
-  const totalErsattningNettoExact = fkVabNetExact + fkFpNetExact + fkFptNetExact;
+  const fkVabNet = Math.round((fkVabTotal - fkVabTax) * 100) / 100;
+  const fkFpNet = Math.round((fkFpTotal - fkFpTax) * 100) / 100;
+  const fkFptNet = Math.round((fkFptTotal - fkFptTax) * 100) / 100;
+  const totalErsattningNetto = Math.round((fkVabNet + fkFpNet + fkFptNet) * 100) / 100;
 
   let obYear = selectedYear, obMonth = selectedMonth - 1;
   if (obMonth === 0) { obMonth = 12; obYear--; }
@@ -138,56 +143,42 @@ function calculateEverything() {
   }
 
   const otH = p(otHours.value), otEnkelH = p(otEnkelHours.value);
-  const ob1AmountExact = obData.ob1 * ob1RatePerHour;
-  const ob2AmountExact = obData.ob2 * ob2RatePerHour;
-  const ob3AmountExact = obData.ob3 * ob3RatePerHour;
-  const otAmountExact = otH * otRatePerHour;
-  const otEnkelAmountExact = otEnkelH * otEnkelRatePerHour;
+
+  // Alla delposter – avrundas till 2 decimaler (precis som specen)
+  const ob1Amount = Math.round(obData.ob1 * ob1Rate * 100) / 100;
+  const ob2Amount = Math.round(obData.ob2 * ob2Rate * 100) / 100;
+  const ob3Amount = Math.round(obData.ob3 * ob3Rate * 100) / 100;
+  const otAmount  = Math.round(otH * otRate * 100) / 100;
+  const otEnkelAmount = Math.round(otEnkelH * otEnkelRate * 100) / 100;
+  const totalOBOnly = Math.round((ob1Amount + ob2Amount + ob3Amount) * 100) / 100;
+  const totalOBOnlyHours = obData.ob1 + obData.ob2 + obData.ob3;
+  const totalOB = Math.round((totalOBOnly + otAmount + otEnkelAmount) * 100) / 100;
 
   const sjukOb1H = sickVisible ? p(sjukOb1Hours.value) : 0;
   const sjukOb2H = sickVisible ? p(sjukOb2Hours.value) : 0;
   const sjukOb3H = sickVisible ? p(sjukOb3Hours.value) : 0;
-  const sjukOb1GainExact = sjukOb1H * ob1RatePerHour * 0.8;
-  const sjukOb2GainExact = sjukOb2H * ob2RatePerHour * 0.8;
-  const sjukOb3GainExact = sjukOb3H * ob3RatePerHour * 0.8;
+  const sjukOb1Gain = Math.round(sjukOb1H * ob1Rate * 0.8 * 100) / 100;
+  const sjukOb2Gain = Math.round(sjukOb2H * ob2Rate * 0.8 * 100) / 100;
+  const sjukOb3Gain = Math.round(sjukOb3H * ob3Rate * 0.8 * 100) / 100;
+  const totalSjukOBGain = Math.round((sjukOb1Gain + sjukOb2Gain + sjukOb3Gain) * 100) / 100;
 
-  const totalOBExact = ob1AmountExact + ob2AmountExact + ob3AmountExact + otAmountExact + otEnkelAmountExact;
-  const totalSjukOBExact = sjukOb1GainExact + sjukOb2GainExact + sjukOb3GainExact;
-  const jobbBruttoExact = obGroundingBase + totalOBExact + semesterTillaggExact - totalSickLossExact + totalSjukOBExact - vabParentalDeductionExact;
-
+  const totalBeforeKarens = Math.round((obGroundingBase + totalOB + semesterTillagg) * 100) / 100;
+  const jobbBruttoExact = Math.round((totalBeforeKarens - totalSickLoss + totalSjukOBGain - vabParentalDeduction) * 100) / 100;
   const jobbBrutto = Math.round(jobbBruttoExact);
+
   const taxExact = taxFromTable33Col1(jobbBrutto);
   const tax = f2(taxExact);
 
-  const netSalaryExact = jobbBrutto - taxExact - calcUnion(jobbBrutto) + totalErsattningNettoExact;
+  const netSalaryExact = Math.round((jobbBrutto - taxExact - calcUnion(jobbBrutto) + totalErsattningNetto) * 100) / 100;
   const netSalary = Math.round(netSalaryExact);
-  const utjämning = netSalary - netSalaryExact;
-
-  const ob1Amount = Math.round(ob1AmountExact);
-  const ob2Amount = Math.round(ob2AmountExact);
-  const ob3Amount = Math.round(ob3AmountExact);
-  const otAmount = Math.round(otAmountExact);
-  const otEnkelAmount = Math.round(otEnkelAmountExact);
-  const totalOBOnly = ob1Amount + ob2Amount + ob3Amount;
-  const totalOB = totalOBOnly + otAmount + otEnkelAmount;
-  const totalOBOnlyHours = obData.ob1 + obData.ob2 + obData.ob3;
-
-  const sjukOb1Gain = Math.round(sjukOb1GainExact);
-  const sjukOb2Gain = Math.round(sjukOb2GainExact);
-  const sjukOb3Gain = Math.round(sjukOb3GainExact);
-  const totalSjukOBGain = sjukOb1Gain + sjukOb2Gain + sjukOb3Gain;
-
-  const semesterTillagg = Math.round(semesterTillaggExact);
-  const karensDeduction = Math.round(karensDeductionExact);
-  const totalSickLoss = Math.round(totalSickLossExact);
-  const vabParentalDeduction = Math.round(vabParentalDeductionExact);
-  const totalErsattningNetto = Math.round(totalErsattningNettoExact);
+  const utjämning = Math.round((netSalary - netSalaryExact) * 100) / 100;
 
   return {
     baseSalary, selectedYear, selectedMonth, karensDays, lag, isAuto,
     sickVisible, extraSick, totalVABParental, vacationCount,
     driftAddition, obGroundingBase,
-    ob1RatePerHour, ob2RatePerHour, ob3RatePerHour, otRatePerHour, otEnkelRatePerHour,
+    ob1RatePerHour: ob1Rate, ob2RatePerHour: ob2Rate, ob3RatePerHour: ob3Rate,
+    otRatePerHour: otRate, otEnkelRatePerHour: otEnkelRate,
     semesterSupplementPerDay, semesterTillagg,
     karensDeduction, totalSickLoss,
     vabParentalDeduction, totalErsattningNetto,
@@ -410,20 +401,20 @@ function updateYearSummary() {
   }
   document.getElementById('yearSummaryYear').innerText = y;
   const bs = p(salaryInput.value) || 0;
-  const da = bs * DRIFT / 100;
+  const da = Math.round(bs * DRIFT / 100);
   const obBase = bs + da;
-  const o1r = obBase / O1D;
-  const o2r = obBase / O2D;
-  const o3r = obBase / O3D;
+  const o1r = Math.round(obBase / O1D * 100) / 100;
+  const o2r = Math.round(obBase / O2D * 100) / 100;
+  const o3r = Math.round(obBase / O3D * 100) / 100;
   let totBrutto = 0, totNetto = 0, totSkatt = 0, totFack = 0, totOB = 0;
   for (let m = 1; m <= 12; m++) {
     const obData = getOBForMonth(y, m, lag);
-    const ob1Amt = Math.round(obData.ob1 * o1r);
-    const ob2Amt = Math.round(obData.ob2 * o2r);
-    const ob3Amt = Math.round(obData.ob3 * o3r);
-    const mOB = ob1Amt + ob2Amt + ob3Amt;
+    const ob1Amt = Math.round(obData.ob1 * o1r * 100) / 100;
+    const ob2Amt = Math.round(obData.ob2 * o2r * 100) / 100;
+    const ob3Amt = Math.round(obData.ob3 * o3r * 100) / 100;
+    const mOB = Math.round((ob1Amt + ob2Amt + ob3Amt) * 100) / 100;
     totOB += mOB;
-    const jb = obBase + mOB;
+    const jb = Math.round(obBase + mOB);
     const tax = taxFromTable33Col1(jb);
     const uf = calcUnion(jb);
     const net = jb - tax - uf;
@@ -461,15 +452,15 @@ function renderOBChart() {
     if (lag === 'manual' || lag === '') return;
     const year = parseInt(yearSelect.value);
     const bs = p(salaryInput.value) || 0;
-    const da = bs * DRIFT / 100;
+    const da = Math.round(bs * DRIFT / 100);
     const obBase = bs + da;
-    const o1r = obBase / O1D;
-    const o2r = obBase / O2D;
-    const o3r = obBase / O3D;
+    const o1r = Math.round(obBase / O1D * 100) / 100;
+    const o2r = Math.round(obBase / O2D * 100) / 100;
+    const o3r = Math.round(obBase / O3D * 100) / 100;
     const labels = []; const data = [];
     for (let m = 1; m <= 12; m++) {
         const obData = getOBForMonth(year, m, lag);
-        const amount = Math.round(obData.ob1 * o1r + obData.ob2 * o2r + obData.ob3 * o3r);
+        const amount = Math.round((obData.ob1 * o1r + obData.ob2 * o2r + obData.ob3 * o3r) * 100) / 100;
         labels.push(MONTHS[m-1]); data.push(amount);
     }
     const ctx = document.getElementById('obChart');
