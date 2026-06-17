@@ -100,8 +100,12 @@ function calculateEverything() {
   const parentalD = [...fromvaroMap.values()].filter(v => v === 3).length;
   const totalVABParental = vabD + parentalD;
 
-  // Räkna endast semesterdagar inom vald månad
-  const vacationCount = countVacationDaysInMonth(selectedYear, selectedMonth);
+  // ---- OB- och semesterförskjutning (föregående månad) ----
+  let obYear = selectedYear, obMonth = selectedMonth - 1;
+  if (obMonth === 0) { obMonth = 12; obYear--; }
+
+  // Semesterdagar hämtas från samma föregående månad som OB
+  const vacationCount = countVacationDaysInMonth(obYear, obMonth);
 
   const driftAddition = f2(baseSalary * DRIFT / 100);
   const obGroundingBase = f2(baseSalary + driftAddition);
@@ -154,9 +158,6 @@ function calculateEverything() {
   const fkFpNet = f2(fkFpTotal - fkFpTax);
   const fkFptNet = f2(fkFptTotal - fkFptTax);
   const totalErsattningNetto = f2(fkVabNet + fkFpNet + fkFptNet);
-
-  let obYear = selectedYear, obMonth = selectedMonth - 1;
-  if (obMonth === 0) { obMonth = 12; obYear--; }
 
   let autoOB = null;
   if (isAuto) {
@@ -317,7 +318,11 @@ function renderUI(data) {
 
   let vabHTML = data.totalVABParental > 0 ? '<div class="detail-chip danger"><span>VAB/F-ledig avdrag</span><span>-' + fd(data.vabParentalDeduction, 2) + ' kr</span></div>' : '';
 
-  let semesterHTML = data.vacationCount > 0 ? '<div class="detail-chip info"><span>Semestertillägg (' + data.vacationCount + ' dgr, ' + fd(data.semesterSupplementPerDay, 2) + ' kr/d)</span><span>+' + fd(data.semesterTillagg, 2) + ' kr</span></div>' : '';
+  // Semestertillägg med förskjuten månad
+  const semesterMonthName = data.isAuto ? MONTHS[data.obMonth-1] + ' ' + data.obYear : '';
+  let semesterHTML = data.vacationCount > 0
+    ? '<div class="detail-chip info"><span>Semestertillägg (' + data.vacationCount + ' dgr, ' + fd(data.semesterSupplementPerDay, 2) + ' kr/d)</span><span>+' + fd(data.semesterTillagg, 2) + ' kr (intjänad ' + semesterMonthName + ')</span></div>'
+    : '';
 
   let bidragHTML = (data.totalVABParental > 0 || ftpDays.value > 0) ? '<div class="detail-chip success"><span>FK/AFA netto</span><span>+' + fd(data.totalErsattningNetto, 2) + ' kr</span></div>' : '';
 
@@ -485,15 +490,24 @@ function updateYearSummary() {
   const o1r = f2(obBase / O1D);
   const o2r = f2(obBase / O2D);
   const o3r = f2(obBase / O3D);
-  let totBrutto = 0, totNetto = 0, totSkatt = 0, totFack = 0, totOB = 0;
+  let totBrutto = 0, totNetto = 0, totSkatt = 0, totFack = 0, totOB = 0, totSemester = 0;
   for (let m = 1; m <= 12; m++) {
-    const obData = getOBForMonth(y, m, lag);
+    // OB hämtas från föregående månad
+    let obMonth = m - 1, obYear = y;
+    if (obMonth === 0) { obMonth = 12; obYear--; }
+    const obData = getOBForMonth(obYear, obMonth, lag);
     const ob1Amt = f2(obData.ob1 * o1r);
     const ob2Amt = f2(obData.ob2 * o2r);
     const ob3Amt = f2(obData.ob3 * o3r);
     const mOB = f2(ob1Amt + ob2Amt + ob3Amt);
     totOB += mOB;
-    const jb = Math.round(obBase + mOB);
+
+    // Semesterdagar från samma föregående månad
+    const vacDays = countVacationDaysInMonth(obYear, obMonth);
+    const semTillagg = f2(vacDays * f2(obBase / 125));
+    totSemester += semTillagg;
+
+    const jb = Math.round(obBase + mOB + semTillagg);
     const tax = taxFromTable33Col1(jb);
     const uf = calcUnion(jb);
     const net = jb - tax - uf;
@@ -504,7 +518,8 @@ function updateYearSummary() {
     `<div>Total nettolön: ${fc(totNetto)} kr</div>` +
     `<div>Total skatt: -${fc(totSkatt)} kr</div>` +
     `<div>Fackavgift: -${fc(totFack)} kr</div>` +
-    `<div>Totalt OB: +${fc(totOB)} kr</div>`;
+    `<div>Totalt OB: +${fc(totOB)} kr</div>` +
+    `<div>Semestertillägg: +${fc(totSemester)} kr</div>`;
 }
 
 function updateSettingsLabel() {
