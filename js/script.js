@@ -12,6 +12,42 @@ const MONTHS = ['Januari','Februari','Mars','April','Maj','Juni','Juli','Augusti
 
 function calcUnion(s){ let f=Math.round(s*UPCT); if(f<UMIN) return UMIN; if(f>UMAX) return UMAX; return f; }
 
+// ---- Veckonummer (ISO 8601) ----
+function getWeekNumber(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return weekNo;
+}
+
+// ---- Hjälp: första dagen (måndag) i en ISO-vecka ----
+function getMondayOfISOWeek(w, year) {
+  const jan1 = new Date(year, 0, 1);
+  const dayOfWeek = jan1.getDay(); // 0=sön
+  const firstMonday = new Date(jan1);
+  firstMonday.setDate(jan1.getDate() + (dayOfWeek <= 4 ? 1 - dayOfWeek : 8 - dayOfWeek));
+  const monday = new Date(firstMonday);
+  monday.setDate(monday.getDate() + (w - 1) * 7);
+  return monday;
+}
+
+// ---- Sätt automatiskt semester för vecka 28-31 ----
+function applyIndustrialVacation(year) {
+  for (let w = 28; w <= 31; w++) {
+    const monday = getMondayOfISOWeek(w, year);
+    for (let d = 0; d < 7; d++) {
+      const date = new Date(monday);
+      date.setDate(monday.getDate() + d);
+      const key = date.toISOString().split('T')[0];
+      if (!fromvaroMap.has(key)) {
+        fromvaroMap.set(key, 1); // semester
+      }
+    }
+  }
+}
+
 function setFromvaro(dateStr, value){
   if(value==="") fromvaroMap.delete(dateStr);
   else if(value==="Semester") fromvaroMap.set(dateStr,1);
@@ -310,7 +346,7 @@ function renderUI(data) {
 
   detailGrid.innerHTML = detailHTML;
 
-  // Schematabell
+  // Schematabell med veckonummer
   if (data.isAuto) {
     let daysInMonth = new Date(data.obYear, data.obMonth, 0).getDate();
     let shiftNames = ['Ledig', 'Dag', 'Natt'];
@@ -324,6 +360,7 @@ function renderUI(data) {
       let isPerm = isPermissionDay(date, data.lag);
       if (fromvaroVal !== 0) ob = {ob1:0, ob2:0, ob3:0};
       let dayName = ['Sön','Mån','Tis','Ons','Tor','Fre','Lör'][date.getDay()];
+      let weekNum = getWeekNumber(date);
       let shiftText = isPerm ? 'Perm' : shiftNames[shift];
       if (shiftOverrideMap.has(dateStr) && !isPerm) shiftText += '*';
       let fromvaroText = '';
@@ -350,7 +387,7 @@ function renderUI(data) {
         <option value="1" ${shift===1?'selected':''}>Dag</option>
         <option value="2" ${shift===2?'selected':''}>Natt</option>
       </select>`;
-      tbody += `<tr class="${rowClass}"><td>${d} ${dayName}</td><td>${shiftText}</td><td>${fd(ob.ob1,2)}h</td><td>${fd(ob.ob2,2)}h</td><td>${fd(ob.ob3,2)}h</td><td>${fromvaroCell}</td><td>${station}</td><td>${passSelect}</td></tr>`;
+      tbody += `<tr class="${rowClass}"><td>${d} ${dayName} v${weekNum}</td><td>${shiftText}</td><td>${fd(ob.ob1,2)}h</td><td>${fd(ob.ob2,2)}h</td><td>${fd(ob.ob3,2)}h</td><td>${fromvaroCell}</td><td>${station}</td><td>${passSelect}</td></tr>`;
     }
     tableBody.innerHTML = tbody;
   } else {
@@ -372,6 +409,8 @@ function showMainIfValid() {
 }
 
 function updateUI() {
+  // Förinställd semester v28-31
+  applyIndustrialVacation(parseInt(yearSelect.value));
   const data = calculateEverything();
   renderUI(data);
   updateSettingsLabel();
