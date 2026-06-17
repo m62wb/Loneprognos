@@ -101,7 +101,7 @@ function getAllHelgons(year) {
   return d;
 }
 
-// ---- Permissiondagar ----
+// ---- Permissiondagar (ingen OB) ----
 function isPermissionDay(date, lag) {
   let m = date.getMonth(), d = date.getDate(), shift = getShift(date, lag);
   if (m === 11 && d === 24) return true;                     // julafton
@@ -117,18 +117,71 @@ function isPermissionDay(date, lag) {
   return false;
 }
 
-// ---- OB3-perioder (anpassade till verkliga passtider) ----
-function isOB3Period(date, shift) {
+// ============ EXAKT OB3‑BERÄKNING (timmar) ============
+
+function getOB3Hours(date, shift) {
+  if (shift === 0) return 0;
   const y = date.getFullYear();
+
+  // Hjälpfunktion: överlapp mellan pass och en period
+  function overlapHours(passStart, passEnd, periodStart, periodEnd) {
+    const overStart = passStart > periodStart ? passStart : periodStart;
+    const overEnd   = passEnd < periodEnd   ? passEnd   : periodEnd;
+    if (overEnd <= overStart) return 0;
+    return (overEnd - overStart) / (1000 * 60 * 60); // decimaltimmar
+  }
+
+  // Passtider
+  let passStart, passEnd;
+  if (shift === 1) {
+    passStart = new Date(date); passStart.setHours(5, 45, 0, 0);
+    passEnd   = new Date(date); passEnd.setHours(18, 0, 0, 0);
+  } else {
+    passStart = new Date(date); passStart.setHours(17, 45, 0, 0);
+    passEnd   = new Date(date);
+    passEnd.setDate(passEnd.getDate() + 1); passEnd.setHours(6, 0, 0, 0);
+  }
 
   // Påsk
   let easter = getEaster(y);
   let skartorsdag = new Date(easter); skartorsdag.setDate(easter.getDate() - 3);
   let tisdagEfterPask = new Date(easter); tisdagEfterPask.setDate(easter.getDate() + 2);
+  let paskStart = new Date(skartorsdag); paskStart.setHours(18, 0, 0, 0);
+  let paskEnd   = new Date(tisdagEfterPask); paskEnd.setHours(0, 0, 0, 0);
+  let hours = overlapHours(passStart, passEnd, paskStart, paskEnd);
+  if (hours > 0) return Math.min(hours, 12.25);
+
+  // Första maj – till första vardagen efter helgen
+  let forstaMaj = new Date(y, 4, 1);
+  let forstaVardagEfterMaj = new Date(forstaMaj);
+  forstaVardagEfterMaj.setDate(forstaVardagEfterMaj.getDate() + 1);
+  while (forstaVardagEfterMaj.getDay() === 0 || forstaVardagEfterMaj.getDay() === 6) {
+    forstaVardagEfterMaj.setDate(forstaVardagEfterMaj.getDate() + 1);
+  }
+  let majStart = new Date(forstaMaj); majStart.setHours(7, 0, 0, 0);
+  let majEnd   = new Date(forstaVardagEfterMaj); majEnd.setHours(0, 0, 0, 0);
+  hours = overlapHours(passStart, passEnd, majStart, majEnd);
+  if (hours > 0) return Math.min(hours, 12.25);
+
+  // Nationaldag – till första vardagen efter helgen
+  let nationaldag = new Date(y, 5, 6);
+  let forstaVardagEfterNat = new Date(nationaldag);
+  forstaVardagEfterNat.setDate(forstaVardagEfterNat.getDate() + 1);
+  while (forstaVardagEfterNat.getDay() === 0 || forstaVardagEfterNat.getDay() === 6) {
+    forstaVardagEfterNat.setDate(forstaVardagEfterNat.getDate() + 1);
+  }
+  let natStart = new Date(nationaldag); natStart.setHours(7, 0, 0, 0);
+  let natEnd   = new Date(forstaVardagEfterNat); natEnd.setHours(0, 0, 0, 0);
+  hours = overlapHours(passStart, passEnd, natStart, natEnd);
+  if (hours > 0) return Math.min(hours, 12.25);
 
   // Midsommar
   let midsommarAfton = new Date(getMidsummer(y)); midsommarAfton.setDate(midsommarAfton.getDate() - 1);
   let sondagEfterMidsommar = new Date(getMidsummer(y)); sondagEfterMidsommar.setDate(sondagEfterMidsommar.getDate() + 1);
+  let midsStart = new Date(midsommarAfton); midsStart.setHours(7, 0, 0, 0);
+  let midsEnd   = new Date(sondagEfterMidsommar); midsEnd.setDate(midsEnd.getDate() + 1); midsEnd.setHours(0, 0, 0, 0);
+  hours = overlapHours(passStart, passEnd, midsStart, midsEnd);
+  if (hours > 0) return Math.min(hours, 12.25);
 
   // Jul
   let julafton = new Date(y, 11, 24);
@@ -136,6 +189,10 @@ function isOB3Period(date, shift) {
   while (forstaVardagEfterJul.getDay() === 0 || forstaVardagEfterJul.getDay() === 6) {
     forstaVardagEfterJul.setDate(forstaVardagEfterJul.getDate() + 1);
   }
+  let julStart = new Date(julafton); julStart.setHours(7, 0, 0, 0);
+  let julEnd   = new Date(forstaVardagEfterJul); julEnd.setHours(0, 0, 0, 0);
+  hours = overlapHours(passStart, passEnd, julStart, julEnd);
+  if (hours > 0) return Math.min(hours, 12.25);
 
   // Nyår
   let nyarsafton = new Date(y, 11, 31);
@@ -143,75 +200,24 @@ function isOB3Period(date, shift) {
   while (forstaVardagEfterNy.getDay() === 0 || forstaVardagEfterNy.getDay() === 6) {
     forstaVardagEfterNy.setDate(forstaVardagEfterNy.getDate() + 1);
   }
-
-  // Första maj och nationaldag
-  let forstaMaj = new Date(y, 4, 1);
-  let nationaldag = new Date(y, 5, 6);
-
-  // Hjälpfunktion för att kontrollera överlapp med OB3-period
-  function inPeriod(periodStart, periodEnd, date, shift) {
-    // Passets start- och sluttid
-    let passStart, passEnd;
-    if (shift === 1) { // dagpass 05:45-18:00
-      passStart = new Date(date); passStart.setHours(5, 45, 0, 0);
-      passEnd = new Date(date); passEnd.setHours(18, 0, 0, 0);
-    } else if (shift === 2) { // nattpass 17:45-06:00 (över midnatt)
-      passStart = new Date(date); passStart.setHours(17, 45, 0, 0);
-      passEnd = new Date(date); passEnd.setDate(passEnd.getDate() + 1); passEnd.setHours(6, 0, 0, 0);
-    } else {
-      return false;
-    }
-    // Överlapp mellan passet och OB3-perioden
-    let overStart = passStart > periodStart ? passStart : periodStart;
-    let overEnd = passEnd < periodEnd ? passEnd : periodEnd;
-    let overMs = overEnd - overStart;
-    // Kräv minst 6 timmars överlapp för att ge OB3 (samma princip som tidigare)
-    return overMs > 6 * 60 * 60 * 1000;
-  }
-
-  // Påskperiod: skärtorsdag 18:00 → tisdag efter påsk 00:00
-  let paskStart = new Date(skartorsdag); paskStart.setHours(18, 0, 0, 0);
-  let paskEnd = new Date(tisdagEfterPask); paskEnd.setHours(0, 0, 0, 0);
-  if (inPeriod(paskStart, paskEnd, date, shift)) return true;
-
-  // Första maj: 07:00 → nästa dag 00:00
-  let majStart = new Date(forstaMaj); majStart.setHours(7, 0, 0, 0);
-  let majEnd = new Date(forstaMaj); majEnd.setDate(majEnd.getDate() + 1); majEnd.setHours(0, 0, 0, 0);
-  if (inPeriod(majStart, majEnd, date, shift)) return true;
-
-  // Nationaldag: 07:00 → nästa dag 00:00
-  let natStart = new Date(nationaldag); natStart.setHours(7, 0, 0, 0);
-  let natEnd = new Date(nationaldag); natEnd.setDate(natEnd.getDate() + 1); natEnd.setHours(0, 0, 0, 0);
-  if (inPeriod(natStart, natEnd, date, shift)) return true;
-
-  // Midsommar: midsommarafton 07:00 → måndag 00:00
-  let midsStart = new Date(midsommarAfton); midsStart.setHours(7, 0, 0, 0);
-  let midsEnd = new Date(sondagEfterMidsommar); midsEnd.setDate(midsEnd.getDate() + 1); midsEnd.setHours(0, 0, 0, 0);
-  if (inPeriod(midsStart, midsEnd, date, shift)) return true;
-
-  // Jul: julafton 07:00 → första vardag efter julhelgen 00:00
-  let julStart = new Date(julafton); julStart.setHours(7, 0, 0, 0);
-  let julEnd = new Date(forstaVardagEfterJul); julEnd.setHours(0, 0, 0, 0);
-  if (inPeriod(julStart, julEnd, date, shift)) return true;
-
-  // Nyår: nyårsafton 07:00 → första vardag efter nyår 00:00
   let nyStart = new Date(nyarsafton); nyStart.setHours(7, 0, 0, 0);
-  let nyEnd = new Date(forstaVardagEfterNy); nyEnd.setHours(0, 0, 0, 0);
-  if (inPeriod(nyStart, nyEnd, date, shift)) return true;
+  let nyEnd   = new Date(forstaVardagEfterNy); nyEnd.setHours(0, 0, 0, 0);
+  hours = overlapHours(passStart, passEnd, nyStart, nyEnd);
+  if (hours > 0) return Math.min(hours, 12.25);
 
-  return false;
+  return 0;
 }
 
-// ---- OB‑beräkning (oförändrad OB1/OB2, ny OB3) ----
+// ---- OB‑beräkning (OB1/OB2 som tidigare, OB3 exakt) ----
 function calcOB(date, shift, lag) {
   if (isPermissionDay(date, lag) || shift === 0) return {ob1:0, ob2:0, ob3:0};
 
-  // OB3 enligt avtalets storhelgsperioder
-  if (isOB3Period(date, shift)) {
-    return {ob1:0, ob2:0, ob3:12.25};
+  const ob3 = Math.round(getOB3Hours(date, shift) * 100) / 100;  // 2 decimaler
+  if (ob3 > 0) {
+    return {ob1:0, ob2:0, ob3};
   }
 
-  // OB1/OB2 enligt tidigare beprövad modell (stämmer med din lönespec)
+  // Vanlig OB1/OB2
   let w = date.getDay(), isWeekend = (w === 0 || w === 6), ob1 = 0, ob2 = 0;
   if (shift === 1) {
     if (isWeekend) ob2 = 12.25; else ob2 = 1.25;
@@ -225,7 +231,7 @@ function calcOB(date, shift, lag) {
   return {ob1, ob2, ob3:0};
 }
 
-// ---- Månadssummering av OB (oförändrad) ----
+// ---- Månadssummering av OB ----
 function getOBForMonth(year, month, lag) {
   let to1 = 0, to2 = 0, to3 = 0;
   let dim = new Date(year, month, 0).getDate();
@@ -240,7 +246,7 @@ function getOBForMonth(year, month, lag) {
   return {ob1:to1, ob2:to2, ob3:to3};
 }
 
-// ---- Stationer för lag E (oförändrad) ----
+// ---- Stationer för lag E ----
 const stationsE = ['Reaktorn', 'Dian', 'Spray'];
 const initials = ['B', 'Y', 'M'];
 const refStation = new Date(2026, 5, 9);
