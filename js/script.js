@@ -1,3 +1,7 @@
+const AUTOSAVE_KEY = 'loneprognos_autosave_v1';
+
+document.addEventListener('DOMContentLoaded', function() {
+
 function applyIndustrialVacation(year, lag) {
   if (!['A','B','C','D','E'].includes(lag)) return;
   for (let w = 28; w <= 31; w++) {
@@ -319,7 +323,6 @@ function renderUI(data) {
 
   detailGrid.innerHTML = detailHTML;
 
-  // ===== SCHEMATELL MED DAG/NATT-FÄRGER =====
   if (data.isAuto) {
     let daysInMonth = new Date(data.obYear, data.obMonth, 0).getDate();
     let shiftNames = ['Ledig', 'Dag', 'Natt'];
@@ -393,7 +396,6 @@ function showMainIfValid() {
   }
 }
 
-// ---- AUTOSAVE ----
 function autoSaveState() {
   if (typeof getCurrentState === 'function') {
     const state = getCurrentState();
@@ -414,7 +416,7 @@ function updateUI() {
   closeSettingsBoxIfNeeded();
   renderOBChart();
   showMainIfValid();
-  autoSaveState();   // <-- spara automatiskt
+  autoSaveState();
 }
 
 function closeSettingsBoxIfNeeded() {
@@ -487,7 +489,7 @@ function updateYearSummary() {
     const semTillagg = f2(vacDays * f2(obBase / 125));
     totSemester += semTillagg;
     const jb = Math.round(obBase + mOB + semTillagg);
-    const tax = taxFromTable33Col1(jb, y); // <-- skicka med år
+    const tax = taxFromTable33Col1(jb, y);
     const uf = calcUnion(jb);
     const net = jb - tax - uf;
     totBrutto += jb; totNetto += net; totSkatt += tax; totFack += uf;
@@ -589,7 +591,6 @@ let lagSelect=document.getElementById('lagSelect'), salaryInput=document.getElem
     yearSummaryYear=document.getElementById('yearSummaryYear'), yearSummaryGrid=document.getElementById('yearSummaryGrid'),
     obLockToggle=document.getElementById('obLockToggle'), overviewTotalNet=document.getElementById('overviewTotalNet');
 
-// ---- Lagbyte rensar hela schemat ----
 lagSelect.addEventListener('change', function() {
   fromvaroMap.clear();
   vacationOverrideMap.clear();
@@ -624,7 +625,6 @@ obLockToggle.addEventListener('change',updateUI);
 
 populateSelectors();
 
-// ---- Försök ladda autosave vid start ----
 const savedAutosave = localStorage.getItem(AUTOSAVE_KEY);
 if (savedAutosave) {
   try {
