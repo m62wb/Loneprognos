@@ -235,7 +235,7 @@ function calculateEverything() {
   const jobbBruttoExact = f2(totalBeforeDeductions - karensDeduction - sickDeduct100 + sickPay80 + totalSjukOBGain - vabParentalDeduction);
   const jobbBrutto = Math.round(jobbBruttoExact);
 
-  const taxExact = taxFromTable33Col1(jobbBruttoExact);
+  const taxExact = taxFromTable33Col1(jobbBruttoExact, selectedYear);
   const tax = f2(taxExact);
 
   const netSalaryExact = f2(jobbBruttoExact - taxExact - calcUnion(jobbBrutto) + totalErsattningNetto);
@@ -529,7 +529,7 @@ function updateYearSummary() {
     const semTillagg = f2(vacDays * f2(obBase / 125));
     totSemester += semTillagg;
     const jb = Math.round(obBase + mOB + semTillagg);
-    const tax = taxFromTable33Col1(jb);
+    const tax = taxFromTable33Col1(jb, y); // <-- skicka med år
     const uf = calcUnion(jb);
     const net = jb - tax - uf;
     totBrutto += jb; totNetto += net; totSkatt += tax; totFack += uf;
