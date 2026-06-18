@@ -2,7 +2,7 @@
    LÖNEKALKYLATOR – STYLESHEET
    GitHub-inspirerat mörkt tema
    + äggskalsljus tema
-   + Grön dag / Indigo natt / Blå vecka
+   + Grön dag / Röd natt / Rosa VAB / Ljusblå föräldraledig
    + Måttligt ökad textstorlek i schematabellen
    ============================== */
 
@@ -144,20 +144,20 @@ table { width: 100%; table-layout: fixed; border-collapse: collapse; background:
 th {
     background: var(--primary);
     color: white;
-    padding: 10px 6px;        /* bekväm padding */
+    padding: 10px 6px;
     position: sticky;
     top: 0;
-    font-size: 1.15rem;       /* ca 44% större än original 0.8rem */
+    font-size: 1.15rem;
     white-space: nowrap;
     text-align: center;
 }
 
 td {
-    padding: 8px 6px;         /* bekväm padding */
+    padding: 8px 6px;
     border-bottom: 1px solid var(--border);
     text-align: center !important;
     vertical-align: middle !important;
-    font-size: 1.15rem;       /* matchar th */
+    font-size: 1.15rem;
     word-break: break-word;
 }
 
@@ -167,10 +167,9 @@ td:first-child {
     position: sticky;
     left: 0;
     background: var(--card-bg);
-    width: 90px;              /* lagom för veckonummer */
+    width: 90px;
 }
 
-/* Kolumnbredder anpassade */
 th:nth-child(1), td:nth-child(1) { width: 90px; }
 th:nth-child(2), td:nth-child(2) { width: 70px; }
 th:nth-child(3), td:nth-child(3) { width: 55px; }
@@ -185,14 +184,29 @@ td select {
     text-align-last: center !important;
     width: auto;
     margin: 0 auto;
-    font-size: 1.15rem;       /* matcha cellstorleken */
+    font-size: 1.15rem;
 }
 
-.row-day td:not(:first-child) { background: rgba(63,185,80,0.15) !important; }
-.row-night td:not(:first-child) { background: rgba(102,51,153,0.18) !important; }
-.row-vacation td:not(:first-child) { background: rgba(255,193,7,0.2); }
-.row-vab td:not(:first-child) { background: rgba(255,87,34,0.2); }
-.row-parental td:not(:first-child) { background: rgba(156,39,176,0.2); }
+/* ---------- NYA FÄRGER ---------- */
+.row-day td:not(:first-child) {
+    background: rgba(63,185,80,0.15) !important;   /* dag – grön */
+}
+
+.row-night td:not(:first-child) {
+    background: rgba(255,87,34,0.20) !important;    /* natt – röd (fd VAB-färg) */
+}
+
+.row-vacation td:not(:first-child) {
+    background: rgba(255,193,7,0.2);                /* semester – gul */
+}
+
+.row-vab td:not(:first-child) {
+    background: rgba(255,105,180,0.25);             /* VAB – rosa */
+}
+
+.row-parental td:not(:first-child) {
+    background: rgba(189,224,254,0.30);             /* föräldraledig – ljusblå (#BDE0FE) */
+}
 
 .day-emoji { float: right; margin-left: 4px; font-style: normal; }
 
@@ -213,7 +227,7 @@ td.blue-week-cell { background: rgba(88,166,255,0.08) !important; }
 .year-summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
 .shift-select, .fromvaro-select { background: var(--input-bg); border: 1px solid var(--border); border-radius: 20px; padding: 2px 4px; color: var(--text); width: 62px; font-size: 0.6rem; }
 
-.schema-table th { font-size: 1.15rem; }     /* överstyr ev. gammal regel */
+.schema-table th { font-size: 1.15rem; }
 .schema-table td { font-size: 1.15rem; }
 .schema-table .shift-select,
 .schema-table .fromvaro-select { font-size: 1.15rem !important; width: auto; }
