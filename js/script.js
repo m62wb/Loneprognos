@@ -352,7 +352,8 @@ function renderUI(data) {
     let daysInMonth = new Date(data.obYear, data.obMonth, 0).getDate();
     let shiftNames = ['Ledig', 'Dag', 'Natt'];
     let tbody = '';
-    let isBlueWeek = false;
+    let isBlueWeek = false;          // startvärde, kommer sättas om direkt
+    let lastShownWeek = null;        // håller reda på senast visade veckonummer
     for (let d = 1; d <= daysInMonth; d++) {
       let date = new Date(data.obYear, data.obMonth - 1, d);
       let dateStr = date.toISOString().split('T')[0];
@@ -363,8 +364,18 @@ function renderUI(data) {
       if (fromvaroVal !== 0) ob = {ob1:0, ob2:0, ob3:0};
       let dayName = ['Sön','Mån','Tis','Ons','Tor','Fre','Lör'][date.getDay()];
       let weekNum = getWeekNumber(date);
+      
+      // Visa veckonummer på första dagen, eller om det är måndag OCH veckan inte redan visats
       let weekLabel = '';
-      if (date.getDay() === 1) { isBlueWeek = !isBlueWeek; weekLabel = ' v' + weekNum; }
+      if (d === 1 || (date.getDay() === 1 && weekNum !== lastShownWeek)) {
+        // Växla blåmarkering endast på måndagar (eller första dagen om den råkar vara måndag)
+        if (date.getDay() === 1 || d === 1) {
+          isBlueWeek = !isBlueWeek;
+        }
+        weekLabel = ' v' + weekNum;
+        lastShownWeek = weekNum;
+      }
+      
       let shiftText = isPerm ? 'Perm' : shiftNames[shift];
       if (shiftOverrideMap.has(dateStr) && !isPerm) shiftText += '*';
       let fromvaroText = '';
@@ -398,7 +409,7 @@ function renderUI(data) {
       tbody += `<tr class="${rowClass.trim()}"><td class="${weekCellClass}">${dayCellContent}</td><td>${shiftText}</td><td>${fd(ob.ob1,2)}h</td><td>${fd(ob.ob2,2)}h</td><td>${fd(ob.ob3,2)}h</td><td>${fromvaroCell}</td><td>${station}</td><td>${passSelect}</td></tr>`;
     }
     tableBody.innerHTML = tbody;
-  } else {
+} else {
     tableBody.innerHTML = '<tr><td colspan="8">Välj ett lag</td></tr>';
   }
 }
