@@ -15,6 +15,9 @@ const fromvaroMap = new Map();
 const shiftOverrideMap = new Map();
 let vacationOverrideMap = new Map();   // global för storage.js
 
+// ---- Flagga för att förhindra lagbyte-rensning under profilladdning ----
+let isLoadingProfile = false;
+
 // ---- Fackavgift ----
 function calcUnion(s){ let f=Math.round(s*UPCT); if(f<UMIN) return UMIN; if(f>UMAX) return UMAX; return f; }
 
