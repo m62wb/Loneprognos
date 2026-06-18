@@ -35,9 +35,9 @@ function getCurrentState() {
 }
 
 function applyState(state) {
-  // Sätt flaggan så att lagSelect-lyssnaren inte rensar schemat
-  if (typeof isLoadingProfile !== 'undefined') {
-    isLoadingProfile = true;
+  // Blockera lagSelect-lyssnaren via den globala flaggan
+  if (typeof window.isLoadingProfile !== 'undefined') {
+    window.isLoadingProfile = true;
   }
 
   salaryInput.value = state.salary;
@@ -84,13 +84,13 @@ function applyState(state) {
     manualOBOverride = false;
   }
 
-  // Stäng av flaggan efter att updateUI har körts
   if (typeof updateUI === 'function') {
     updateUI();
   }
 
-  if (typeof isLoadingProfile !== 'undefined') {
-    isLoadingProfile = false;
+  // Släpp flaggan igen
+  if (typeof window.isLoadingProfile !== 'undefined') {
+    window.isLoadingProfile = false;
   }
 }
 
