@@ -1,8 +1,4 @@
-const AUTOSAVE_KEY = 'loneprognos_autosave_v1';
-
-// ========================
-// HJÄLPFUNKTIONER & KONSTANTER
-// ========================
+// Hjälpfunktioner & konstanter
 function p(v){ if(!v) return 0; let n=String(v).replace(',','.'); let x=parseFloat(n); return isNaN(x)?0:x; }
 function fc(v){ return new Intl.NumberFormat('sv-SE').format(Math.round(v)); }
 function fd(v,d){ return v.toFixed(d).replace('.',','); }
@@ -13,9 +9,6 @@ const O1D=460, O2D=260, O3D=150, OTD=72, OTENKELD=94, SY=2024, EY=2036;
 const PBB=59200, SGI_TAK_PARENTAL=10*PBB, SGI_TAK_VAB=7.5*PBB, FK_SKATT=0.30;
 const MONTHS = ['Januari','Februari','Mars','April','Maj','Juni','Juli','Augusti','September','Oktober','November','December'];
 
-let vacationOverrideMap = new Map();
-let manualOBOverride = false;
-
 function calcUnion(s){ let f=Math.round(s*UPCT); if(f<UMIN) return UMIN; if(f>UMAX) return UMAX; return f; }
 
 function getWeekNumber(date) {
@@ -23,8 +16,7 @@ function getWeekNumber(date) {
   const dayNum = d.getUTCDay() || 7;
   d.setUTCDate(d.getUTCDate() + 4 - dayNum);
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
-  const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-  return weekNo;
+  return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
 }
 
 function getMondayOfISOWeek(w, year) {
@@ -37,12 +29,7 @@ function getMondayOfISOWeek(w, year) {
   return monday;
 }
 
-// ========================
-// HUVUDPROGRAM
-// ========================
 document.addEventListener('DOMContentLoaded', function() {
-
-let isLoadingProfile = false;
 
 function applyIndustrialVacation(year, lag) {
   if (!['A','B','C','D','E'].includes(lag)) return;
@@ -55,9 +42,7 @@ function applyIndustrialVacation(year, lag) {
       if (vacationOverrideMap.has(key)) continue;
       if (!fromvaroMap.has(key)) {
         const shift = getOrdinaryShift(date, lag);
-        if (shift > 0) {
-          fromvaroMap.set(key, 1);
-        }
+        if (shift > 0) fromvaroMap.set(key, 1);
       }
     }
   }
@@ -77,21 +62,14 @@ function countVacationDaysInMonth(year, month) {
 function setFromvaro(dateStr, value){
   const date = new Date(dateStr);
   const week = getWeekNumber(date);
-  if (week >= 28 && week <= 31) {
-    vacationOverrideMap.set(dateStr, true);
-  }
-
+  if (week >= 28 && week <= 31) vacationOverrideMap.set(dateStr, true);
   if(value==="") fromvaroMap.delete(dateStr);
   else if(value==="Semester") fromvaroMap.set(dateStr,1);
   else if(value==="VAB") fromvaroMap.set(dateStr,2);
   else if(value==="F-ledig") fromvaroMap.set(dateStr,3);
   updateUI();
 }
-function resetSchema(){ 
-  fromvaroMap.clear(); 
-  vacationOverrideMap.clear(); 
-  updateUI(); 
-}
+function resetSchema(){ fromvaroMap.clear(); vacationOverrideMap.clear(); updateUI(); }
 function resetAllShifts(){ shiftOverrideMap.clear(); updateUI(); }
 function changeShift(dateStr,val,lag){
   let nv = parseInt(val, 10);
@@ -194,13 +172,9 @@ function calculateEverything() {
   const lockEnabled = obLockToggle.checked;
   let obData;
   if (isAuto && lockEnabled && !manualOBOverride) {
-    obData = {
-      ob1: Math.round(p(ob1Hours.value)),
-      ob2: Math.round(p(ob2Hours.value)),
-      ob3: Math.round(p(ob3Hours.value))
-    };
+    obData = { ob1: Math.round(p(ob1Hours.value)), ob2: Math.round(p(ob2Hours.value)), ob3: Math.round(p(ob3Hours.value)) };
   } else if (isAuto && lockEnabled && manualOBOverride) {
-    obData = {ob1: p(ob1Hours.value), ob2: p(ob2Hours.value), ob3: p(ob3Hours.value)};
+    obData = { ob1: p(ob1Hours.value), ob2: p(ob2Hours.value), ob3: p(ob3Hours.value) };
   } else {
     if (isAuto && !lockEnabled) {
       const c1 = p(ob1Hours.value), c2 = p(ob2Hours.value), c3 = p(ob3Hours.value);
@@ -210,9 +184,9 @@ function calculateEverything() {
       if (!manualOBOverride) {
         ob1Hours.value = fd(autoOB.ob1, 2); ob2Hours.value = fd(autoOB.ob2, 2); ob3Hours.value = fd(autoOB.ob3, 2);
       }
-      obData = {ob1: p(ob1Hours.value), ob2: p(ob2Hours.value), ob3: p(ob3Hours.value)};
+      obData = { ob1: p(ob1Hours.value), ob2: p(ob2Hours.value), ob3: p(ob3Hours.value) };
     } else {
-      obData = {ob1: p(ob1Hours.value), ob2: p(ob2Hours.value), ob3: p(ob3Hours.value)};
+      obData = { ob1: p(ob1Hours.value), ob2: p(ob2Hours.value), ob3: p(ob3Hours.value) };
     }
   }
 
@@ -381,10 +355,7 @@ function renderUI(data) {
       let dayName = ['Sön','Mån','Tis','Ons','Tor','Fre','Lör'][date.getDay()];
       let weekNum = getWeekNumber(date);
       let weekLabel = '';
-      if (date.getDay() === 1) {
-        isBlueWeek = !isBlueWeek;
-        weekLabel = ' v' + weekNum;
-      }
+      if (date.getDay() === 1) { isBlueWeek = !isBlueWeek; weekLabel = ' v' + weekNum; }
       let shiftText = isPerm ? 'Perm' : shiftNames[shift];
       if (shiftOverrideMap.has(dateStr) && !isPerm) shiftText += '*';
       let fromvaroText = '';
@@ -394,9 +365,7 @@ function renderUI(data) {
       else if (fromvaroVal === 3) { fromvaroText = 'F-ledig'; emoji = '🍼'; }
       let station = (data.lag === 'E') ? getStationE(date, shift, data.lag) : '-';
       let rowClass = '';
-      if (fromvaroVal === 0 && shift > 0 && !isPerm) {
-        rowClass = (shift === 1) ? 'row-day' : 'row-night';
-      }
+      if (fromvaroVal === 0 && shift > 0 && !isPerm) { rowClass = (shift === 1) ? 'row-day' : 'row-night'; }
       if (fromvaroVal === 1) rowClass += ' row-vacation';
       else if (fromvaroVal === 2) rowClass += ' row-vab';
       else if (fromvaroVal === 3) rowClass += ' row-parental';
@@ -429,20 +398,14 @@ function showMainIfValid() {
   const main = document.getElementById('mainContent');
   if (!main) return;
   const lag = lagSelect.value;
-  if (lag !== '' && lag !== 'manual') {
-    main.style.display = '';
-  } else if (lag === 'manual') {
-    main.style.display = '';
-  } else {
-    main.style.display = 'none';
-  }
+  if (lag !== '' && lag !== 'manual') { main.style.display = ''; }
+  else if (lag === 'manual') { main.style.display = ''; }
+  else { main.style.display = 'none'; }
 }
 
 function autoSaveState() {
-  if (typeof getCurrentState === 'function') {
-    const state = getCurrentState();
-    localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(state));
-  }
+  const state = getCurrentState();
+  localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(state));
 }
 
 function updateUI() {
@@ -473,17 +436,11 @@ function closeSettingsBoxIfNeeded() {
 function resetOB() {
   const lag = lagSelect.value;
   if (lag !== 'manual' && lag !== '') {
-    let y = parseInt(yearSelect.value);
-    let m = parseInt(monthSelect.value);
-    let om = m - 1;
+    let y = parseInt(yearSelect.value), m = parseInt(monthSelect.value), om = m - 1;
     if (om === 0) { om = 12; y--; }
     const ob = getOBForMonth(y, om, lag);
-    ob1Hours.value = fd(ob.ob1, 2);
-    ob2Hours.value = fd(ob.ob2, 2);
-    ob3Hours.value = fd(ob.ob3, 2);
-  } else {
-    ob1Hours.value = '0'; ob2Hours.value = '0'; ob3Hours.value = '0';
-  }
+    ob1Hours.value = fd(ob.ob1, 2); ob2Hours.value = fd(ob.ob2, 2); ob3Hours.value = fd(ob.ob3, 2);
+  } else { ob1Hours.value = '0'; ob2Hours.value = '0'; ob3Hours.value = '0'; }
   manualOBOverride = false;
   updateUI();
 }
@@ -491,11 +448,10 @@ function resetOB() {
 function toggleExpand(el){ let d=el.querySelector('.expandable-details'), a=el.querySelector('.expandable-arrow'); d.classList.toggle('open'); a.classList.toggle('open'); }
 
 function toggleTheme() {
-    const checkbox = document.getElementById('themeToggleCheckbox');
-    const isDark = checkbox.checked;
-    const html = document.documentElement;
-    html.setAttribute('data-theme', isDark ? 'dark' : 'light');
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+  const checkbox = document.getElementById('themeToggleCheckbox');
+  const isDark = checkbox.checked;
+  document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  localStorage.setItem('theme', isDark ? 'dark' : 'light');
 }
 
 function toggleVAB(){ let c=document.getElementById('vabContent'), a=document.getElementById('vabArrow'); c.classList.toggle('open'); a.innerText=c.classList.contains('open')?'▲':'▼'; }
@@ -506,25 +462,18 @@ function toggleYearSummary(){ let d=document.getElementById('yearDetails'), a=do
 function updateYearSummary() {
   const y = parseInt(yearSelect.value);
   const lag = lagSelect.value;
-  if (lag === 'manual' || lag === '') {
-    document.getElementById('yearSummaryGrid').innerHTML = 'Välj lag';
-    return;
-  }
+  if (lag === 'manual' || lag === '') { document.getElementById('yearSummaryGrid').innerHTML = 'Välj lag'; return; }
   document.getElementById('yearSummaryYear').innerText = y;
   const bs = p(salaryInput.value) || 0;
   const da = f2(bs * DRIFT / 100);
   const obBase = bs + da;
-  const o1r = f2(obBase / O1D);
-  const o2r = f2(obBase / O2D);
-  const o3r = f2(obBase / O3D);
+  const o1r = f2(obBase / O1D), o2r = f2(obBase / O2D), o3r = f2(obBase / O3D);
   let totBrutto = 0, totNetto = 0, totSkatt = 0, totFack = 0, totOB = 0, totSemester = 0;
   for (let m = 1; m <= 12; m++) {
     let obMonth = m - 1, obYear = y;
     if (obMonth === 0) { obMonth = 12; obYear--; }
     const obData = getOBForMonth(obYear, obMonth, lag);
-    const ob1Amt = f2(obData.ob1 * o1r);
-    const ob2Amt = f2(obData.ob2 * o2r);
-    const ob3Amt = f2(obData.ob3 * o3r);
+    const ob1Amt = f2(obData.ob1 * o1r), ob2Amt = f2(obData.ob2 * o2r), ob3Amt = f2(obData.ob3 * o3r);
     const mOB = f2(ob1Amt + ob2Amt + ob3Amt);
     totOB += mOB;
     const vacDays = countVacationDaysInMonth(obYear, obMonth);
@@ -546,64 +495,43 @@ function updateYearSummary() {
 }
 
 function updateSettingsLabel() {
-    const profSelect = document.getElementById('profileSelect');
-    const lagSelectEl = document.getElementById('lagSelect');
-    const profName = (profSelect && profSelect.value) ? profSelect.value : '--';
-    const lagName = lagSelectEl && lagSelectEl.selectedIndex >= 0 ? lagSelectEl.options[lagSelectEl.selectedIndex].text : 'Välj lag';
-    const label = document.getElementById('settingsLabel');
-    if (label) label.textContent = 'Profil: ' + profName + ' | Lag: ' + lagName;
+  const profSelect = document.getElementById('profileSelect');
+  const lagSelectEl = document.getElementById('lagSelect');
+  const profName = (profSelect && profSelect.value) ? profSelect.value : '--';
+  const lagName = lagSelectEl && lagSelectEl.selectedIndex >= 0 ? lagSelectEl.options[lagSelectEl.selectedIndex].text : 'Välj lag';
+  const label = document.getElementById('settingsLabel');
+  if (label) label.textContent = 'Profil: ' + profName + ' | Lag: ' + lagName;
 }
 
 function toggleSettings() {
-    const c = document.getElementById('settingsContent');
-    const a = document.getElementById('settingsArrow');
-    if (c) {
-        c.classList.toggle('open');
-        if (a) a.textContent = c.classList.contains('open') ? '▲' : '▼';
-    }
+  const c = document.getElementById('settingsContent');
+  const a = document.getElementById('settingsArrow');
+  if (c) { c.classList.toggle('open'); a.textContent = c.classList.contains('open') ? '▲' : '▼'; }
 }
 
 let obChartInstance = null;
 function renderOBChart() {
-    const lag = lagSelect.value;
-    if (lag === 'manual' || lag === '') return;
-    const year = parseInt(yearSelect.value);
-    const bs = p(salaryInput.value) || 0;
-    const da = f2(bs * DRIFT / 100);
-    const obBase = bs + da;
-    const o1r = f2(obBase / O1D);
-    const o2r = f2(obBase / O2D);
-    const o3r = f2(obBase / O3D);
-    const labels = []; const data = [];
-    for (let m = 1; m <= 12; m++) {
-        const obData = getOBForMonth(year, m, lag);
-        const amount = f2(obData.ob1 * o1r + obData.ob2 * o2r + obData.ob3 * o3r);
-        labels.push(MONTHS[m-1]); data.push(amount);
-    }
-    const ctx = document.getElementById('obChart');
-    if (!ctx) return;
-    if (obChartInstance) obChartInstance.destroy();
-    obChartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'OB‑ersättning (kr)',
-                data: data,
-                backgroundColor: 'rgba(88,166,255,0.6)',
-                borderColor: 'rgba(88,166,255,1)',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            scales: {
-                y: { beginAtZero: true, ticks: { color: '#8b949e' } },
-                x: { ticks: { color: '#8b949e' } }
-            },
-            plugins: { legend: { labels: { color: '#8b949e' } } }
-        }
-    });
+  const lag = lagSelect.value;
+  if (lag === 'manual' || lag === '') return;
+  const year = parseInt(yearSelect.value);
+  const bs = p(salaryInput.value) || 0;
+  const da = f2(bs * DRIFT / 100);
+  const obBase = bs + da;
+  const o1r = f2(obBase / O1D), o2r = f2(obBase / O2D), o3r = f2(obBase / O3D);
+  const labels = []; const data = [];
+  for (let m = 1; m <= 12; m++) {
+    const obData = getOBForMonth(year, m, lag);
+    const amount = f2(obData.ob1 * o1r + obData.ob2 * o2r + obData.ob3 * o3r);
+    labels.push(MONTHS[m-1]); data.push(amount);
+  }
+  const ctx = document.getElementById('obChart');
+  if (!ctx) return;
+  if (obChartInstance) obChartInstance.destroy();
+  obChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: labels, datasets: [{ label: 'OB‑ersättning (kr)', data: data, backgroundColor: 'rgba(88,166,255,0.6)', borderColor: 'rgba(88,166,255,1)', borderWidth: 1 }] },
+    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { color: '#8b949e' } }, x: { ticks: { color: '#8b949e' } } }, plugins: { legend: { labels: { color: '#8b949e' } } } }
+  });
 }
 
 function populateSelectors(){
@@ -634,9 +562,7 @@ let lagSelect=document.getElementById('lagSelect'), salaryInput=document.getElem
     obLockToggle=document.getElementById('obLockToggle'), overviewTotalNet=document.getElementById('overviewTotalNet');
 
 lagSelect.addEventListener('change', function() {
-  fromvaroMap.clear();
-  vacationOverrideMap.clear();
-  shiftOverrideMap.clear();
+  fromvaroMap.clear(); vacationOverrideMap.clear(); shiftOverrideMap.clear();
   updateUI();
 });
 
@@ -651,18 +577,14 @@ ftpDays.addEventListener('change',updateUI); sgiInput.addEventListener('input',u
 obLockToggle.addEventListener('change',updateUI);
 
 [ob1Hours, ob2Hours, ob3Hours].forEach(function(field) {
-  field.addEventListener('input', function() {
-    if (!obLockToggle.checked) { manualOBOverride = true; }
-  });
+  field.addEventListener('input', function() { if (!obLockToggle.checked) manualOBOverride = true; });
 });
 
 (function() {
-    const savedTheme = localStorage.getItem('theme') || 'dark';
-    const isDark = (savedTheme === 'dark');
-    const html = document.documentElement;
-    html.setAttribute('data-theme', isDark ? 'dark' : 'light');
-    const checkbox = document.getElementById('themeToggleCheckbox');
-    if (checkbox) checkbox.checked = isDark;
+  const savedTheme = localStorage.getItem('theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', savedTheme === 'dark' ? 'dark' : 'light');
+  const checkbox = document.getElementById('themeToggleCheckbox');
+  if (checkbox) checkbox.checked = savedTheme === 'dark';
 })();
 
 populateSelectors();
@@ -671,17 +593,9 @@ const savedAutosave = localStorage.getItem(AUTOSAVE_KEY);
 if (savedAutosave) {
   try {
     const state = JSON.parse(savedAutosave);
-    if (typeof applyState === 'function') {
-      applyState(state);
-    } else {
-      updateUI();
-    }
-  } catch(e) {
-    updateUI();
-  }
-} else {
-  updateUI();
-}
+    applyState(state);
+  } catch(e) { updateUI(); }
+} else { updateUI(); }
 
 window.setFromvaro=setFromvaro; window.changeShift=changeShift; window.resetSchema=resetSchema;
 window.resetAllShifts=resetAllShifts; window.toggleExpand=toggleExpand;
@@ -701,7 +615,7 @@ window.obLockToggle = obLockToggle;
 document.querySelectorAll('.numeric-only').forEach(function(field) {
   field.addEventListener('input', function() {
     this.value = this.value.replace(/[^0-9.,]/g, '');
-    if (this.value.includes(',')) { this.value = this.value.replace(',', '.'); }
+    if (this.value.includes(',')) this.value = this.value.replace(',', '.');
     if (field.classList.contains('numeric-hours')) {
       var match = this.value.match(/^(\d{0,3})(\.\d{0,2})?/);
       this.value = match ? match[0] : '';
@@ -709,4 +623,5 @@ document.querySelectorAll('.numeric-only').forEach(function(field) {
   });
 });
 
+updateProfileList();
 });
