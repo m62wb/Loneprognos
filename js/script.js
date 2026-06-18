@@ -591,7 +591,9 @@ let lagSelect=document.getElementById('lagSelect'), salaryInput=document.getElem
     yearSummaryYear=document.getElementById('yearSummaryYear'), yearSummaryGrid=document.getElementById('yearSummaryGrid'),
     obLockToggle=document.getElementById('obLockToggle'), overviewTotalNet=document.getElementById('overviewTotalNet');
 
+// ---- Lagbyte rensar hela schemat (förutom under profilladdning) ----
 lagSelect.addEventListener('change', function() {
+  if (isLoadingProfile) return;
   fromvaroMap.clear();
   vacationOverrideMap.clear();
   shiftOverrideMap.clear();
