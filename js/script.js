@@ -29,7 +29,6 @@ function getMondayOfISOWeek(w, year) {
   return monday;
 }
 
-// ---- Flagga för att förhindra lagbyte-rensning under profilladdning ----
 window.isLoadingProfile = false;
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -61,6 +60,30 @@ function countVacationDaysInMonth(year, month) {
   }
   return cnt;
 }
+
+// ---------- NYA HJÄLPARE FÖR VAB/FÖRÄLDRALEDIG PER MÅNAD ----------
+function countVABDaysInMonth(year, month) {
+  const daysInMonth = new Date(year, month, 0).getDate();
+  let cnt = 0;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(year, month - 1, d);
+    const key = date.toISOString().split('T')[0];
+    if (fromvaroMap.get(key) === 2) cnt++;
+  }
+  return cnt;
+}
+
+function countParentalDaysInMonth(year, month) {
+  const daysInMonth = new Date(year, month, 0).getDate();
+  let cnt = 0;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(year, month - 1, d);
+    const key = date.toISOString().split('T')[0];
+    if (fromvaroMap.get(key) === 3) cnt++;
+  }
+  return cnt;
+}
+// -----------------------------------------------------------------
 
 function setFromvaro(dateStr, value){
   const date = new Date(dateStr);
@@ -96,12 +119,12 @@ function calculateEverything() {
   const extraSick = (karensDays > 0 || p(sickHours.value) > 0) ? p(sickHours.value) : 0;
   const sickVisible = karensDays > 0 || extraSick > 0;
 
-  const vabD = [...fromvaroMap.values()].filter(v => v === 2).length;
-  const parentalD = [...fromvaroMap.values()].filter(v => v === 3).length;
-  const totalVABParental = vabD + parentalD;
-
+  // VAB och föräldraledig räknas nu endast i föregående månad (samma som OB)
   let obYear = selectedYear, obMonth = selectedMonth - 1;
   if (obMonth === 0) { obMonth = 12; obYear--; }
+  const vabD = countVABDaysInMonth(obYear, obMonth);
+  const parentalD = countParentalDaysInMonth(obYear, obMonth);
+  const totalVABParental = vabD + parentalD;
   const vacationCount = countVacationDaysInMonth(obYear, obMonth);
 
   const driftAddition = f2(baseSalary * DRIFT / 100);
@@ -136,6 +159,7 @@ function calculateEverything() {
   const vabParentalHours = totalVABParental * VAB_HPD;
   const vabParentalDeduction = f2(vabParentalHours * sickRate100);
 
+  // FK-ersättningar baseras också på samma månad
   const sgiVab = Math.min(sgiVal, SGI_TAK_VAB);
   const sgiVabDay = f2(sgiVab / 365 * 0.8);
   const fkVabTotal = f2(vabD * sgiVabDay);
@@ -243,6 +267,7 @@ function calculateEverything() {
     netSalary, netSalaryExact, utjämning
   };
 }
+
 
 function renderUI(data) {
   const lagName = {A:'Lag A',B:'Lag B',C:'Lag C',D:'Lag D',E:'Lag E'}[data.lag] || 'Manuell';
