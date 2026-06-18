@@ -61,7 +61,6 @@ function countVacationDaysInMonth(year, month) {
   return cnt;
 }
 
-// ---------- NYA HJÄLPARE FÖR VAB/FÖRÄLDRALEDIG PER MÅNAD ----------
 function countVABDaysInMonth(year, month) {
   const daysInMonth = new Date(year, month, 0).getDate();
   let cnt = 0;
@@ -83,7 +82,6 @@ function countParentalDaysInMonth(year, month) {
   }
   return cnt;
 }
-// -----------------------------------------------------------------
 
 function setFromvaro(dateStr, value){
   const date = new Date(dateStr);
@@ -119,7 +117,6 @@ function calculateEverything() {
   const extraSick = (karensDays > 0 || p(sickHours.value) > 0) ? p(sickHours.value) : 0;
   const sickVisible = karensDays > 0 || extraSick > 0;
 
-  // VAB och föräldraledig räknas nu endast i föregående månad (samma som OB)
   let obYear = selectedYear, obMonth = selectedMonth - 1;
   if (obMonth === 0) { obMonth = 12; obYear--; }
   const vabD = countVABDaysInMonth(obYear, obMonth);
@@ -159,7 +156,6 @@ function calculateEverything() {
   const vabParentalHours = totalVABParental * VAB_HPD;
   const vabParentalDeduction = f2(vabParentalHours * sickRate100);
 
-  // FK-ersättningar baseras också på samma månad
   const sgiVab = Math.min(sgiVal, SGI_TAK_VAB);
   const sgiVabDay = f2(sgiVab / 365 * 0.8);
   const fkVabTotal = f2(vabD * sgiVabDay);
@@ -181,9 +177,7 @@ function calculateEverything() {
   const totalErsattningNetto = f2(fkVabNet + fkFpNet + fkFptNet);
 
   let autoOB = null;
-  if (isAuto) {
-    autoOB = getOBForMonth(obYear, obMonth, lag);
-  }
+  if (isAuto) { autoOB = getOBForMonth(obYear, obMonth, lag); }
 
   if (isAuto && (lag !== lastAutoLag || obYear !== lastAutoYear || obMonth !== lastAutoMonth)) {
     manualOBOverride = false;
@@ -205,9 +199,7 @@ function calculateEverything() {
   } else {
     if (isAuto && !lockEnabled) {
       const c1 = p(ob1Hours.value), c2 = p(ob2Hours.value), c3 = p(ob3Hours.value);
-      if (Math.abs(c1 - lastAutoOB.ob1) > 0.001 || Math.abs(c2 - lastAutoOB.ob2) > 0.001 || Math.abs(c3 - lastAutoOB.ob3) > 0.001) {
-        manualOBOverride = true;
-      }
+      if (Math.abs(c1 - lastAutoOB.ob1) > 0.001 || Math.abs(c2 - lastAutoOB.ob2) > 0.001 || Math.abs(c3 - lastAutoOB.ob3) > 0.001) manualOBOverride = true;
       if (!manualOBOverride) {
         ob1Hours.value = fd(autoOB.ob1, 2); ob2Hours.value = fd(autoOB.ob2, 2); ob3Hours.value = fd(autoOB.ob3, 2);
       }
@@ -218,22 +210,14 @@ function calculateEverything() {
   }
 
   const otH = p(otHours.value), otEnkelH = p(otEnkelHours.value);
-
-  const ob1Amount = f2(obData.ob1 * ob1RateExact);
-  const ob2Amount = f2(obData.ob2 * ob2RateExact);
-  const ob3Amount = f2(obData.ob3 * ob3RateExact);
-  const otAmount  = f2(otH * otRateExact);
-  const otEnkelAmount = f2(otEnkelH * otEnkelRateExact);
+  const ob1Amount = f2(obData.ob1 * ob1RateExact), ob2Amount = f2(obData.ob2 * ob2RateExact), ob3Amount = f2(obData.ob3 * ob3RateExact);
+  const otAmount  = f2(otH * otRateExact), otEnkelAmount = f2(otEnkelH * otEnkelRateExact);
   const totalOBOnly = f2(ob1Amount + ob2Amount + ob3Amount);
   const totalOBOnlyHours = obData.ob1 + obData.ob2 + obData.ob3;
   const totalOB = f2(totalOBOnly + otAmount + otEnkelAmount);
 
-  const sjukOb1H = sickVisible ? p(sjukOb1Hours.value) : 0;
-  const sjukOb2H = sickVisible ? p(sjukOb2Hours.value) : 0;
-  const sjukOb3H = sickVisible ? p(sjukOb3Hours.value) : 0;
-  const sjukOb1Gain = f2(sjukOb1H * ob1RateExact * 0.8);
-  const sjukOb2Gain = f2(sjukOb2H * ob2RateExact * 0.8);
-  const sjukOb3Gain = f2(sjukOb3H * ob3RateExact * 0.8);
+  const sjukOb1H = sickVisible ? p(sjukOb1Hours.value) : 0, sjukOb2H = sickVisible ? p(sjukOb2Hours.value) : 0, sjukOb3H = sickVisible ? p(sjukOb3Hours.value) : 0;
+  const sjukOb1Gain = f2(sjukOb1H * ob1RateExact * 0.8), sjukOb2Gain = f2(sjukOb2H * ob2RateExact * 0.8), sjukOb3Gain = f2(sjukOb3H * ob3RateExact * 0.8);
   const totalSjukOBGain = f2(sjukOb1Gain + sjukOb2Gain + sjukOb3Gain);
 
   const totalBeforeDeductions = f2(obGroundingBase + totalOB + semesterTillagg);
@@ -242,7 +226,6 @@ function calculateEverything() {
 
   const taxExact = taxFromTable33Col1(jobbBruttoExact, selectedYear);
   const tax = f2(taxExact);
-
   const netSalaryExact = f2(jobbBruttoExact - taxExact - calcUnion(jobbBrutto) + totalErsattningNetto);
   const netSalary = Math.round(netSalaryExact);
   const utjämning = f2(netSalary - netSalaryExact);
@@ -267,6 +250,13 @@ function calculateEverything() {
     netSalary, netSalaryExact, utjämning
   };
 }
+
+
+// ===== VIKTIG ÄNDRING: lagSelect rensar INTE schemat längre =====
+lagSelect.addEventListener('change', updateUI);
+// ================================================================
+
+// ... (resterande event listeners etc.)
 
 
 function renderUI(data) {
