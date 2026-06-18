@@ -1,3 +1,5 @@
+const AUTOSAVE_KEY = 'loneprognos_autosave_v1';
+
 // ========================
 // HJÄLPFUNKTIONER & KONSTANTER
 // ========================
@@ -11,16 +13,11 @@ const O1D=460, O2D=260, O3D=150, OTD=72, OTENKELD=94, SY=2024, EY=2036;
 const PBB=59200, SGI_TAK_PARENTAL=10*PBB, SGI_TAK_VAB=7.5*PBB, FK_SKATT=0.30;
 const MONTHS = ['Januari','Februari','Mars','April','Maj','Juni','Juli','Augusti','September','Oktober','November','December'];
 
-// Globala kartor
-const fromvaroMap = new Map();
-const shiftOverrideMap = new Map();
 let vacationOverrideMap = new Map();
-let manualOBOverride = false;   // exporteras till window senare
+let manualOBOverride = false;
 
-// Fackavgift
 function calcUnion(s){ let f=Math.round(s*UPCT); if(f<UMIN) return UMIN; if(f>UMAX) return UMAX; return f; }
 
-// Veckonummer
 function getWeekNumber(date) {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
   const dayNum = d.getUTCDay() || 7;
@@ -40,18 +37,12 @@ function getMondayOfISOWeek(w, year) {
   return monday;
 }
 
-// Flagga för att förhindra lagbyte-rensning under profilladdning
-window.isLoadingProfile = false;
-
-// ========================
-// AUTOSAVE NYCKEL
-// ========================
-const AUTOSAVE_KEY = 'loneprognos_autosave_v1';
-
 // ========================
 // HUVUDPROGRAM
 // ========================
 document.addEventListener('DOMContentLoaded', function() {
+
+let isLoadingProfile = false;
 
 function applyIndustrialVacation(year, lag) {
   if (!['A','B','C','D','E'].includes(lag)) return;
@@ -642,9 +633,7 @@ let lagSelect=document.getElementById('lagSelect'), salaryInput=document.getElem
     yearSummaryYear=document.getElementById('yearSummaryYear'), yearSummaryGrid=document.getElementById('yearSummaryGrid'),
     obLockToggle=document.getElementById('obLockToggle'), overviewTotalNet=document.getElementById('overviewTotalNet');
 
-// ---- Lagbyte rensar schemat (blockeras under profilladdning) ----
 lagSelect.addEventListener('change', function() {
-  if (window.isLoadingProfile) return;
   fromvaroMap.clear();
   vacationOverrideMap.clear();
   shiftOverrideMap.clear();
@@ -678,13 +667,11 @@ obLockToggle.addEventListener('change',updateUI);
 
 populateSelectors();
 
-// Autosave-laddning
 const savedAutosave = localStorage.getItem(AUTOSAVE_KEY);
 if (savedAutosave) {
   try {
     const state = JSON.parse(savedAutosave);
     if (typeof applyState === 'function') {
-      window.isLoadingProfile = true;
       applyState(state);
     } else {
       updateUI();
@@ -696,7 +683,6 @@ if (savedAutosave) {
   updateUI();
 }
 
-// Exponera funktioner och variabler globalt
 window.setFromvaro=setFromvaro; window.changeShift=changeShift; window.resetSchema=resetSchema;
 window.resetAllShifts=resetAllShifts; window.toggleExpand=toggleExpand;
 window.toggleYearSummary=toggleYearSummary; window.toggleVAB=toggleVAB; window.toggleOB=toggleOB;
