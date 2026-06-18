@@ -2,6 +2,14 @@ const AUTOSAVE_KEY = 'loneprognos_autosave_v1';
 
 document.addEventListener('DOMContentLoaded', function() {
 
+// ---- Lokal flagga för att förhindra lagbyte-rensning under profilladdning ----
+let isLoadingProfile = false;
+
+// Gör den tillgänglig för storage.js via window om den inte redan finns
+if (typeof window.isLoadingProfile === 'undefined') {
+  window.isLoadingProfile = isLoadingProfile;
+}
+
 function applyIndustrialVacation(year, lag) {
   if (!['A','B','C','D','E'].includes(lag)) return;
   for (let w = 28; w <= 31; w++) {
@@ -591,7 +599,7 @@ let lagSelect=document.getElementById('lagSelect'), salaryInput=document.getElem
     yearSummaryYear=document.getElementById('yearSummaryYear'), yearSummaryGrid=document.getElementById('yearSummaryGrid'),
     obLockToggle=document.getElementById('obLockToggle'), overviewTotalNet=document.getElementById('overviewTotalNet');
 
-// ---- Lagbyte rensar hela schemat (förutom under profilladdning) ----
+// ---- Lagbyte rensar hela schemat (utom under profilladdning) ----
 lagSelect.addEventListener('change', function() {
   if (isLoadingProfile) return;
   fromvaroMap.clear();
@@ -632,6 +640,7 @@ if (savedAutosave) {
   try {
     const state = JSON.parse(savedAutosave);
     if (typeof applyState === 'function') {
+      isLoadingProfile = true;
       applyState(state);
     } else {
       updateUI();
