@@ -572,9 +572,10 @@ let lagSelect=document.getElementById('lagSelect'), salaryInput=document.getElem
     obLockToggle=document.getElementById('obLockToggle'), overviewTotalNet=document.getElementById('overviewTotalNet');
 
 // ---- Lagbyte triggar bara updateUI (rensar inte schemat) ----
-lagSelect.addEventListener('change', updateUI);
+lagSelect.addEventListener('change', updateUI);   // <-- måste stå HÄR, efter deklarationen
 
 salaryInput.addEventListener('input',updateUI);
+// ... resten av event listeners
 yearSelect.addEventListener('change',updateUI); monthSelect.addEventListener('change',updateUI);
 karensSelect.addEventListener('change',updateUI); otHours.addEventListener('input',updateUI);
 otEnkelHours.addEventListener('input',updateUI); ob1Hours.addEventListener('input',updateUI);
