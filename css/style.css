@@ -204,6 +204,9 @@ td select {
     background: rgba(137, 207, 240, 0.35);   /* baby blue */
 }
 
+.row-vab td:not(:first-child) {
+    background: rgba(255,20,147,0.35) !important;   /* tydlig rosa */
+}
 .row-parental td:not(:first-child) {
     background: rgba(189,224,254,0.30);             /* föräldraledig – ljusblå (#BDE0FE) */
 }
