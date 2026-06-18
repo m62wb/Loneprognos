@@ -2,13 +2,8 @@ const AUTOSAVE_KEY = 'loneprognos_autosave_v1';
 
 document.addEventListener('DOMContentLoaded', function() {
 
-// ---- Lokal flagga för att förhindra lagbyte-rensning under profilladdning ----
-let isLoadingProfile = false;
-
-// Gör den tillgänglig för storage.js via window om den inte redan finns
-if (typeof window.isLoadingProfile === 'undefined') {
-  window.isLoadingProfile = isLoadingProfile;
-}
+// Global flagga för att stoppa lagbyte‑rensning under profilladdning
+window.isLoadingProfile = false;
 
 function applyIndustrialVacation(year, lag) {
   if (!['A','B','C','D','E'].includes(lag)) return;
@@ -601,7 +596,7 @@ let lagSelect=document.getElementById('lagSelect'), salaryInput=document.getElem
 
 // ---- Lagbyte rensar hela schemat (utom under profilladdning) ----
 lagSelect.addEventListener('change', function() {
-  if (isLoadingProfile) return;
+  if (window.isLoadingProfile) return;
   fromvaroMap.clear();
   vacationOverrideMap.clear();
   shiftOverrideMap.clear();
@@ -640,7 +635,7 @@ if (savedAutosave) {
   try {
     const state = JSON.parse(savedAutosave);
     if (typeof applyState === 'function') {
-      isLoadingProfile = true;
+      window.isLoadingProfile = true;
       applyState(state);
     } else {
       updateUI();
