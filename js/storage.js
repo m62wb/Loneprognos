@@ -35,13 +35,13 @@ function getCurrentState() {
 }
 
 function applyState(state) {
-  // Blockera lagSelect-lyssnaren via den globala flaggan
+  // Sätt flaggan INNAN vi ändrar lagSelect
   if (typeof window.isLoadingProfile !== 'undefined') {
     window.isLoadingProfile = true;
   }
 
   salaryInput.value = state.salary;
-  lagSelect.value = state.lag;
+  lagSelect.value = state.lag;         // <-- nu blockeras rensningen
   karensSelect.value = state.karensDays;
   sickHours.value = state.sickHours || '';
   sjukOb1Hours.value = state.sjukOb1 || '';
