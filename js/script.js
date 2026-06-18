@@ -29,6 +29,9 @@ function getMondayOfISOWeek(w, year) {
   return monday;
 }
 
+// ---- Flagga för att förhindra lagbyte-rensning under profilladdning ----
+window.isLoadingProfile = false;
+
 document.addEventListener('DOMContentLoaded', function() {
 
 function applyIndustrialVacation(year, lag) {
@@ -561,7 +564,9 @@ let lagSelect=document.getElementById('lagSelect'), salaryInput=document.getElem
     yearSummaryYear=document.getElementById('yearSummaryYear'), yearSummaryGrid=document.getElementById('yearSummaryGrid'),
     obLockToggle=document.getElementById('obLockToggle'), overviewTotalNet=document.getElementById('overviewTotalNet');
 
+// ---- Lagbyte rensar schemat (utom under profilladdning) ----
 lagSelect.addEventListener('change', function() {
+  if (window.isLoadingProfile) return;
   fromvaroMap.clear(); vacationOverrideMap.clear(); shiftOverrideMap.clear();
   updateUI();
 });
