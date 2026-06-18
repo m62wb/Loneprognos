@@ -4,6 +4,7 @@ const shiftOverrideMap = new Map();
 
 // ---- Datumhjälpfunktioner ----
 function daysBetween(d1, d2) {
+  // Returnerar antal dagar mellan d1 och d2 (kan vara negativt om d2 < d1)
   return Math.floor((Date.UTC(d2.getFullYear(), d2.getMonth(), d2.getDate()) -
                      Date.UTC(d1.getFullYear(), d1.getMonth(), d1.getDate())) / 86400000);
 }
@@ -20,39 +21,55 @@ function getDSTAdjustment(date) {
 }
 
 // ---- Schema för Lag A ----
-const startA = new Date(2025, 11, 29);
+const startA = new Date(2025, 11, 29); // 29 dec 2025
 const cycleA = [0,0,0,0,2,2,2,0,0,0,1,1,0,0,2,2,0,0,0,1,1,0,0,2,2,0,0,0,1,1,1,0,0,0,0];
-let scheduleA = {};
-for (let i = 0; i < 365 * 15; i++) scheduleA[i] = cycleA[i % cycleA.length];
-function getShiftA(date) { let d = daysBetween(startA, date); return d < 0 ? 0 : scheduleA[d] || 0; }
+function getShiftA(date) {
+  let d = daysBetween(startA, date); // negativt före start
+  let len = cycleA.length;
+  // Modulo som fungerar för negativa tal
+  let idx = ((d % len) + len) % len;
+  return cycleA[idx];
+}
 
 // ---- Schema för Lag B ----
 const startB = new Date(2025, 11, 29);
 const cycleB = [0,0,0,1,1,0,0,2,2,0,0,0,1,1,0,0,2,2,0,0,0,1,1,1,0,0,0,0,0,0,0,0,2,2,2];
-let scheduleB = {};
-for (let i = 0; i < 365 * 15; i++) scheduleB[i] = cycleB[i % cycleB.length];
-function getShiftB(date) { let d = daysBetween(startB, date); return d < 0 ? 0 : scheduleB[d] || 0; }
+function getShiftB(date) {
+  let d = daysBetween(startB, date);
+  let len = cycleB.length;
+  let idx = ((d % len) + len) % len;
+  return cycleB[idx];
+}
 
 // ---- Schema för Lag C ----
 const startC = new Date(2025, 11, 29);
 const cycleC = [2,2,0,0,0,1,1,0,0,2,2,0,0,0,1,1,1,0,0,0,0,0,0,0,0,2,2,2,0,0,0,1,1,0,0];
-let scheduleC = {};
-for (let i = 0; i < 365 * 15; i++) scheduleC[i] = cycleC[i % cycleC.length];
-function getShiftC(date) { let d = daysBetween(startC, date); return d < 0 ? 0 : scheduleC[d] || 0; }
+function getShiftC(date) {
+  let d = daysBetween(startC, date);
+  let len = cycleC.length;
+  let idx = ((d % len) + len) % len;
+  return cycleC[idx];
+}
 
 // ---- Schema för Lag D ----
 const startD = new Date(2025, 11, 29);
 const cycleD = [0,0,2,2,0,0,0,1,1,1,0,0,0,0,0,0,0,2,2,2,0,0,0,1,1,0,0,2,2,0,0,0,1,1,0];
-let scheduleD = {};
-for (let i = 0; i < 365 * 15; i++) scheduleD[i] = cycleD[i % cycleD.length];
-function getShiftD(date) { let d = daysBetween(startD, date); return d < 0 ? 0 : scheduleD[d] || 0; }
+function getShiftD(date) {
+  let d = daysBetween(startD, date);
+  let len = cycleD.length;
+  let idx = ((d % len) + len) % len;
+  return cycleD[idx];
+}
 
 // ---- Schema för Lag E ----
-const startE = new Date(2026, 0, 1);
+const startE = new Date(2026, 0, 1); // 1 jan 2026
 const cycleE = [0,0,0,0,0,0,0,0,2,2,2,0,0,0,1,1,0,0,2,2,0,0,0,1,1,0,0,2,2,0,0,0,1,1,1];
-let scheduleE = {};
-for (let i = 0; i < 365 * 15; i++) scheduleE[i] = cycleE[i % cycleE.length];
-function getShiftE(date) { let d = daysBetween(startE, date); return d < 0 ? 0 : scheduleE[d] || 0; }
+function getShiftE(date) {
+  let d = daysBetween(startE, date);
+  let len = cycleE.length;
+  let idx = ((d % len) + len) % len;
+  return cycleE[idx];
+}
 
 // ---- Huvudfunktion för att hämta skift ----
 function getOrdinaryShift(date, lag) {
@@ -118,7 +135,6 @@ function isPermissionDay(date, lag) {
 }
 
 // ============ EXAKT OB3‑BERÄKNING (timmar) ============
-
 function getOB3Hours(date, shift) {
   if (shift === 0) return 0;
   const y = date.getFullYear();
@@ -212,7 +228,7 @@ function getOB3Hours(date, shift) {
 function calcOB(date, shift, lag) {
   if (isPermissionDay(date, lag) || shift === 0) return {ob1:0, ob2:0, ob3:0};
 
-  const ob3 = Math.round(getOB3Hours(date, shift) * 100) / 100;  // 2 decimaler
+  const ob3 = Math.round(getOB3Hours(date, shift) * 100) / 100;
   if (ob3 > 0) {
     return {ob1:0, ob2:0, ob3};
   }
@@ -246,27 +262,43 @@ function getOBForMonth(year, month, lag) {
   return {ob1:to1, ob2:to2, ob3:to3};
 }
 
-// ---- Stationer för lag E ----
+// ---- Stationer för lag E (fungerar nu även bakåt i tiden) ----
 const stationsE = ['Reaktorn', 'Dian', 'Spray'];
 const initials = ['B', 'Y', 'M'];
-const refStation = new Date(2026, 5, 9);
+const refStation = new Date(2026, 5, 9);  // referensdatum för rotation
 
 function countWorkShiftsUntil(date, lag) {
-  let cnt = 0, d = new Date(refStation);
-  while (daysBetween(d, date) > 0) {
-    let sh = getShift(d, lag);
-    if (sh > 0 && !isPermissionDay(d, lag)) cnt++;
-    d.setDate(d.getDate() + 1);
+  // Räkna antal arbetspass från refStation till och med dagen före date
+  let cnt = 0;
+  if (date >= refStation) {
+    let d = new Date(refStation);
+    while (daysBetween(d, date) > 0) {
+      let sh = getShift(d, lag);
+      if (sh > 0 && !isPermissionDay(d, lag)) cnt++;
+      d.setDate(d.getDate() + 1);
+    }
+  } else {
+    // date ligger före refStation – räkna bakåt
+    let d = new Date(refStation);
+    d.setDate(d.getDate() - 1); // börja dagen innan refStation
+    while (daysBetween(date, d) > 0) {
+      let sh = getShift(d, lag);
+      if (sh > 0 && !isPermissionDay(d, lag)) cnt++;
+      d.setDate(d.getDate() - 1);
+    }
+    // Gör cnt negativt eftersom vi räknat bakåt
+    cnt = -cnt;
   }
   return cnt;
 }
 
 function getStationE(date, shift, lag) {
   if (shift === 0 || isPermissionDay(date, lag)) return '-';
-  let ws = countWorkShiftsUntil(date, lag),
-      idx = ws % 3,
-      yidx = (idx + 1) % 3,
-      midx = (idx + 2) % 3;
+  let ws = countWorkShiftsUntil(date, lag);
+  // ws kan vara negativt för datum före refStation, modulo måste hantera det
+  let idx = ((ws % 3) + 3) % 3;
+  let yidx = (idx + 1) % 3;
+  let midx = (idx + 2) % 3;
   let bp = stationsE[idx] + '(' + initials[0] + ')',
       yp = stationsE[yidx] + '(' + initials[1] + ')',
       mp = stationsE[midx] + '(' + initials[2] + ')';
