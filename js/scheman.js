@@ -1,6 +1,10 @@
+// ---- Kartor & globala variabler ----
 const fromvaroMap = new Map();
 const shiftOverrideMap = new Map();
+let vacationOverrideMap = new Map();
+let manualOBOverride = false;
 
+// ---- Datumhjälp ----
 function daysBetween(d1, d2) {
   return Math.floor((Date.UTC(d2.getFullYear(), d2.getMonth(), d2.getDate()) -
                      Date.UTC(d1.getFullYear(), d1.getMonth(), d1.getDate())) / 86400000);
@@ -17,25 +21,22 @@ function getDSTAdjustment(date) {
   return 0;
 }
 
+// ---- Skiftscheman ----
 const startA = new Date(2025, 11, 29);
 const cycleA = [0,0,0,0,2,2,2,0,0,0,1,1,0,0,2,2,0,0,0,1,1,0,0,2,2,0,0,0,1,1,1,0,0,0,0];
-function getShiftA(date) { let d = daysBetween(startA, date); return cycleA[((d % cycleA.length) + cycleA.length) % cycleA.length]; }
-
+function getShiftA(date) { let d = daysBetween(startA, date); return cycleA[((d % 35) + 35) % 35]; }
 const startB = new Date(2025, 11, 29);
 const cycleB = [0,0,0,1,1,0,0,2,2,0,0,0,1,1,0,0,2,2,0,0,0,1,1,1,0,0,0,0,0,0,0,0,2,2,2];
-function getShiftB(date) { let d = daysBetween(startB, date); return cycleB[((d % cycleB.length) + cycleB.length) % cycleB.length]; }
-
+function getShiftB(date) { let d = daysBetween(startB, date); return cycleB[((d % 35) + 35) % 35]; }
 const startC = new Date(2025, 11, 29);
 const cycleC = [2,2,0,0,0,1,1,0,0,2,2,0,0,0,1,1,1,0,0,0,0,0,0,0,0,2,2,2,0,0,0,1,1,0,0];
-function getShiftC(date) { let d = daysBetween(startC, date); return cycleC[((d % cycleC.length) + cycleC.length) % cycleC.length]; }
-
+function getShiftC(date) { let d = daysBetween(startC, date); return cycleC[((d % 35) + 35) % 35]; }
 const startD = new Date(2025, 11, 29);
 const cycleD = [0,0,2,2,0,0,0,1,1,1,0,0,0,0,0,0,0,2,2,2,0,0,0,1,1,0,0,2,2,0,0,0,1,1,0];
-function getShiftD(date) { let d = daysBetween(startD, date); return cycleD[((d % cycleD.length) + cycleD.length) % cycleD.length]; }
-
+function getShiftD(date) { let d = daysBetween(startD, date); return cycleD[((d % 35) + 35) % 35]; }
 const startE = new Date(2026, 0, 1);
 const cycleE = [0,0,0,0,0,0,0,0,2,2,2,0,0,0,1,1,0,0,2,2,0,0,0,1,1,0,0,2,2,0,0,0,1,1,1];
-function getShiftE(date) { let d = daysBetween(startE, date); return cycleE[((d % cycleE.length) + cycleE.length) % cycleE.length]; }
+function getShiftE(date) { let d = daysBetween(startE, date); return cycleE[((d % 35) + 35) % 35]; }
 
 function getOrdinaryShift(date, lag) {
   if (lag === 'A') return getShiftA(date);
@@ -52,9 +53,11 @@ function getShift(date, lag) {
   return getOrdinaryShift(date, lag);
 }
 
+// ---- Helgdagar ----
 function getEaster(year) {
-  let a = year % 19, b = Math.floor(year / 100), c = year % 100, d = Math.floor(b / 4), e = b % 4,
-      f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30,
+  let a = year % 19, b = Math.floor(year / 100), c = year % 100,
+      d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25),
+      g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30,
       i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7,
       m = Math.floor((a + 11 * h + 22 * l) / 451), month = Math.floor((h + l - 7 * m + 114) / 31),
       day = ((h + l - 7 * m + 114) % 31) + 1;
@@ -79,6 +82,7 @@ function isPermissionDay(date, lag) {
   return false;
 }
 
+// ---- OB3‑beräkning (rättad) ----
 function getOB3Hours(date, shift) {
   if (shift === 0) return 0;
   const y = date.getFullYear();
@@ -104,8 +108,11 @@ function getOB3Hours(date, shift) {
   h = overlapHours(passStart, passEnd, new Date(nat.setHours(7,0,0,0)), new Date(vnat.setHours(0,0,0,0)));
   if (h > 0) return Math.min(h, 12.25);
 
-  let mid = getMidsummer(y), ma = new Date(mid); ma.setDate(ma.getDate()-1), sd = new Date(mid); sd.setDate(sd.getDate()+1);
-  h = overlapHours(passStart, passEnd, new Date(ma.setHours(7,0,0,0)), new Date(sd.setDate(sd.getDate()+1).setHours(0,0,0,0)));
+  let mid = getMidsummer(y), ma = new Date(mid); ma.setDate(ma.getDate()-1);
+  let sd = new Date(mid); sd.setDate(sd.getDate()+1);
+  sd.setDate(sd.getDate()+1);
+  sd.setHours(0,0,0,0);
+  h = overlapHours(passStart, passEnd, new Date(ma.setHours(7,0,0,0)), sd);
   if (h > 0) return Math.min(h, 12.25);
 
   let jul = new Date(y,11,24), vjul = new Date(y,11,27); while (vjul.getDay()===0||vjul.getDay()===6) vjul.setDate(vjul.getDate()+1);
@@ -142,25 +149,20 @@ function getOBForMonth(year, month, lag) {
   return {ob1:to1, ob2:to2, ob3:to3};
 }
 
+// ---- Stationer Lag E ----
 const stationsE = ['Reaktorn', 'Dian', 'Spray'], initials = ['B', 'Y', 'M'], refStation = new Date(2026, 5, 9);
-
 function countWorkShiftsUntil(date, lag) {
   let cnt = 0;
   if (date >= refStation) {
     let d = new Date(refStation);
-    while (daysBetween(d, date) > 0) {
-      let sh = getShift(d, lag); if (sh > 0 && !isPermissionDay(d, lag)) cnt++; d.setDate(d.getDate()+1);
-    }
+    while (daysBetween(d, date) > 0) { let sh = getShift(d, lag); if (sh > 0 && !isPermissionDay(d, lag)) cnt++; d.setDate(d.getDate()+1); }
   } else {
     let d = new Date(refStation); d.setDate(d.getDate()-1);
-    while (daysBetween(date, d) > 0) {
-      let sh = getShift(d, lag); if (sh > 0 && !isPermissionDay(d, lag)) cnt++; d.setDate(d.getDate()-1);
-    }
+    while (daysBetween(date, d) > 0) { let sh = getShift(d, lag); if (sh > 0 && !isPermissionDay(d, lag)) cnt++; d.setDate(d.getDate()-1); }
     cnt = -cnt;
   }
   return cnt;
 }
-
 function getStationE(date, shift, lag) {
   if (shift === 0 || isPermissionDay(date, lag)) return '-';
   let ws = countWorkShiftsUntil(date, lag), idx = ((ws % 3) + 3) % 3, yidx = (idx + 1) % 3, midx = (idx + 2) % 3;
