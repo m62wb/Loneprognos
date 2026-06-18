@@ -188,29 +188,42 @@ td select {
 }
 
 /* ---------- NYA FÄRGER ---------- */
+/* ========== ARBETSPASS ========== */
 .row-day td:not(:first-child) {
-    background: rgba(63,185,80,0.15) !important;   /* dag – grön */
+    background: #1a3a1a !important;          /* mörk grön */
+}
+[data-theme="light"] .row-day td:not(:first-child) {
+    background: rgba(63,185,80,0.15) !important;
 }
 
 .row-night td:not(:first-child) {
-    background: rgba(255,87,34,0.20) !important;    /* natt – röd (fd VAB-färg) */
+    background: #3a1a1a !important;          /* mörk röd */
+}
+[data-theme="light"] .row-night td:not(:first-child) {
+    background: rgba(255,87,34,0.20) !important;
 }
 
+/* ========== FRÅNVARO ========== */
 .row-vacation td:not(:first-child) {
-    background: rgba(255,193,7,0.2);                /* semester – gul */
+    background: #3a3a1a !important;          /* mörk gul/oliv */
 }
-
-.row-parental td:not(:first-child) {
-    background: rgba(137, 207, 240, 0.35);   /* baby blue */
+[data-theme="light"] .row-vacation td:not(:first-child) {
+    background: rgba(255,193,7,0.20) !important;
 }
 
 .row-vab td:not(:first-child) {
-    background: rgba(255,20,147,0.35) !important;   /* tydlig rosa */
+    background: #4a1a3a !important;          /* mörk rosa/lila */
 }
-.row-parental td:not(:first-child) {
-    background: rgba(189,224,254,0.30);             /* föräldraledig – ljusblå (#BDE0FE) */
+[data-theme="light"] .row-vab td:not(:first-child) {
+    background: rgba(255,20,147,0.25) !important;
 }
 
+.row-parental td:not(:first-child) {
+    background: #1a2a4a !important;          /* mörk baby blue */
+}
+[data-theme="light"] .row-parental td:not(:first-child) {
+    background: rgba(137,207,240,0.35) !important;
+}
 .day-emoji { float: right; margin-left: 4px; font-style: normal; }
 
 td.blue-week-cell { background: rgba(88,166,255,0.08) !important; }
