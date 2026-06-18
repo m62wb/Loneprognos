@@ -31,6 +31,8 @@ function getMondayOfISOWeek(w, year) {
 
 window.isLoadingProfile = false;
 
+// OBS! vacationOverrideMap ägs av scheman.js – ingen deklaration här.
+
 document.addEventListener('DOMContentLoaded', function() {
 
 function applyIndustrialVacation(year, lag) {
@@ -419,7 +421,7 @@ function autoSaveState() {
 }
 
 function updateUI() {
-  applyIndustrialVacation(parseInt(yearSelect.value), lagSelect.value);
+  // Industrisemester appliceras INTE här längre – användarens val respekteras
   const data = calculateEverything();
   renderUI(data);
   updateSettingsLabel();
@@ -571,11 +573,9 @@ let lagSelect=document.getElementById('lagSelect'), salaryInput=document.getElem
     yearSummaryYear=document.getElementById('yearSummaryYear'), yearSummaryGrid=document.getElementById('yearSummaryGrid'),
     obLockToggle=document.getElementById('obLockToggle'), overviewTotalNet=document.getElementById('overviewTotalNet');
 
-// ---- Lagbyte triggar bara updateUI (rensar inte schemat) ----
-lagSelect.addEventListener('change', updateUI);   // <-- måste stå HÄR, efter deklarationen
+lagSelect.addEventListener('change', updateUI);
 
 salaryInput.addEventListener('input',updateUI);
-// ... resten av event listeners
 yearSelect.addEventListener('change',updateUI); monthSelect.addEventListener('change',updateUI);
 karensSelect.addEventListener('change',updateUI); otHours.addEventListener('input',updateUI);
 otEnkelHours.addEventListener('input',updateUI); ob1Hours.addEventListener('input',updateUI);
@@ -598,13 +598,20 @@ obLockToggle.addEventListener('change',updateUI);
 
 populateSelectors();
 
+// ---- Autosave-laddning och initial semester ----
 const savedAutosave = localStorage.getItem(AUTOSAVE_KEY);
 if (savedAutosave) {
   try {
     const state = JSON.parse(savedAutosave);
     applyState(state);
   } catch(e) { updateUI(); }
-} else { updateUI(); }
+} else {
+  // Ingen sparad data – applicera industrisemester och kör gränssnittet
+  if (lagSelect.value && lagSelect.value !== 'manual') {
+    applyIndustrialVacation(parseInt(yearSelect.value), lagSelect.value);
+  }
+  updateUI();
+}
 
 window.setFromvaro=setFromvaro; window.changeShift=changeShift; window.resetSchema=resetSchema;
 window.resetAllShifts=resetAllShifts; window.toggleExpand=toggleExpand;
