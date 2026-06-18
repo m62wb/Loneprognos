@@ -31,8 +31,6 @@ function getMondayOfISOWeek(w, year) {
 
 window.isLoadingProfile = false;
 
-// OBS! vacationOverrideMap ägs av scheman.js – ingen deklaration här.
-
 document.addEventListener('DOMContentLoaded', function() {
 
 function applyIndustrialVacation(year, lag) {
@@ -181,13 +179,15 @@ function calculateEverything() {
   let autoOB = null;
   if (isAuto) { autoOB = getOBForMonth(obYear, obMonth, lag); }
 
+  // Tvinga fram uppdatering av OB-fälten
+  if (autoOB) {
+    ob1Hours.value = fd(autoOB.ob1, 2);
+    ob2Hours.value = fd(autoOB.ob2, 2);
+    ob3Hours.value = fd(autoOB.ob3, 2);
+  }
+
   if (isAuto && (lag !== lastAutoLag || obYear !== lastAutoYear || obMonth !== lastAutoMonth)) {
     manualOBOverride = false;
-    if (autoOB) {
-      ob1Hours.value = fd(autoOB.ob1, 2);
-      ob2Hours.value = fd(autoOB.ob2, 2);
-      ob3Hours.value = fd(autoOB.ob3, 2);
-    }
   }
   lastAutoLag = lag; lastAutoYear = obYear; lastAutoMonth = obMonth;
   if (!isAuto) manualOBOverride = false;
@@ -202,9 +202,6 @@ function calculateEverything() {
     if (isAuto && !lockEnabled) {
       const c1 = p(ob1Hours.value), c2 = p(ob2Hours.value), c3 = p(ob3Hours.value);
       if (Math.abs(c1 - lastAutoOB.ob1) > 0.001 || Math.abs(c2 - lastAutoOB.ob2) > 0.001 || Math.abs(c3 - lastAutoOB.ob3) > 0.001) manualOBOverride = true;
-      if (!manualOBOverride) {
-        ob1Hours.value = fd(autoOB.ob1, 2); ob2Hours.value = fd(autoOB.ob2, 2); ob3Hours.value = fd(autoOB.ob3, 2);
-      }
       obData = { ob1: p(ob1Hours.value), ob2: p(ob2Hours.value), ob3: p(ob3Hours.value) };
     } else {
       obData = { ob1: p(ob1Hours.value), ob2: p(ob2Hours.value), ob3: p(ob3Hours.value) };
@@ -421,7 +418,6 @@ function autoSaveState() {
 }
 
 function updateUI() {
-  // Industrisemester appliceras INTE här längre – användarens val respekteras
   const data = calculateEverything();
   renderUI(data);
   updateSettingsLabel();
@@ -598,7 +594,6 @@ obLockToggle.addEventListener('change',updateUI);
 
 populateSelectors();
 
-// ---- Autosave-laddning och initial semester ----
 const savedAutosave = localStorage.getItem(AUTOSAVE_KEY);
 if (savedAutosave) {
   try {
@@ -606,7 +601,6 @@ if (savedAutosave) {
     applyState(state);
   } catch(e) { updateUI(); }
 } else {
-  // Ingen sparad data – applicera industrisemester och kör gränssnittet
   if (lagSelect.value && lagSelect.value !== 'manual') {
     applyIndustrialVacation(parseInt(yearSelect.value), lagSelect.value);
   }
