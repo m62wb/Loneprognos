@@ -251,14 +251,6 @@ function calculateEverything() {
   };
 }
 
-
-// ===== VIKTIG ÄNDRING: lagSelect rensar INTE schemat längre =====
-lagSelect.addEventListener('change', updateUI);
-// ================================================================
-
-// ... (resterande event listeners etc.)
-
-
 function renderUI(data) {
   const lagName = {A:'Lag A',B:'Lag B',C:'Lag C',D:'Lag D',E:'Lag E'}[data.lag] || 'Manuell';
 
@@ -579,12 +571,8 @@ let lagSelect=document.getElementById('lagSelect'), salaryInput=document.getElem
     yearSummaryYear=document.getElementById('yearSummaryYear'), yearSummaryGrid=document.getElementById('yearSummaryGrid'),
     obLockToggle=document.getElementById('obLockToggle'), overviewTotalNet=document.getElementById('overviewTotalNet');
 
-// ---- Lagbyte rensar schemat (utom under profilladdning) ----
-lagSelect.addEventListener('change', function() {
-  if (window.isLoadingProfile) return;
-  fromvaroMap.clear(); vacationOverrideMap.clear(); shiftOverrideMap.clear();
-  updateUI();
-});
+// ---- Lagbyte triggar bara updateUI (rensar inte schemat) ----
+lagSelect.addEventListener('change', updateUI);
 
 salaryInput.addEventListener('input',updateUI);
 yearSelect.addEventListener('change',updateUI); monthSelect.addEventListener('change',updateUI);
