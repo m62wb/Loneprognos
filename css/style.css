@@ -200,8 +200,8 @@ td select {
     background: rgba(255,193,7,0.2);                /* semester – gul */
 }
 
-.row-vab td:not(:first-child) {
-    background: rgba(255,105,180,0.25);             /* VAB – rosa */
+.row-parental td:not(:first-child) {
+    background: rgba(137, 207, 240, 0.35);   /* baby blue */
 }
 
 .row-parental td:not(:first-child) {
