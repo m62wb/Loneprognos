@@ -237,8 +237,11 @@ function getOB3Hours(date, shift) {
   h = overlapHours(passStart, passEnd, new Date(nat.setHours(7,0,0,0)), new Date(vnat.setHours(0,0,0,0)));
   if (h > 0) return Math.min(h, 12.25);
 
-  let mid = getMidsummer(y), ma = new Date(mid); ma.setDate(ma.getDate()-1), sd = new Date(mid); sd.setDate(sd.getDate()+1);
-  h = overlapHours(passStart, passEnd, new Date(ma.setHours(7,0,0,0)), new Date(sd.setDate(sd.getDate()+1).setHours(0,0,0,0)));
+  let mid = getMidsummer(y), ma = new Date(mid); ma.setDate(ma.getDate()-1);
+  let sd = new Date(mid); sd.setDate(sd.getDate()+1);
+  sd.setDate(sd.getDate()+1);
+  sd.setHours(0,0,0,0);
+  h = overlapHours(passStart, passEnd, new Date(ma.setHours(7,0,0,0)), sd);
   if (h > 0) return Math.min(h, 12.25);
 
   let jul = new Date(y,11,24), vjul = new Date(y,11,27); while (vjul.getDay()===0||vjul.getDay()===6) vjul.setDate(vjul.getDate()+1);
@@ -363,7 +366,7 @@ const t33pct = [
 
 function taxFromTable33Col1(gross, year) {
   let r = Math.floor(gross);
-  let table = t33_2026; // Bara 2026 i denna inline-version, lägg till 2024/2025 vid behov
+  let table = t33_2026;
   if (r <= 80000) {
     for (let [max, tax] of table) if (r <= max) return tax;
     return 0;
