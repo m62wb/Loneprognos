@@ -4,7 +4,7 @@
    + äggskalsljus tema
    + Enhetliga färger för båda teman
    + Måttligt ökad textstorlek i schematabellen
-   + Polkagrisrand för sjukdagar (sammanhängande över raden)
+   + Polkagrisrand för sjukdagar (sammanhängande över hela tbody)
    ============================== */
 
 :root {
@@ -135,6 +135,15 @@ select, input[type="number"], input[type="text"] {
 .table-container { overflow-x: auto; border-radius: var(--radius-sm); }
 table { width: 100%; table-layout: fixed; border-collapse: collapse; background: var(--card-bg); }
 
+/* Sömlös polkagrisrand för hela tbody */
+#salaryTable tbody {
+    background: repeating-linear-gradient(
+        45deg,
+        rgba(220,20,60,0.3) 0 8px,
+        rgba(255,255,255,0.3) 8px 16px
+    );
+}
+
 th {
     background: var(--primary);
     color: white;
@@ -144,6 +153,7 @@ th {
     font-size: 1.15rem;
     white-space: nowrap;
     text-align: center;
+    z-index: 1;
 }
 
 td {
@@ -162,6 +172,7 @@ td:first-child {
     left: 0;
     background: var(--card-bg);
     width: 90px;
+    z-index: 1;
 }
 
 th:nth-child(1), td:nth-child(1) { width: 90px; }
@@ -198,17 +209,9 @@ td select {
     background: rgba(137,207,240,0.35) !important;
 }
 
-/* Sjukdagar – sammanhängande polkagrisrand */
-.row-sick {
-    background: repeating-linear-gradient(
-        45deg,
-        rgba(220,20,60,0.3) 0 8px,
-        rgba(255,255,255,0.3) 8px 16px
-    ) !important;
-}
-/* Återställ dag‑kolumnen så att den inte störs av gradienten */
-.row-sick td:first-child {
-    background: var(--card-bg) !important;
+/* Sjukrader – genomskinlig så att tbody-gradienten syns */
+.row-sick td {
+    background: transparent !important;
 }
 
 .day-emoji { float: right; margin-left: 4px; font-style: normal; }
