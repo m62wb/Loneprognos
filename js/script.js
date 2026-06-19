@@ -462,13 +462,10 @@ function renderUI(data) {
   finalNetSalary.innerText = fc(data.netSalary) + ' kr';
   overviewTotalNet.innerText = fc(data.netSalary) + ' kr';
 
-  // Samla alla rader i en array för sortering
   const chips = [];
 
-  // Grundlön (neutral)
-  chips.push({ type:'neutral', html: `<div class="detail-chip"><span>Grundlön</span><span>${fc(data.baseSalary)} kr</span></div>` });
-  // OB-grundande (neutral)
-  chips.push({ type:'neutral', html: `<div class="detail-chip"><span>OB-grundande</span><span>${fc(data.obGroundingBase)} kr</span></div>` });
+  // Grundlön + driftformstillägg (sammanslagen)
+  chips.push({ type:'neutral', html: `<div class="detail-chip"><span>Grundlön + Driftformstillägg</span><span>${fc(data.obGroundingBase)} kr</span></div>` });
 
   // OB + övertid (success)
   if (data.totalOBOnlyHours > 0) {
@@ -548,22 +545,21 @@ function renderUI(data) {
     chips.push({ type:'success', html: `<div class="detail-chip success"><span>Nettolön bidrag</span><span>+${fc(data.totalErsattningNetto)} kr</span></div>` });
   }
 
-  // Öresutjämning (danger/success)
+  // Öresutjämning
   if (Math.abs(data.utjämning) > 0.001) {
     const tecken = data.utjämning > 0 ? '+' : '';
     const färg = data.utjämning > 0 ? 'success' : 'danger';
     chips.push({ type: färg, html: `<div class="detail-chip ${färg}"><span>Öresutjämning</span><span>${tecken}${fd(Math.abs(data.utjämning),2)} kr</span></div>` });
   }
 
-  // Totalt netto (success, allra sist)
+  // Totalt netto (success, sist)
   const totalNetHTML = `<div class="detail-chip success"><strong>Totalt netto: ${fc(data.netSalary)} kr</strong></div>`;
 
-  // Sortera: danger → info → neutral → success
   const order = { danger:1, info:2, neutral:3, success:4 };
   chips.sort((a,b) => (order[a.type]||5) - (order[b.type]||5));
 
   let detailHTML = chips.map(c => c.html).join('');
-  detailHTML += totalNetHTML;   // alltid sist
+  detailHTML += totalNetHTML;
 
   detailGrid.innerHTML = detailHTML;
 
