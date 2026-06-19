@@ -1,4 +1,3 @@
-// script.js (fullständig – ersätt befintlig)
 // Hjälpfunktioner & konstanter
 function p(v){ if(!v) return 0; let n=String(v).replace(',','.'); let x=parseFloat(n); return isNaN(x)?0:x; }
 function fc(v){ return new Intl.NumberFormat('sv-SE').format(Math.round(v)); }
@@ -26,6 +25,23 @@ function getMondayOfISOWeek(w, year) {
 
 const sickDetailMap = new Map();
 window.isLoadingProfile = false;
+
+// Saknade funktioner som HTML anropar
+function toggleSettings() {
+  const c = document.getElementById('settingsContent');
+  const a = document.getElementById('settingsArrow');
+  if (c) { c.classList.toggle('open'); if (a) a.textContent = c.classList.contains('open') ? '▲' : '▼'; }
+}
+function toggleVAB(){ let c=document.getElementById('vabContent'), a=document.getElementById('vabArrow'); c.classList.toggle('open'); a.innerText=c.classList.contains('open')?'▲':'▼'; }
+function toggleOB(){ let c=document.getElementById('obContent'), a=document.getElementById('obArrow'); c.classList.toggle('open'); a.innerText=c.classList.contains('open')?'▲':'▼'; }
+function toggleOverview(){ let c=document.getElementById('overviewContent'); c.style.display = c.style.display==='none'?'block':'none'; }
+function toggleYearSummary(){ let d=document.getElementById('yearDetails'), a=document.getElementById('yearArrow'); if(d.style.display==='none'){ d.style.display='block'; a.innerText='▲'; updateYearSummary(); } else { d.style.display='none'; a.innerText='▼'; } }
+function toggleTheme() {
+  const checkbox = document.getElementById('themeToggleCheckbox');
+  const isDark = checkbox.checked;
+  document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  localStorage.setItem('theme', isDark ? 'dark' : 'light');
+}
 
 document.addEventListener('DOMContentLoaded', function() {
 
@@ -317,8 +333,7 @@ function calculateEverything() {
 
 function renderUI(data) {
   const lagName = {A:'Lag A',B:'Lag B',C:'Lag C',D:'Lag D',E:'Lag E'}[data.lag] || 'Manuell';
-  if (data.sickVisible) { sjukOBContainer?.classList.add('visible'); sickHoursContainer?.classList.add('visible'); }
-  else { sjukOBContainer?.classList.remove('visible'); sickHoursContainer?.classList.remove('visible'); }
+  if (data.sickVisible) { /* inga containrar längre, men låt stå */ }
   vabSummary.style.display = data.totalVABParental > 0 ? 'flex' : 'none';
   obGroundingDisplay.innerText = fc(data.obGroundingBase) + ' kr';
   ob1Rate.innerText = '/460 = ' + fd(data.ob1RatePerHour,2) + ' kr/h';
@@ -331,7 +346,7 @@ function renderUI(data) {
   if (data.isAuto && data.lockEnabled && !manualOBOverride && data.autoOB) {
     ob1Hours.value = fd(data.autoOB.ob1,2); ob2Hours.value = fd(data.autoOB.ob2,2); ob3Hours.value = fd(data.autoOB.ob3,2);
   }
-  selectedPeriod.innerText = MONTHS[data.selectedMonth-1] + ' ' + data.selectedYear + ' · ' + data.lag;
+  selectedPeriod.innerText = MONTHS[data.selectedMonth-1] + ' ' + data.selectedYear + ' · ' + lagName;
   tableMonthLabel.innerText = data.isAuto ? MONTHS[data.obMonth-1] + ' ' + data.obYear : '—';
   finalNetSalary.innerText = fc(data.netSalary) + ' kr';
   overviewTotalNet.innerText = fc(data.netSalary) + ' kr';
@@ -437,13 +452,75 @@ function updateUI() {
   }
   closeSettingsBoxIfNeeded(); renderOBChart(); showMainIfValid(); autoSaveState();
 }
-function closeSettingsBoxIfNeeded() { if (settingsContent?.classList.contains('open') && lagSelect.value !== '') { settingsContent.classList.remove('open'); settingsArrow.textContent = '▼'; } }
-function resetOB() { /* oförändrad */ }
+function closeSettingsBoxIfNeeded() {
+  const settingsContent = document.getElementById('settingsContent');
+  const arrow = document.getElementById('settingsArrow');
+  if (settingsContent && settingsContent.classList.contains('open') && lagSelect.value !== '') {
+    settingsContent.classList.remove('open'); if (arrow) arrow.textContent = '▼';
+  }
+}
+function resetOB() {
+  const lag = lagSelect.value;
+  if (lag !== 'manual' && lag !== '') {
+    let y = parseInt(yearSelect.value), m = parseInt(monthSelect.value), om = m - 1;
+    if (om === 0) { om = 12; y--; }
+    const ob = getOBForMonth(y, om, lag);
+    ob1Hours.value = fd(ob.ob1,2); ob2Hours.value = fd(ob.ob2,2); ob3Hours.value = fd(ob.ob3,2);
+  } else { ob1Hours.value = '0'; ob2Hours.value = '0'; ob3Hours.value = '0'; }
+  manualOBOverride = false; updateUI();
+}
 function toggleExpand(el){ el.querySelector('.expandable-details').classList.toggle('open'); el.querySelector('.expandable-arrow').classList.toggle('open'); }
-function toggleTheme() { /* oförändrad */ }
-// ... övriga toggle-funktioner ...
-function updateYearSummary() { /* oförändrad */ }
-
+function updateYearSummary() {
+  const y = parseInt(yearSelect.value); const lag = lagSelect.value;
+  if (lag === 'manual' || lag === '') { document.getElementById('yearSummaryGrid').innerHTML = 'Välj lag'; return; }
+  document.getElementById('yearSummaryYear').innerText = y;
+  const bs = p(salaryInput.value) || 0; const da = f2(bs * DRIFT / 100); const obBase = bs + da;
+  const o1r = f2(obBase / O1D), o2r = f2(obBase / O2D), o3r = f2(obBase / O3D);
+  let totBrutto = 0, totNetto = 0, totSkatt = 0, totFack = 0, totOB = 0, totSemester = 0;
+  for (let m = 1; m <= 12; m++) {
+    let obMonth = m - 1, obYear = y; if (obMonth === 0) { obMonth = 12; obYear--; }
+    const obData = getOBForMonth(obYear, obMonth, lag);
+    const mOB = f2(obData.ob1 * o1r + obData.ob2 * o2r + obData.ob3 * o3r); totOB += mOB;
+    const vacDays = countVacationDaysInMonth(obYear, obMonth);
+    const semTillagg = f2(vacDays * f2(obBase / 125)); totSemester += semTillagg;
+    const jb = Math.round(obBase + mOB + semTillagg);
+    const tax = taxFromTable33Col1(jb, y); const uf = calcUnion(jb); const net = jb - tax - uf;
+    totBrutto += jb; totNetto += net; totSkatt += tax; totFack += uf;
+  }
+  document.getElementById('yearSummaryGrid').innerHTML =
+    `<div>Total bruttolön: ${fc(totBrutto)} kr</div>` +
+    `<div>Total nettolön: ${fc(totNetto)} kr</div>` +
+    `<div>Total skatt: -${fc(totSkatt)} kr</div>` +
+    `<div>Fackavgift: -${fc(totFack)} kr</div>` +
+    `<div>Totalt OB: +${fc(totOB)} kr</div>` +
+    `<div>Semestertillägg: +${fc(totSemester)} kr</div>`;
+}
+function updateSettingsLabel() {
+  const profSelect = document.getElementById('profileSelect');
+  const lagSelectEl = document.getElementById('lagSelect');
+  const profName = (profSelect && profSelect.value) ? profSelect.value : '--';
+  const lagName = lagSelectEl && lagSelectEl.selectedIndex >= 0 ? lagSelectEl.options[lagSelectEl.selectedIndex].text : 'Välj lag';
+  const label = document.getElementById('settingsLabel');
+  if (label) label.textContent = 'Profil: ' + profName + ' | Lag: ' + lagName;
+}
+function renderOBChart() {
+  const lag = lagSelect.value; if (lag === 'manual' || lag === '') return;
+  const year = parseInt(yearSelect.value);
+  const bs = p(salaryInput.value) || 0; const da = f2(bs * DRIFT / 100); const obBase = bs + da;
+  const o1r = f2(obBase / O1D), o2r = f2(obBase / O2D), o3r = f2(obBase / O3D);
+  const labels = []; const data = [];
+  for (let m = 1; m <= 12; m++) {
+    const obData = getOBForMonth(year, m, lag);
+    labels.push(MONTHS[m-1]); data.push(f2(obData.ob1 * o1r + obData.ob2 * o2r + obData.ob3 * o3r));
+  }
+  const ctx = document.getElementById('obChart'); if (!ctx) return;
+  if (window.obChartInstance) window.obChartInstance.destroy();
+  window.obChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [{ label: 'OB‑ersättning (kr)', data, backgroundColor: 'rgba(88,166,255,0.6)', borderColor: 'rgba(88,166,255,1)', borderWidth: 1 }] },
+    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { color: '#8b949e' } }, x: { ticks: { color: '#8b949e' } } }, plugins: { legend: { labels: { color: '#8b949e' } } } }
+  });
+}
 function populateSelectors(){
   for(let y=SY;y<=EY;y++){ let o=document.createElement('option'); o.value=y; o.textContent=y; yearSelect.appendChild(o); }
   let now=new Date(); yearSelect.value=Math.max(SY,Math.min(EY,now.getFullYear()));
@@ -489,7 +566,9 @@ else { if (lagSelect.value && lagSelect.value !== 'manual') applyIndustrialVacat
 window.setFromvaro=setFromvaro; window.changeShift=changeShift; window.resetSchema=resetSchema;
 window.resetAllShifts=resetAllShifts; window.toggleExpand=toggleExpand;
 window.toggleTheme = toggleTheme; window.toggleSettings = toggleSettings;
-window.updateUI = updateUI;
+window.toggleVAB = toggleVAB; window.toggleOB = toggleOB; window.toggleOverview = toggleOverview;
+window.toggleYearSummary = toggleYearSummary; window.updateUI = updateUI;
+window.resetOB = resetOB;
 
 document.querySelectorAll('.numeric-only').forEach(field => {
   field.addEventListener('input', function() {
