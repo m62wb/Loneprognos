@@ -138,7 +138,7 @@ function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80
     const key = date.toISOString().split('T')[0];
     if (fromvaroMap.get(key) === 4) {
       const shift = getShift(date, lag);
-      if (shift === 0 || isPermissionDay(date, lag)) continue; // endast arbetsdagar
+      if (shift === 0 || isPermissionDay(date, lag)) continue;
 
       const detail = sickDetailMap.get(key) || {type:'full'};
       const hoursMissed = detail.type === 'partial' ? (detail.hoursMissed || 0) : 12.25;
@@ -465,6 +465,8 @@ function renderUI(data) {
     let daysInMonth = new Date(data.obYear, data.obMonth, 0).getDate();
     let shiftNames = ['Ledig', 'Dag', 'Natt'];
     let tbody = ''; let isBlueWeek = false; let lastShownWeek = null;
+    let sickOffset = 0;   // för sömlös polkagrisrand
+
     for (let d = 1; d <= daysInMonth; d++) {
       let date = new Date(data.obYear, data.obMonth - 1, d);
       let dateStr = date.toISOString().split('T')[0];
@@ -489,11 +491,16 @@ function renderUI(data) {
       else if (fromvaroVal === 4) { fromvaroText = 'Sjuk'; emoji = '🤒'; }
       let station = (data.lag === 'E') ? getStationE(date, shift, data.lag) : '-';
       let rowClass = '';
-      if (fromvaroVal === 0 && shift > 0 && !isPerm) { rowClass = (shift === 1) ? 'row-day' : 'row-night'; }
-      else if (fromvaroVal === 1) rowClass = 'row-vacation';
-      else if (fromvaroVal === 2) rowClass = 'row-vab';
-      else if (fromvaroVal === 3) rowClass = 'row-parental';
-      else if (fromvaroVal === 4) rowClass = 'row-sick';
+      let inlineStyle = '';
+      if (fromvaroVal === 0 && shift > 0 && !isPerm) { rowClass = (shift === 1) ? 'row-day' : 'row-night'; sickOffset = 0; }
+      else if (fromvaroVal === 1) { rowClass = 'row-vacation'; sickOffset = 0; }
+      else if (fromvaroVal === 2) { rowClass = 'row-vab'; sickOffset = 0; }
+      else if (fromvaroVal === 3) { rowClass = 'row-parental'; sickOffset = 0; }
+      else if (fromvaroVal === 4) {
+        rowClass = 'row-sick';
+        inlineStyle = `style="background-position-y: -${sickOffset}px"`;
+        sickOffset += 35;   // justera radhöjd vid behov
+      }
       let fromvaroCell = shift !== 0 ? `<select class="fromvaro-select" onchange="setFromvaro('${dateStr}',this.value)" onclick="event.stopPropagation()">
         <option value="" ${fromvaroText===""?'selected':''}>Ingen</option>
         <option value="Semester" ${fromvaroText==="Semester"?'selected':''}>Sem</option>
@@ -509,7 +516,7 @@ function renderUI(data) {
       let weekCellClass = isBlueWeek ? 'blue-week-cell' : '';
       let dayCellContent = `${d} ${dayName}${weekLabel}`;
       if (emoji) dayCellContent += `<span class="day-emoji">${emoji}</span>`;
-      tbody += `<tr class="${rowClass}"><td class="${weekCellClass}">${dayCellContent}</td><td>${shiftText}</td><td>${fd(ob.ob1,2)}h</td><td>${fd(ob.ob2,2)}h</td><td>${fd(ob.ob3,2)}h</td><td>${fromvaroCell}</td><td>${station}</td><td>${passSelect}</td></tr>`;
+      tbody += `<tr class="${rowClass}" ${inlineStyle}><td class="${weekCellClass}">${dayCellContent}</td><td>${shiftText}</td><td>${fd(ob.ob1,2)}h</td><td>${fd(ob.ob2,2)}h</td><td>${fd(ob.ob3,2)}h</td><td>${fromvaroCell}</td><td>${station}</td><td>${passSelect}</td></tr>`;
     }
     tableBody.innerHTML = tbody;
   } else { tableBody.innerHTML = '<tr><td colspan="8">Välj ett lag</td></tr>'; }
