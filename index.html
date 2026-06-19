@@ -1,3 +1,4 @@
+<!-- index.html -->
 <!DOCTYPE html>
 <html lang="sv" data-theme="dark">
 <head>
@@ -45,18 +46,18 @@
                 <option value="E">E</option>
                 <option value="manual">Manuell</option>
             </select>
+            <div class="input-group" style="margin-top:12px;">
+                <label><input type="checkbox" id="aterinsjuknandeCheck" onchange="updateUI()"> Återinsjuknande (&lt; 5 dgr) – ingen ny karens</label>
+            </div>
         </div>
     </div>
 
     <div id="mainContent" style="display:none;">
 
     <div class="card">
-        <div class="card-title">Grundlön & Karens</div>
+        <div class="card-title">Grundlön</div>
         <div class="input-group"><label>Månadslön (brutto)</label><input type="text" id="salaryInput" inputmode="decimal" class="numeric-only" placeholder="0"></div>
         <div class="lön-summary"><span>Driftsformstillägg (4%)</span><span><strong id="obGroundingDisplay">38 182 kr</strong></span></div>
-        <div class="input-group"><label>Karensdagar</label><select id="karensSelect"><option value="0">0 dagar</option><option value="1">1 dag</option><option value="2">2 dagar</option><option value="3">3 dagar</option><option value="4">4 dagar</option><option value="5">5 dagar</option></select></div>
-        <div class="sick-hours-container" id="sickHoursContainer"><div class="input-group"><label>Sjuktimmar totalt</label><input type="text" id="sickHours" inputmode="decimal" class="numeric-only numeric-hours" placeholder="0"></div></div>
-        <div class="sjuk-ob-container" id="sjukOBContainer"><div class="sjuk-ob-title">Sjuk-OB</div><div class="sjuk-ob-grid"><div><span class="ob-badge sjuk" style="background:var(--danger)">OB1</span><input type="text" id="sjukOb1Hours" inputmode="decimal" class="numeric-only numeric-hours" placeholder="0"></div><div><span class="ob-badge sjuk" style="background:var(--danger)">OB2</span><input type="text" id="sjukOb2Hours" inputmode="decimal" class="numeric-only numeric-hours" placeholder="0"></div><div><span class="ob-badge sjuk" style="background:var(--danger)">OB3</span><input type="text" id="sjukOb3Hours" inputmode="decimal" class="numeric-only numeric-hours" placeholder="0"></div></div></div>
     </div>
 
     <div class="card collapsible-section">
@@ -90,7 +91,21 @@
     <div class="card"><div class="card-title">OB‑ersättning per månad</div><div style="position: relative; width: 100%; max-height: 300px;"><canvas id="obChart"></canvas></div></div>
     <div class="year-summary-card" onclick="toggleYearSummary()"><div class="card-title">Årsöversikt <span id="yearSummaryYear">2026</span> <span id="yearArrow">▼</span></div><div id="yearDetails" style="display:none"><div class="year-summary-grid" id="yearSummaryGrid"></div></div></div>
 
-    </div><!-- /mainContent -->
+    </div>
+</div>
+
+<div id="sickPopupOverlay" class="popup-overlay" style="display:none;">
+    <div class="popup-content">
+        <h3>Ange sjukfrånvaro</h3>
+        <p id="sickPopupDate"></p>
+        <button id="sickFullDayBtn">Hela dagen</button>
+        <button id="sickPartialBtn">Del av dag</button>
+        <div id="sickPartialInput" style="display:none; margin-top:10px;">
+            <label>Gick hem kl: <input type="time" id="sickTimeInput" step="60"></label>
+            <button id="sickPartialConfirm">OK</button>
+        </div>
+        <button id="sickCancelBtn" style="margin-top:10px;">Avbryt</button>
+    </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
