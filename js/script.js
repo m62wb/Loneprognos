@@ -129,20 +129,24 @@ function calcParentalDeduction(year, month, lag, baseSalary, sickRate100) {
   return f2(totalDeduction);
 }
 
-// ----- AUTOMATISK ÅTERINSJUKNANDE -----
+// ----- SJUKAVDRAG MED AUTOMATISKT ÅTERINSJUKNANDE (ENDAST ARBETSDAGAR) -----
 function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80, ob1r, ob2r, ob3r) {
   const daysInMonth = new Date(year, month, 0).getDate();
   const sickDays = [];
   for (let d = 1; d <= daysInMonth; d++) {
-    const date = new Date(year, month - 1, d); const key = date.toISOString().split('T')[0];
+    const date = new Date(year, month - 1, d);
+    const key = date.toISOString().split('T')[0];
     if (fromvaroMap.get(key) === 4) {
+      // BARA arbetsdagar räknas som sjukfrånvaro
+      const shift = getShift(date, lag);
+      if (shift === 0 || isPermissionDay(date, lag)) continue;
+
       const detail = sickDetailMap.get(key) || {type:'full'};
       const hoursMissed = detail.type === 'partial' ? (detail.hoursMissed || 0) : 12.25;
-      sickDays.push({date, shift: getShift(date, lag), hoursMissed});
+      sickDays.push({date, shift, hoursMissed});
     }
   }
   if (sickDays.length === 0) {
-    // Rensa sparad slutdatum om inga sjukdagar denna månad
     localStorage.removeItem('sickPrevEnd');
     localStorage.removeItem('sickPrevYear');
     localStorage.removeItem('sickPrevMonth');
@@ -158,7 +162,6 @@ function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80
   }
   periods.push({start: new Date(start), end: new Date(end)});
 
-  // Hämta slutdatum från föregående månad (om den är den förväntade)
   let prevEnd = null;
   const prevYear = parseInt(localStorage.getItem('sickPrevYear'));
   const prevMonth = parseInt(localStorage.getItem('sickPrevMonth'));
@@ -175,7 +178,6 @@ function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80
   let aterinsjuknande = false;
 
   for (const period of periods) {
-    // Kontrollera återinsjuknande
     if (prevEnd) {
       const daysSince = daysBetween(prevEnd, period.start);
       aterinsjuknande = (daysSince <= 5);
@@ -191,7 +193,8 @@ function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80
         const totalOBHours = ob.ob1 + ob.ob2 + ob.ob3;
         if (totalOBHours > 0) {
           const fraction = day.hoursMissed / 12.25;
-          const obAmount = ob.ob1 * ob1r + ob.ob2 * ob2r + ob.ob3 * ob3r;
+          // Använd avrundade timlöner för sjuk-OB
+          const obAmount = ob.ob1 * f2(ob1r) + ob.ob2 * f2(ob2r) + ob.ob3 * f2(ob3r);
           periodSickOB += obAmount * fraction * 0.8;
         }
       }
@@ -202,16 +205,14 @@ function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80
       totalSickHours -= Math.min(6.8, periodHours);
     }
     totalSickOBGain += periodSickOB;
-
-    // Uppdatera prevEnd till denna periods slut (för nästa iteration)
     prevEnd = new Date(period.end);
   }
 
-  // Spara slutdatum för sista perioden
   localStorage.setItem('sickPrevEnd', periods[periods.length-1].end.toISOString().split('T')[0]);
   localStorage.setItem('sickPrevYear', year);
   localStorage.setItem('sickPrevMonth', month);
 
+  // Avrundade timlöner för sjuk
   const karensDeduction = f2(totalKarensHours * sickRate100);
   const sickDeduct100 = f2(totalSickHours * sickRate100);
   const sickPay80 = f2(totalSickHours * sickRate80);
@@ -219,7 +220,7 @@ function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80
   const totalSickLoss = f2(karensDeduction + sickNetLoss);
   return { deduction: totalSickLoss, compensation: sickPay80, sickOBGain: f2(totalSickOBGain), karensDeduction, sickDeduct100, sickPay80 };
 }
-// ------------------------------------
+// --------------------------------------------------------------------------
 
 function setFromvaro(dateStr, value){
   if (value === "Sjuk") { openSickPopup(dateStr); return; }
@@ -289,9 +290,17 @@ function calculateEverything() {
 
   const driftAddition = f2(baseSalary * DRIFT / 100);
   const obGroundingBase = f2(baseSalary + driftAddition);
-  const ob1r = obGroundingBase / O1D, ob2r = obGroundingBase / O2D, ob3r = obGroundingBase / O3D;
-  const ob1Rate = f2(ob1r), ob2Rate = f2(ob2r), ob3Rate = f2(ob3r);
-  const sickRate100 = f2(baseSalary / (141 + 2/3)), sickRate80 = f2(baseSalary / (177 + 1/12));
+
+  // Avrundade timlöner för OB och övertid (2 decimaler)
+  const ob1r = f2(obGroundingBase / O1D);
+  const ob2r = f2(obGroundingBase / O2D);
+  const ob3r = f2(obGroundingBase / O3D);
+  const otRate = f2(obGroundingBase / OTD);
+  const otEnkelRate = f2(obGroundingBase / OTENKELD);
+
+  // Sjuklöner avrundade till 2 decimaler
+  const sickRate100 = f2(baseSalary / (141 + 2/3));
+  const sickRate80  = f2(baseSalary / (177 + 1/12));
 
   const semesterSupplementPerDay = f2(obGroundingBase / 125);
   const semesterTillagg = f2(vacationCount * semesterSupplementPerDay);
@@ -300,10 +309,12 @@ function calculateEverything() {
   const parentalDeduction = calcParentalDeduction(obYear, obMonth, lag, baseSalary, sickRate100);
   const vabParentalDeduction = f2(vabDeduction + parentalDeduction);
 
+  // Sjukavdrag (använder de avrundade timlönerna internt)
   const sickResult = calcSickDeduction(obYear, obMonth, lag, baseSalary, sickRate100, sickRate80, ob1r, ob2r, ob3r);
   const totalSickLoss = sickResult.deduction;
   const sickOBGain = sickResult.sickOBGain;
 
+  // FK-ersättningar
   const sgiVab = Math.min(sgiVal, SGI_TAK_VAB);
   const sgiVabDay = f2(sgiVab / 365 * 0.8);
   const fkVabTotal = f2(vabD * sgiVabDay);
@@ -316,6 +327,7 @@ function calculateEverything() {
   const fkVabNet = f2(fkVabTotal - fkVabTax), fkFpNet = f2(fkFpTotal - fkFpTax), fkFptNet = f2(fkFptTotal - fkFptTax);
   const totalErsattningNetto = f2(fkVabNet + fkFpNet + fkFptNet);
 
+  // OB
   let autoOB = null;
   if (isAuto) { autoOB = getOBForMonth(obYear, obMonth, lag); }
   if (autoOB) { ob1Hours.value = fd(autoOB.ob1,2); ob2Hours.value = fd(autoOB.ob2,2); ob3Hours.value = fd(autoOB.ob3,2); }
@@ -338,8 +350,12 @@ function calculateEverything() {
   }
 
   const otH = p(otHours.value), otEnkelH = p(otEnkelHours.value);
-  const ob1Amt = f2(obData.ob1 * ob1r), ob2Amt = f2(obData.ob2 * ob2r), ob3Amt = f2(obData.ob3 * ob3r);
-  const otAmt = f2(otH * (obGroundingBase / OTD)), otEnkelAmt = f2(otEnkelH * (obGroundingBase / OTENKELD));
+  // OB- och övertidsbelopp med avrundade timlöner
+  const ob1Amt = f2(obData.ob1 * ob1r);
+  const ob2Amt = f2(obData.ob2 * ob2r);
+  const ob3Amt = f2(obData.ob3 * ob3r);
+  const otAmt = f2(otH * otRate);
+  const otEnkelAmt = f2(otEnkelH * otEnkelRate);
   const totalOBOnly = f2(ob1Amt + ob2Amt + ob3Amt);
   const totalOB = f2(totalOBOnly + otAmt + otEnkelAmt);
 
@@ -354,8 +370,8 @@ function calculateEverything() {
     baseSalary, selectedYear, selectedMonth, lag, isAuto,
     sickVisible: (totalSickLoss > 0 || sickOBGain > 0), extraSick: 0, totalVABParental: vabD + parentalD, vacationCount,
     driftAddition, obGroundingBase,
-    ob1RatePerHour: ob1Rate, ob2RatePerHour: ob2Rate, ob3RatePerHour: ob3Rate,
-    otRatePerHour: f2(obGroundingBase / OTD), otEnkelRatePerHour: f2(obGroundingBase / OTENKELD),
+    ob1RatePerHour: ob1r, ob2RatePerHour: ob2r, ob3RatePerHour: ob3r,
+    otRatePerHour: otRate, otEnkelRatePerHour: otEnkelRate,
     sickRate100, sickRate80,
     semesterSupplementPerDay, semesterTillagg,
     karensDeduction: sickResult.karensDeduction, sickDeduct100: sickResult.sickDeduct100, sickPay80: sickResult.sickPay80,
