@@ -129,7 +129,7 @@ function calcParentalDeduction(year, month, lag, baseSalary, sickRate100) {
   return f2(totalDeduction);
 }
 
-// ========== SJUKAVDRAG OCH SJUK-OB ==========
+// ----- SJUKAVDRAG OCH SJUK-OB (MINUTMODELL + HELDAGSREGEL) -----
 function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80, ob1r, ob2r, ob3r) {
   const daysInMonth = new Date(year, month, 0).getDate();
   const sickDays = [];
@@ -139,7 +139,6 @@ function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80
     if (fromvaroMap.get(key) === 4) {
       const shift = getShift(date, lag);
       if (shift === 0 || isPermissionDay(date, lag)) continue;
-
       const detail = sickDetailMap.get(key) || {type:'full'};
       const hoursMissed = detail.type === 'partial' ? (detail.hoursMissed || 0) : 12.25;
       sickDays.push({date, shift, hoursMissed, isFull: detail.type !== 'partial'});
@@ -179,18 +178,15 @@ function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80
   let finalOB1 = 0, finalOB2 = 0, finalOB3 = 0;
 
   for (const period of periods) {
-    // Periodens sjuktimmar
     const periodSickDays = sickDays.filter(d => d.date >= period.start && d.date <= period.end);
     const periodHours = periodSickDays.reduce((sum, d) => sum + d.hoursMissed, 0);
 
-    // Återinsjuknande?
     let aterinsjuknande = false;
     if (prevEnd) {
       const daysSince = daysBetween(prevEnd, period.start);
       aterinsjuknande = (daysSince <= 5);
     }
 
-    // Karens för denna period
     let karensHours = 0;
     if (!aterinsjuknande) {
       karensHours = Math.min(6.8, periodHours);
@@ -200,7 +196,6 @@ function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80
       totalSickHours += periodHours;
     }
 
-    // Rå OB-timmar för hela perioden
     let rawOB1 = 0, rawOB2 = 0, rawOB3 = 0;
     for (const day of periodSickDays) {
       const ob = calcOB(day.date, day.shift, lag);
@@ -209,18 +204,15 @@ function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80
       rawOB3 += ob.ob3;
     }
 
-    // Första sjukdagen i perioden
-    const firstDay = periodSickDays[0];   // sorterat, minsta datum
+    const firstDay = periodSickDays[0];
 
     if (firstDay && firstDay.isFull && karensHours > 0) {
-      // ---- Heldagsregel: karensen dras endast från OB1 (första dagen) ----
       const firstDayOB = calcOB(firstDay.date, firstDay.shift, lag);
       const ob1Deduction = Math.min(karensHours, firstDayOB.ob1);
       finalOB1 += (rawOB1 - ob1Deduction);
-      finalOB2 += rawOB2;   // ingen minskning
+      finalOB2 += rawOB2;
       finalOB3 += rawOB3;
     } else {
-      // ---- Minutmodell: karensen dras från OB1, sedan OB2, sedan OB3 ----
       let rem = karensHours;
       let ob1 = rawOB1, ob2 = rawOB2, ob3 = rawOB3;
       if (rem > 0) { const d = Math.min(rem, ob1); ob1 -= d; rem -= d; }
@@ -234,7 +226,6 @@ function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80
     prevEnd = new Date(period.end);
   }
 
-  // Spara slutdatum för sista perioden
   if (periods.length > 0) {
     localStorage.setItem('sickPrevEnd', periods[periods.length-1].end.toISOString().split('T')[0]);
     localStorage.setItem('sickPrevYear', year);
@@ -245,7 +236,6 @@ function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80
     localStorage.removeItem('sickPrevMonth');
   }
 
-  // Belopp
   const sickOB1Amount = f2(finalOB1 * f2(ob1r) * 0.8);
   const sickOB2Amount = f2(finalOB2 * f2(ob2r) * 0.8);
   const sickOB3Amount = f2(finalOB3 * f2(ob3r) * 0.8);
@@ -256,7 +246,6 @@ function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80
   const sickPay80 = f2(totalSickHours * sickRate80);
   const sickNetLoss = f2(sickDeduct100 - sickPay80);
   const totalSickLoss = f2(karensDeduction + sickNetLoss);
-
   return {
     deduction: totalSickLoss, compensation: sickPay80, sickOBGain: totalSickOBGain,
     karensDeduction, sickDeduct100, sickPay80,
@@ -264,14 +253,7 @@ function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80
     sickOB1Amount, sickOB2Amount, sickOB3Amount
   };
 }
-
-// ... resten av funktionerna (setFromvaro, openSickPopup, calculateEverything, renderUI, etc.) är oförändrade
-// och finns med i den fullständiga filen jag precis skickade.  De är helt intakta från den tidigare versionen.
-// Jag har inte tagit med dem i utdraget ovan för att hålla svaret fokuserat, men i den verkliga filen
-// ska du ersätta allt med den fullständiga koden nedan.
-// (Eftersom du just bett om att få hela filen varje gång, här kommer den kompletta.)
-
-// ... (Här följer samma renderUI, updateUI, etc. som tidigare, helt orörda.)
+// ---------------------------------------------------------
 
 function setFromvaro(dateStr, value){
   if (value === "Sjuk") { openSickPopup(dateStr); return; }
@@ -480,9 +462,17 @@ function renderUI(data) {
   finalNetSalary.innerText = fc(data.netSalary) + ' kr';
   overviewTotalNet.innerText = fc(data.netSalary) + ' kr';
 
-  let obOTHTML = '';
+  // Samla alla rader i en array för sortering
+  const chips = [];
+
+  // Grundlön (neutral)
+  chips.push({ type:'neutral', html: `<div class="detail-chip"><span>Grundlön</span><span>${fc(data.baseSalary)} kr</span></div>` });
+  // OB-grundande (neutral)
+  chips.push({ type:'neutral', html: `<div class="detail-chip"><span>OB-grundande</span><span>${fc(data.obGroundingBase)} kr</span></div>` });
+
+  // OB + övertid (success)
   if (data.totalOBOnlyHours > 0) {
-    obOTHTML = `<div class="expandable-chip" onclick="toggleExpand(this)">
+    const obOTHTML = `<div class="expandable-chip" onclick="toggleExpand(this)">
       <div class="expandable-header"><span>Totalt OB</span><span>${fd(data.totalOBOnlyHours,2)}h / +${fd(data.totalOBOnly,2)} kr <span class="expandable-arrow">▼</span></span></div>
       <div class="expandable-details">
         <div class="tax-detail-row">OB1 (${fd(data.obData.ob1,2)}h x ${fd(data.ob1RatePerHour,2)} kr): +${fd(data.ob1Amount,2)} kr</div>
@@ -490,51 +480,92 @@ function renderUI(data) {
         <div class="tax-detail-row">OB3 (${fd(data.obData.ob3,2)}h x ${fd(data.ob3RatePerHour,2)} kr): +${fd(data.ob3Amount,2)} kr</div>
         <div class="tax-detail-row total">Summa OB: ${fd(data.totalOBOnlyHours,2)}h / +${fd(data.totalOBOnly,2)} kr</div>
       </div></div>`;
+    chips.push({ type:'success', html: obOTHTML });
   }
-  if (data.otAmount > 0) obOTHTML += `<div class="detail-chip"><span>Övertid (${fd(p(otHours.value),2)}h x ${fd(data.otRatePerHour,2)} kr)</span><span>+${fd(data.otAmount,2)} kr</span></div>`;
-  if (data.otEnkelAmount > 0) obOTHTML += `<div class="detail-chip"><span>ÖT enkel (${fd(p(otEnkelHours.value),2)}h x ${fd(data.otEnkelRatePerHour,2)} kr)</span><span>+${fd(data.otEnkelAmount,2)} kr</span></div>`;
+  if (data.otAmount > 0) {
+    chips.push({ type:'success', html: `<div class="detail-chip"><span>Övertid (${fd(p(otHours.value),2)}h x ${fd(data.otRatePerHour,2)} kr)</span><span>+${fd(data.otAmount,2)} kr</span></div>` });
+  }
+  if (data.otEnkelAmount > 0) {
+    chips.push({ type:'success', html: `<div class="detail-chip"><span>ÖT enkel (${fd(p(otEnkelHours.value),2)}h x ${fd(data.otEnkelRatePerHour,2)} kr)</span><span>+${fd(data.otEnkelAmount,2)} kr</span></div>` });
+  }
 
-  let karensHTML = data.karensDeduction > 0 ? `<div class="detail-chip danger"><span>Karensavdrag</span><span>-${fd(data.karensDeduction,2)} kr</span></div>` : '';
-  let extraSickHTML = '';
+  // Semestertillägg (info)
+  if (data.vacationCount > 0) {
+    const semesterMonthName = data.isAuto ? MONTHS[data.obMonth-1] + ' ' + data.obYear : '';
+    const semHTML = `<div class="detail-chip info"><span>Semestertillägg (${data.vacationCount} dgr, ${fd(data.semesterSupplementPerDay,2)} kr/d)</span><span>+${fd(data.semesterTillagg,2)} kr (intjänad ${semesterMonthName})</span></div>`;
+    chips.push({ type:'info', html: semHTML });
+  }
+
+  // Karens (danger)
+  if (data.karensDeduction > 0) {
+    chips.push({ type:'danger', html: `<div class="detail-chip danger"><span>Karensavdrag</span><span>-${fd(data.karensDeduction,2)} kr</span></div>` });
+  }
+
+  // Sjukavdrag / ersättning (danger + success)
   if (data.sickDeduct100 > 0) {
-    extraSickHTML = `<div class="detail-chip danger"><span>Sjukavdrag 100%</span><span>-${fd(data.sickDeduct100,2)} kr</span></div>
-                     <div class="detail-chip success"><span>Sjukersättning 80%</span><span>+${fd(data.sickPay80,2)} kr</span></div>`;
+    chips.push({ type:'danger', html: `<div class="detail-chip danger"><span>Sjukavdrag 100%</span><span>-${fd(data.sickDeduct100,2)} kr</span></div>` });
+    chips.push({ type:'success', html: `<div class="detail-chip success"><span>Sjukersättning 80%</span><span>+${fd(data.sickPay80,2)} kr</span></div>` });
   }
 
-  // ---- SJUK-OB MED EXPANDERBAR DETALJ ----
-  let sjukObHTML = '';
+  // Sjuk-OB (success)
   if (data.totalSjukOBGain > 0) {
     const totalSickOBHours = data.sickOB1Hours + data.sickOB2Hours + data.sickOB3Hours;
     let sickDetails = '';
     if (data.sickOB1Hours > 0) sickDetails += `<div class="tax-detail-row">OB1 (${fd(data.sickOB1Hours,2)}h x ${fd(data.ob1RatePerHour,2)} kr): +${fd(data.sickOB1Amount,2)} kr</div>`;
     if (data.sickOB2Hours > 0) sickDetails += `<div class="tax-detail-row">OB2 (${fd(data.sickOB2Hours,2)}h x ${fd(data.ob2RatePerHour,2)} kr): +${fd(data.sickOB2Amount,2)} kr</div>`;
     if (data.sickOB3Hours > 0) sickDetails += `<div class="tax-detail-row">OB3 (${fd(data.sickOB3Hours,2)}h x ${fd(data.ob3RatePerHour,2)} kr): +${fd(data.sickOB3Amount,2)} kr</div>`;
-
-    sjukObHTML = `<div class="expandable-chip" onclick="toggleExpand(this)">
+    const sjukObHTML = `<div class="expandable-chip" onclick="toggleExpand(this)">
       <div class="expandable-header"><span>Sjuk-OB ersättning</span><span>${fd(totalSickOBHours,2)}h / +${fd(data.totalSjukOBGain,2)} kr <span class="expandable-arrow">▼</span></span></div>
       <div class="expandable-details">
         ${sickDetails}
         <div class="tax-detail-row total">Summa sjuk‑OB: ${fd(totalSickOBHours,2)}h / +${fd(data.totalSjukOBGain,2)} kr</div>
       </div></div>`;
+    chips.push({ type:'success', html: sjukObHTML });
   }
 
-  let vabHTML = data.totalVABParental > 0 ? `<div class="detail-chip danger"><span>VAB/F-ledig avdrag</span><span>-${fd(data.vabParentalDeduction,2)} kr</span></div>` : '';
-  const semesterMonthName = data.isAuto ? MONTHS[data.obMonth-1] + ' ' + data.obYear : '';
-  let semesterHTML = data.vacationCount > 0 ? `<div class="detail-chip info"><span>Semestertillägg (${data.vacationCount} dgr, ${fd(data.semesterSupplementPerDay,2)} kr/d)</span><span>+${fd(data.semesterTillagg,2)} kr (intjänad ${semesterMonthName})</span></div>` : '';
-  let bidragHTML = (data.totalVABParental > 0 || ftpDays.value > 0) ? `<div class="detail-chip success"><span>FK/AFA netto</span><span>+${fd(data.totalErsattningNetto,2)} kr</span></div>` : '';
+  // VAB/F-ledig (danger)
+  if (data.totalVABParental > 0) {
+    chips.push({ type:'danger', html: `<div class="detail-chip danger"><span>VAB/F-ledig avdrag</span><span>-${fd(data.vabParentalDeduction,2)} kr</span></div>` });
+  }
 
-  detailGrid.innerHTML = 
-    `<div class="detail-chip"><span>Grundlön</span><span>${fc(data.baseSalary)} kr</span></div>` +
-    `<div class="detail-chip"><span>OB-grundande</span><span>${fc(data.obGroundingBase)} kr</span></div>` +
-    obOTHTML + semesterHTML + karensHTML + extraSickHTML + sjukObHTML + vabHTML + bidragHTML +
-    `<div class="detail-chip"><span>Bruttolön jobb</span><span>${fd(data.jobbBruttoExact,2)} kr</span></div>` +
-    `<div class="detail-chip"><span>Skatt (tabell 33)</span><span>-${fc(data.tax)} kr</span></div>` +
-    `<div class="detail-chip"><span>Nettolön före fack</span><span>${fc(data.netBeforeFack)} kr</span></div>` +
-    `<div class="detail-chip"><span>IF Metall</span><span>-${fc(data.unionFee)} kr</span></div>` +
-    `<div class="detail-chip"><span>Nettolön jobb</span><span>${fc(data.jobbNetto)} kr</span></div>` +
-    (data.totalErsattningNetto > 0 ? `<div class="detail-chip success"><span>Nettolön bidrag</span><span>+${fc(data.totalErsattningNetto)} kr</span></div>` : '') +
-    (Math.abs(data.utjämning) > 0.001 ? `<div class="detail-chip ${data.utjämning>0?'success':'danger'}"><span>Öresutjämning</span><span>${data.utjämning>0?'+':''}${fd(Math.abs(data.utjämning),2)} kr</span></div>` : '') +
-    `<div class="detail-chip success"><strong>Totalt netto: ${fc(data.netSalary)} kr</strong></div>`;
+  // Bruttolön (neutral)
+  chips.push({ type:'neutral', html: `<div class="detail-chip"><span>Bruttolön jobb</span><span>${fd(data.jobbBruttoExact,2)} kr</span></div>` });
+
+  // Skatt (danger)
+  chips.push({ type:'danger', html: `<div class="detail-chip danger"><span>Skatt (tabell 33)</span><span>-${fc(data.tax)} kr</span></div>` });
+
+  // Nettolön före fack (neutral)
+  chips.push({ type:'neutral', html: `<div class="detail-chip"><span>Nettolön före fack</span><span>${fc(data.netBeforeFack)} kr</span></div>` });
+
+  // Fackavgift (danger)
+  chips.push({ type:'danger', html: `<div class="detail-chip danger"><span>IF Metall</span><span>-${fc(data.unionFee)} kr</span></div>` });
+
+  // Nettolön jobb (neutral)
+  chips.push({ type:'neutral', html: `<div class="detail-chip"><span>Nettolön jobb</span><span>${fc(data.jobbNetto)} kr</span></div>` });
+
+  // FK/AFA netto (success)
+  if (data.totalErsattningNetto > 0) {
+    chips.push({ type:'success', html: `<div class="detail-chip success"><span>Nettolön bidrag</span><span>+${fc(data.totalErsattningNetto)} kr</span></div>` });
+  }
+
+  // Öresutjämning (danger/success)
+  if (Math.abs(data.utjämning) > 0.001) {
+    const tecken = data.utjämning > 0 ? '+' : '';
+    const färg = data.utjämning > 0 ? 'success' : 'danger';
+    chips.push({ type: färg, html: `<div class="detail-chip ${färg}"><span>Öresutjämning</span><span>${tecken}${fd(Math.abs(data.utjämning),2)} kr</span></div>` });
+  }
+
+  // Totalt netto (success, allra sist)
+  const totalNetHTML = `<div class="detail-chip success"><strong>Totalt netto: ${fc(data.netSalary)} kr</strong></div>`;
+
+  // Sortera: danger → info → neutral → success
+  const order = { danger:1, info:2, neutral:3, success:4 };
+  chips.sort((a,b) => (order[a.type]||5) - (order[b.type]||5));
+
+  let detailHTML = chips.map(c => c.html).join('');
+  detailHTML += totalNetHTML;   // alltid sist
+
+  detailGrid.innerHTML = detailHTML;
 
   if (data.isAuto) {
     let daysInMonth = new Date(data.obYear, data.obMonth, 0).getDate();
