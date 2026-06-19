@@ -464,10 +464,8 @@ function renderUI(data) {
 
   const chips = [];
 
-  // Grundlön + driftformstillägg (sammanslagen)
   chips.push({ type:'neutral', html: `<div class="detail-chip"><span>Grundlön + Driftformstillägg</span><span>${fc(data.obGroundingBase)} kr</span></div>` });
 
-  // OB + övertid (success)
   if (data.totalOBOnlyHours > 0) {
     const obOTHTML = `<div class="expandable-chip" onclick="toggleExpand(this)">
       <div class="expandable-header"><span>Totalt OB</span><span>${fd(data.totalOBOnlyHours,2)}h / +${fd(data.totalOBOnly,2)} kr <span class="expandable-arrow">▼</span></span></div>
@@ -486,25 +484,21 @@ function renderUI(data) {
     chips.push({ type:'success', html: `<div class="detail-chip"><span>ÖT enkel (${fd(p(otEnkelHours.value),2)}h x ${fd(data.otEnkelRatePerHour,2)} kr)</span><span>+${fd(data.otEnkelAmount,2)} kr</span></div>` });
   }
 
-  // Semestertillägg (info)
   if (data.vacationCount > 0) {
     const semesterMonthName = data.isAuto ? MONTHS[data.obMonth-1] + ' ' + data.obYear : '';
     const semHTML = `<div class="detail-chip info"><span>Semestertillägg (${data.vacationCount} dgr, ${fd(data.semesterSupplementPerDay,2)} kr/d)</span><span>+${fd(data.semesterTillagg,2)} kr (intjänad ${semesterMonthName})</span></div>`;
     chips.push({ type:'info', html: semHTML });
   }
 
-  // Karens (danger)
   if (data.karensDeduction > 0) {
     chips.push({ type:'danger', html: `<div class="detail-chip danger"><span>Karensavdrag</span><span>-${fd(data.karensDeduction,2)} kr</span></div>` });
   }
 
-  // Sjukavdrag / ersättning (danger + success)
   if (data.sickDeduct100 > 0) {
     chips.push({ type:'danger', html: `<div class="detail-chip danger"><span>Sjukavdrag 100%</span><span>-${fd(data.sickDeduct100,2)} kr</span></div>` });
     chips.push({ type:'success', html: `<div class="detail-chip success"><span>Sjukersättning 80%</span><span>+${fd(data.sickPay80,2)} kr</span></div>` });
   }
 
-  // Sjuk-OB (success)
   if (data.totalSjukOBGain > 0) {
     const totalSickOBHours = data.sickOB1Hours + data.sickOB2Hours + data.sickOB3Hours;
     let sickDetails = '';
@@ -520,47 +514,30 @@ function renderUI(data) {
     chips.push({ type:'success', html: sjukObHTML });
   }
 
-  // VAB/F-ledig (danger)
   if (data.totalVABParental > 0) {
     chips.push({ type:'danger', html: `<div class="detail-chip danger"><span>VAB/F-ledig avdrag</span><span>-${fd(data.vabParentalDeduction,2)} kr</span></div>` });
   }
 
-  // Bruttolön (neutral)
   chips.push({ type:'neutral', html: `<div class="detail-chip"><span>Bruttolön jobb</span><span>${fd(data.jobbBruttoExact,2)} kr</span></div>` });
-
-  // Skatt (danger)
   chips.push({ type:'danger', html: `<div class="detail-chip danger"><span>Skatt (tabell 33)</span><span>-${fc(data.tax)} kr</span></div>` });
-
-  // Nettolön före fack (neutral)
   chips.push({ type:'neutral', html: `<div class="detail-chip"><span>Nettolön före fack</span><span>${fc(data.netBeforeFack)} kr</span></div>` });
-
-  // Fackavgift (danger)
   chips.push({ type:'danger', html: `<div class="detail-chip danger"><span>IF Metall</span><span>-${fc(data.unionFee)} kr</span></div>` });
-
-  // Nettolön jobb (neutral)
   chips.push({ type:'neutral', html: `<div class="detail-chip"><span>Nettolön jobb</span><span>${fc(data.jobbNetto)} kr</span></div>` });
 
-  // FK/AFA netto (success)
   if (data.totalErsattningNetto > 0) {
     chips.push({ type:'success', html: `<div class="detail-chip success"><span>Nettolön bidrag</span><span>+${fc(data.totalErsattningNetto)} kr</span></div>` });
   }
 
-  // Öresutjämning
   if (Math.abs(data.utjämning) > 0.001) {
     const tecken = data.utjämning > 0 ? '+' : '';
     const färg = data.utjämning > 0 ? 'success' : 'danger';
     chips.push({ type: färg, html: `<div class="detail-chip ${färg}"><span>Öresutjämning</span><span>${tecken}${fd(Math.abs(data.utjämning),2)} kr</span></div>` });
   }
 
-  // Totalt netto (success, sist)
   const totalNetHTML = `<div class="detail-chip success"><strong>Totalt netto: ${fc(data.netSalary)} kr</strong></div>`;
-
   const order = { danger:1, info:2, neutral:3, success:4 };
   chips.sort((a,b) => (order[a.type]||5) - (order[b.type]||5));
-
-  let detailHTML = chips.map(c => c.html).join('');
-  detailHTML += totalNetHTML;
-
+  let detailHTML = chips.map(c => c.html).join('') + totalNetHTML;
   detailGrid.innerHTML = detailHTML;
 
   if (data.isAuto) {
@@ -568,6 +545,21 @@ function renderUI(data) {
     let shiftNames = ['Ledig', 'Dag', 'Natt'];
     let tbody = ''; let isBlueWeek = false; let lastShownWeek = null;
     let sickOffset = 0;
+    let sickRowHeight = 35;  // fallback
+
+    // Skapa en tillfällig rad för att mäta verklig radhöjd
+    if (!document.getElementById('_sick_measurer')) {
+      const measurer = document.createElement('tr');
+      measurer.id = '_sick_measurer';
+      measurer.className = 'row-sick';
+      measurer.innerHTML = '<td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>';
+      document.querySelector('head').appendChild(measurer);
+      sickRowHeight = measurer.offsetHeight || 35;
+      measurer.remove();
+    } else {
+      const measurer = document.getElementById('_sick_measurer');
+      sickRowHeight = measurer.offsetHeight || 35;
+    }
 
     for (let d = 1; d <= daysInMonth; d++) {
       let date = new Date(data.obYear, data.obMonth - 1, d);
@@ -601,7 +593,7 @@ function renderUI(data) {
       else if (fromvaroVal === 4) {
         rowClass = 'row-sick';
         inlineStyle = `style="background-position-y: -${sickOffset}px"`;
-        sickOffset += 35;
+        sickOffset += sickRowHeight;
       }
       let fromvaroCell = shift !== 0 ? `<select class="fromvaro-select" onchange="setFromvaro('${dateStr}',this.value)" onclick="event.stopPropagation()">
         <option value="" ${fromvaroText===""?'selected':''}>Ingen</option>
