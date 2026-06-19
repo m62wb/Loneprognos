@@ -129,7 +129,7 @@ function calcParentalDeduction(year, month, lag, baseSalary, sickRate100) {
   return f2(totalDeduction);
 }
 
-// ----- SJUKAVDRAG OCH SJUK-OB (OB-TIMMAR DRAS EJ BORT, BLOCK-SCHABLON FÖR SJUK-OB) -----
+// ----- SJUKAVDRAG OCH SJUK-OB (BLOCK-SCHABLON, DETALJERAD DATA) -----
 function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80, ob1r, ob2r, ob3r) {
   const daysInMonth = new Date(year, month, 0).getDate();
   const sickDays = [];
@@ -138,7 +138,7 @@ function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80
     const key = date.toISOString().split('T')[0];
     if (fromvaroMap.get(key) === 4) {
       const shift = getShift(date, lag);
-      if (shift === 0 || isPermissionDay(date, lag)) continue; // endast arbetsdagar
+      if (shift === 0 || isPermissionDay(date, lag)) continue;
 
       const detail = sickDetailMap.get(key) || {type:'full'};
       const hoursMissed = detail.type === 'partial' ? (detail.hoursMissed || 0) : 12.25;
@@ -149,7 +149,8 @@ function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80
     localStorage.removeItem('sickPrevEnd');
     localStorage.removeItem('sickPrevYear');
     localStorage.removeItem('sickPrevMonth');
-    return { deduction:0, compensation:0, sickOBGain:0, karensDeduction:0, sickDeduct100:0, sickPay80:0 };
+    return { deduction:0, compensation:0, sickOBGain:0, karensDeduction:0, sickDeduct100:0, sickPay80:0,
+             sickOB1Hours:0, sickOB2Hours:0, sickOB3Hours:0, sickOB1Amount:0, sickOB2Amount:0, sickOB3Amount:0 };
   }
 
   sickDays.sort((a,b) => a.date - b.date);
@@ -174,6 +175,8 @@ function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80
   }
 
   let totalKarensHours = 0, totalSickHours = 0, totalSickOBGain = 0;
+  let totalSickOB1Hours = 0, totalSickOB2Hours = 0, totalSickOB3Hours = 0;
+  let totalSickOB1Amount = 0, totalSickOB2Amount = 0, totalSickOB3Amount = 0;
   let aterinsjuknande = false;
 
   for (const period of periods) {
@@ -192,6 +195,14 @@ function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80
         // ---- BLOCK-SCHABLON FÖR SJUK-OB (hela OB-block) ----
         const obAmount = ob.ob1 * f2(ob1r) + ob.ob2 * f2(ob2r) + ob.ob3 * f2(ob3r);
         periodSickOB += obAmount * 0.8;
+
+        // Samla detaljer
+        totalSickOB1Hours += ob.ob1;
+        totalSickOB2Hours += ob.ob2;
+        totalSickOB3Hours += ob.ob3;
+        totalSickOB1Amount += ob.ob1 * f2(ob1r) * 0.8;
+        totalSickOB2Amount += ob.ob2 * f2(ob2r) * 0.8;
+        totalSickOB3Amount += ob.ob3 * f2(ob3r) * 0.8;
       }
     }
     totalSickHours += periodHours;
@@ -212,7 +223,12 @@ function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80
   const sickPay80 = f2(totalSickHours * sickRate80);
   const sickNetLoss = f2(sickDeduct100 - sickPay80);
   const totalSickLoss = f2(karensDeduction + sickNetLoss);
-  return { deduction: totalSickLoss, compensation: sickPay80, sickOBGain: f2(totalSickOBGain), karensDeduction, sickDeduct100, sickPay80 };
+  return {
+    deduction: totalSickLoss, compensation: sickPay80, sickOBGain: f2(totalSickOBGain),
+    karensDeduction, sickDeduct100, sickPay80,
+    sickOB1Hours: totalSickOB1Hours, sickOB2Hours: totalSickOB2Hours, sickOB3Hours: totalSickOB3Hours,
+    sickOB1Amount: f2(totalSickOB1Amount), sickOB2Amount: f2(totalSickOB2Amount), sickOB3Amount: f2(totalSickOB3Amount)
+  };
 }
 // ---------------------------------------------------------
 
@@ -304,6 +320,12 @@ function calculateEverything() {
   const sickResult = calcSickDeduction(obYear, obMonth, lag, baseSalary, sickRate100, sickRate80, ob1r, ob2r, ob3r);
   const totalSickLoss = sickResult.deduction;
   const sickOBGain = sickResult.sickOBGain;
+  const sickOB1Hours = sickResult.sickOB1Hours;
+  const sickOB2Hours = sickResult.sickOB2Hours;
+  const sickOB3Hours = sickResult.sickOB3Hours;
+  const sickOB1Amount = sickResult.sickOB1Amount;
+  const sickOB2Amount = sickResult.sickOB2Amount;
+  const sickOB3Amount = sickResult.sickOB3Amount;
 
   const sgiVab = Math.min(sgiVal, SGI_TAK_VAB);
   const sgiVabDay = f2(sgiVab / 365 * 0.8);
@@ -317,11 +339,9 @@ function calculateEverything() {
   const fkVabNet = f2(fkVabTotal - fkVabTax), fkFpNet = f2(fkFpTotal - fkFpTax), fkFptNet = f2(fkFptTotal - fkFptTax);
   const totalErsattningNetto = f2(fkVabNet + fkFpNet + fkFptNet);
 
-  // ---- OB: hämta som vanligt (exkl. alla frånvarodagar) ----
   let autoOB = null;
   if (isAuto) { autoOB = getOBForMonth(obYear, obMonth, lag); }
 
-  // ---- Lägg till OB för sjukdagar (som företaget betalar ut) ----
   if (autoOB && lag !== 'manual') {
     const daysInMonth = new Date(obYear, obMonth, 0).getDate();
     for (let d = 1; d <= daysInMonth; d++) {
@@ -338,7 +358,6 @@ function calculateEverything() {
       }
     }
   }
-  // ---------------------------------------------------------
 
   if (autoOB) {
     ob1Hours.value = fd(autoOB.ob1, 2);
@@ -394,6 +413,7 @@ function calculateEverything() {
     ob1Amount: ob1Amt, ob2Amount: ob2Amt, ob3Amount: ob3Amt, otAmount: otAmt, otEnkelAmount: otEnkelAmt,
     totalOBOnly, totalOBOnlyHours: obData.ob1 + obData.ob2 + obData.ob3, totalOB,
     totalSjukOBGain: sickOBGain,
+    sickOB1Hours, sickOB2Hours, sickOB3Hours, sickOB1Amount, sickOB2Amount, sickOB3Amount,
     jobbBrutto, jobbBruttoExact, tax, netBeforeFack: f2(jobbBrutto - tax),
     unionFee: calcUnion(jobbBrutto), jobbNetto: f2(jobbBrutto - tax - calcUnion(jobbBrutto)),
     netSalary, netSalaryExact, utjämning: f2(netSalary - netSalaryExact)
@@ -439,7 +459,24 @@ function renderUI(data) {
     extraSickHTML = `<div class="detail-chip danger"><span>Sjukavdrag 100%</span><span>-${fd(data.sickDeduct100,2)} kr</span></div>
                      <div class="detail-chip success"><span>Sjukersättning 80%</span><span>+${fd(data.sickPay80,2)} kr</span></div>`;
   }
-  let sjukObHTML = data.totalSjukOBGain > 0 ? `<div class="detail-chip success"><span>Sjuk-OB ersättning</span><span>+${fd(data.totalSjukOBGain,2)} kr</span></div>` : '';
+
+  // ---- SJUK-OB MED EXPANDERBAR DETALJ ----
+  let sjukObHTML = '';
+  if (data.totalSjukOBGain > 0) {
+    const totalSickOBHours = data.sickOB1Hours + data.sickOB2Hours + data.sickOB3Hours;
+    let sickDetails = '';
+    if (data.sickOB1Hours > 0) sickDetails += `<div class="tax-detail-row">OB1 (${fd(data.sickOB1Hours,2)}h x ${fd(data.ob1RatePerHour,2)} kr): +${fd(data.sickOB1Amount,2)} kr</div>`;
+    if (data.sickOB2Hours > 0) sickDetails += `<div class="tax-detail-row">OB2 (${fd(data.sickOB2Hours,2)}h x ${fd(data.ob2RatePerHour,2)} kr): +${fd(data.sickOB2Amount,2)} kr</div>`;
+    if (data.sickOB3Hours > 0) sickDetails += `<div class="tax-detail-row">OB3 (${fd(data.sickOB3Hours,2)}h x ${fd(data.ob3RatePerHour,2)} kr): +${fd(data.sickOB3Amount,2)} kr</div>`;
+
+    sjukObHTML = `<div class="expandable-chip" onclick="toggleExpand(this)">
+      <div class="expandable-header"><span>Sjuk-OB ersättning</span><span>${fd(totalSickOBHours,2)}h / +${fd(data.totalSjukOBGain,2)} kr <span class="expandable-arrow">▼</span></span></div>
+      <div class="expandable-details">
+        ${sickDetails}
+        <div class="tax-detail-row total">Summa sjuk‑OB: ${fd(totalSickOBHours,2)}h / +${fd(data.totalSjukOBGain,2)} kr</div>
+      </div></div>`;
+  }
+
   let vabHTML = data.totalVABParental > 0 ? `<div class="detail-chip danger"><span>VAB/F-ledig avdrag</span><span>-${fd(data.vabParentalDeduction,2)} kr</span></div>` : '';
   const semesterMonthName = data.isAuto ? MONTHS[data.obMonth-1] + ' ' + data.obYear : '';
   let semesterHTML = data.vacationCount > 0 ? `<div class="detail-chip info"><span>Semestertillägg (${data.vacationCount} dgr, ${fd(data.semesterSupplementPerDay,2)} kr/d)</span><span>+${fd(data.semesterTillagg,2)} kr (intjänad ${semesterMonthName})</span></div>` : '';
