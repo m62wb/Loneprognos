@@ -545,6 +545,7 @@ function renderUI(data) {
     let shiftNames = ['Ledig', 'Dag', 'Natt'];
     let tbody = ''; let isBlueWeek = false; let lastShownWeek = null;
 
+    // Bygg raderna först
     for (let d = 1; d <= daysInMonth; d++) {
       let date = new Date(data.obYear, data.obMonth - 1, d);
       let dateStr = date.toISOString().split('T')[0];
@@ -594,6 +595,22 @@ function renderUI(data) {
       tbody += `<tr class="${rowClass}"><td class="${weekCellClass}">${dayCellContent}</td><td>${shiftText}</td><td>${fd(ob.ob1,2)}h</td><td>${fd(ob.ob2,2)}h</td><td>${fd(ob.ob3,2)}h</td><td>${fromvaroCell}</td><td>${station}</td><td>${passSelect}</td></tr>`;
     }
     tableBody.innerHTML = tbody;
+
+    // Mäta radhöjd från en tillfällig sjukrad för att synkronisera gradienten
+    let testRow = document.createElement('tr');
+    testRow.className = 'row-sick';
+    testRow.innerHTML = '<td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>';
+    tableBody.appendChild(testRow);
+    let rowHeight = testRow.offsetHeight || 35;
+    tableBody.removeChild(testRow);
+
+    // Applicera background-position-y på alla sjukrader
+    let sickRows = tableBody.querySelectorAll('.row-sick');
+    let offset = 0;
+    sickRows.forEach(row => {
+      row.style.backgroundPositionY = `-${offset}px`;
+      offset += rowHeight;
+    });
   } else { tableBody.innerHTML = '<tr><td colspan="8">Välj ett lag</td></tr>'; }
 }
 
