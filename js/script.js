@@ -26,7 +26,7 @@ function getMondayOfISOWeek(w, year) {
 const sickDetailMap = new Map();
 window.isLoadingProfile = false;
 
-// ----- ALLA FUNKTIONER SOM HTML ANROPAR MÅSTE VARA GLOBALA -----
+// ALLA funktioner som HTML anropar måste vara globala
 function toggleSettings() {
   const c = document.getElementById('settingsContent');
   const a = document.getElementById('settingsArrow');
@@ -42,7 +42,6 @@ function toggleTheme() {
   document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
   localStorage.setItem('theme', isDark ? 'dark' : 'light');
 }
-// -----------------------------------------------------------------
 
 document.addEventListener('DOMContentLoaded', function() {
 
@@ -441,6 +440,15 @@ function renderUI(data) {
     }
     tableBody.innerHTML = tbody;
   } else { tableBody.innerHTML = '<tr><td colspan="8">Välj ett lag</td></tr>'; }
+}
+
+function showMainIfValid() {
+  const main = document.getElementById('mainContent');
+  if (!main) return;
+  const lag = lagSelect.value;
+  if (lag !== '' && lag !== 'manual') { main.style.display = ''; }
+  else if (lag === 'manual') { main.style.display = ''; }
+  else { main.style.display = 'none'; }
 }
 
 function autoSaveState() { localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(getCurrentState())); }
