@@ -26,7 +26,6 @@ function getMondayOfISOWeek(w, year) {
 const sickDetailMap = new Map();
 window.isLoadingProfile = false;
 
-// ALLA funktioner som HTML anropar måste vara globala
 function toggleSettings() {
   const c = document.getElementById('settingsContent');
   const a = document.getElementById('settingsArrow');
@@ -442,22 +441,21 @@ function renderUI(data) {
   } else { tableBody.innerHTML = '<tr><td colspan="8">Välj ett lag</td></tr>'; }
 }
 
-function showMainIfValid() {
-  const main = document.getElementById('mainContent');
-  if (!main) return;
-  const lag = lagSelect.value;
-  if (lag !== '' && lag !== 'manual') { main.style.display = ''; }
-  else if (lag === 'manual') { main.style.display = ''; }
-  else { main.style.display = 'none'; }
-}
-
 function autoSaveState() { localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(getCurrentState())); }
 function updateUI() {
   const data = calculateEverything(); renderUI(data); updateSettingsLabel();
   if (data.isAuto && data.lockEnabled && !manualOBOverride && data.autoOB) {
     ob1Hours.value = fd(data.autoOB.ob1,2); ob2Hours.value = fd(data.autoOB.ob2,2); ob3Hours.value = fd(data.autoOB.ob3,2);
   }
-  closeSettingsBoxIfNeeded(); renderOBChart(); showMainIfValid(); autoSaveState();
+  closeSettingsBoxIfNeeded(); renderOBChart();
+  // --- INBAKAD showMainIfValid ---
+  const main = document.getElementById('mainContent');
+  if (main) {
+    const lag = lagSelect.value;
+    main.style.display = (lag !== '' && lag !== 'manual') || lag === 'manual' ? '' : 'none';
+  }
+  // ------------------------------
+  autoSaveState();
 }
 function closeSettingsBoxIfNeeded() {
   const settingsContent = document.getElementById('settingsContent');
