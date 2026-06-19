@@ -129,7 +129,7 @@ function calcParentalDeduction(year, month, lag, baseSalary, sickRate100) {
   return f2(totalDeduction);
 }
 
-// ----- SJUKAVDRAG OCH SJUK-OB (OB-TIMMAR DRAS EJ BORT) -----
+// ----- SJUKAVDRAG OCH SJUK-OB (OB-TIMMAR DRAS EJ BORT, BLOCK-SCHABLON FÖR SJUK-OB) -----
 function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80, ob1r, ob2r, ob3r) {
   const daysInMonth = new Date(year, month, 0).getDate();
   const sickDays = [];
@@ -138,7 +138,7 @@ function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80
     const key = date.toISOString().split('T')[0];
     if (fromvaroMap.get(key) === 4) {
       const shift = getShift(date, lag);
-      if (shift === 0 || isPermissionDay(date, lag)) continue;
+      if (shift === 0 || isPermissionDay(date, lag)) continue; // endast arbetsdagar
 
       const detail = sickDetailMap.get(key) || {type:'full'};
       const hoursMissed = detail.type === 'partial' ? (detail.hoursMissed || 0) : 12.25;
@@ -189,12 +189,9 @@ function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80
       if (day.date >= period.start && day.date <= period.end) {
         periodHours += day.hoursMissed;
         const ob = calcOB(day.date, day.shift, lag);
-        const totalOBHours = ob.ob1 + ob.ob2 + ob.ob3;
-        if (totalOBHours > 0) {
-          const fraction = day.hoursMissed / 12.25;
-          const obAmount = ob.ob1 * f2(ob1r) + ob.ob2 * f2(ob2r) + ob.ob3 * f2(ob3r);
-          periodSickOB += obAmount * fraction * 0.8;
-        }
+        // ---- BLOCK-SCHABLON FÖR SJUK-OB (hela OB-block) ----
+        const obAmount = ob.ob1 * f2(ob1r) + ob.ob2 * f2(ob2r) + ob.ob3 * f2(ob3r);
+        periodSickOB += obAmount * 0.8;
       }
     }
     totalSickHours += periodHours;
@@ -465,7 +462,7 @@ function renderUI(data) {
     let daysInMonth = new Date(data.obYear, data.obMonth, 0).getDate();
     let shiftNames = ['Ledig', 'Dag', 'Natt'];
     let tbody = ''; let isBlueWeek = false; let lastShownWeek = null;
-    let sickOffset = 0;   // för sömlös polkagrisrand
+    let sickOffset = 0;
 
     for (let d = 1; d <= daysInMonth; d++) {
       let date = new Date(data.obYear, data.obMonth - 1, d);
@@ -499,7 +496,7 @@ function renderUI(data) {
       else if (fromvaroVal === 4) {
         rowClass = 'row-sick';
         inlineStyle = `style="background-position-y: -${sickOffset}px"`;
-        sickOffset += 35;   // justera radhöjd vid behov
+        sickOffset += 35;
       }
       let fromvaroCell = shift !== 0 ? `<select class="fromvaro-select" onchange="setFromvaro('${dateStr}',this.value)" onclick="event.stopPropagation()">
         <option value="" ${fromvaroText===""?'selected':''}>Ingen</option>
