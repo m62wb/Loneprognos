@@ -135,14 +135,6 @@ select, input[type="number"], input[type="text"] {
 .table-container { overflow-x: auto; border-radius: var(--radius-sm); }
 table { width: 100%; table-layout: fixed; border-collapse: collapse; background: var(--card-bg); }
 
-/* Sömlös polkagrisrand för hela tbody */
-#salaryTable tbody {
-    background: repeating-linear-gradient(
-        45deg,
-        rgba(220,20,60,0.3) 0 8px,
-        rgba(255,255,255,0.3) 8px 16px
-    );
-}
 
 th {
     background: var(--primary);
