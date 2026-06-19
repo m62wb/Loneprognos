@@ -83,6 +83,69 @@ function countParentalDaysInMonth(year, month) {
   return cnt;
 }
 
+// ---------- NY FUNKTION FÖR FÖRÄLDRALEDIGHETSAVDRAG MED 5‑DAGARSREGELN ----------
+function calcParentalDeduction(year, month, lag, baseSalary, sickRate100) {
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const flDates = [];
+  // Samla alla datum med föräldraledighet i denna månad
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(year, month - 1, d);
+    const key = date.toISOString().split('T')[0];
+    if (fromvaroMap.get(key) === 3) flDates.push(date);
+  }
+  if (flDates.length === 0) return 0;
+
+  // Sortera kronologiskt
+  flDates.sort((a,b) => a - b);
+
+  // Bygg perioder av sammanhängande dagar
+  const periods = [];
+  let currentStart = flDates[0];
+  let currentEnd = flDates[0];
+  for (let i = 1; i < flDates.length; i++) {
+    const prev = new Date(currentEnd);
+    prev.setDate(prev.getDate() + 1);
+    if (flDates[i].getTime() === prev.getTime()) {
+      currentEnd = flDates[i];
+    } else {
+      periods.push({start: new Date(currentStart), end: new Date(currentEnd)});
+      currentStart = flDates[i];
+      currentEnd = flDates[i];
+    }
+  }
+  periods.push({start: new Date(currentStart), end: new Date(currentEnd)});
+
+  let totalDeduction = 0;
+
+  for (const period of periods) {
+    // Räkna arbetsdagar (måndag–fredag) i perioden
+    let workDays = 0;
+    const d = new Date(period.start);
+    while (d <= period.end) {
+      const dayOfWeek = d.getDay();
+      if (dayOfWeek >= 1 && dayOfWeek <= 5) { // måndag–fredag
+        const shift = getOrdinaryShift(d, lag);
+        if (shift > 0 && !isPermissionDay(d, lag)) workDays++;
+      }
+      d.setDate(d.getDate() + 1);
+    }
+
+    // Antal kalenderdagar totalt i perioden
+    const calDays = Math.round((period.end - period.start) / 86400000) + 1;
+
+    if (workDays > 5) {
+      // Lång frånvaro → kalenderdagsavdrag
+      totalDeduction += (baseSalary / 30) * calDays;
+    } else {
+      // Kort frånvaro → timavdrag (12.25 h per arbetsdag)
+      totalDeduction += sickRate100 * (workDays * VAB_HPD);
+    }
+  }
+
+  return f2(totalDeduction);
+}
+// -------------------------------------------------------------------------------------
+
 function setFromvaro(dateStr, value){
   const date = new Date(dateStr);
   const week = getWeekNumber(date);
@@ -121,7 +184,6 @@ function calculateEverything() {
   if (obMonth === 0) { obMonth = 12; obYear--; }
   const vabD = countVABDaysInMonth(obYear, obMonth);
   const parentalD = countParentalDaysInMonth(obYear, obMonth);
-  const totalVABParental = vabD + parentalD;
   const vacationCount = countVacationDaysInMonth(obYear, obMonth);
 
   const driftAddition = f2(baseSalary * DRIFT / 100);
@@ -153,8 +215,13 @@ function calculateEverything() {
   const sickDeduct100 = extraSick > 0 ? f2(extraSick * sickRate100) : 0;
   const sickPay80 = extraSick > 0 ? f2(extraSick * sickRate80) : 0;
 
-  const vabParentalHours = totalVABParental * VAB_HPD;
-  const vabParentalDeduction = f2(vabParentalHours * sickRate100);
+  // VAB-avdrag (oförändrat)
+  const vabDeduction = f2(vabD * VAB_HPD * sickRate100);
+
+  // Föräldraledighetsavdrag med 5‑dagarsregeln
+  const parentalDeduction = calcParentalDeduction(obYear, obMonth, lag, baseSalary, sickRate100);
+
+  const vabParentalDeduction = f2(vabDeduction + parentalDeduction);
 
   const sgiVab = Math.min(sgiVal, SGI_TAK_VAB);
   const sgiVabDay = f2(sgiVab / 365 * 0.8);
@@ -179,7 +246,6 @@ function calculateEverything() {
   let autoOB = null;
   if (isAuto) { autoOB = getOBForMonth(obYear, obMonth, lag); }
 
-  // Tvinga fram uppdatering av OB-fälten
   if (autoOB) {
     ob1Hours.value = fd(autoOB.ob1, 2);
     ob2Hours.value = fd(autoOB.ob2, 2);
@@ -231,7 +297,7 @@ function calculateEverything() {
 
   return {
     baseSalary, selectedYear, selectedMonth, karensDays, lag, isAuto,
-    sickVisible, extraSick, totalVABParental, vacationCount,
+    sickVisible, extraSick, totalVABParental: vabD + parentalD, vacationCount,
     driftAddition, obGroundingBase,
     ob1RatePerHour: ob1Rate, ob2RatePerHour: ob2Rate, ob3RatePerHour: ob3Rate,
     otRatePerHour: otRate, otEnkelRatePerHour: otEnkelRate,
@@ -352,8 +418,8 @@ function renderUI(data) {
     let daysInMonth = new Date(data.obYear, data.obMonth, 0).getDate();
     let shiftNames = ['Ledig', 'Dag', 'Natt'];
     let tbody = '';
-    let isBlueWeek = false;          // startvärde, kommer sättas om direkt
-    let lastShownWeek = null;        // håller reda på senast visade veckonummer
+    let isBlueWeek = false;
+    let lastShownWeek = null;
     for (let d = 1; d <= daysInMonth; d++) {
       let date = new Date(data.obYear, data.obMonth - 1, d);
       let dateStr = date.toISOString().split('T')[0];
@@ -364,18 +430,16 @@ function renderUI(data) {
       if (fromvaroVal !== 0) ob = {ob1:0, ob2:0, ob3:0};
       let dayName = ['Sön','Mån','Tis','Ons','Tor','Fre','Lör'][date.getDay()];
       let weekNum = getWeekNumber(date);
-      
-      // Visa veckonummer på första dagen, eller om det är måndag OCH veckan inte redan visats
+
       let weekLabel = '';
       if (d === 1 || (date.getDay() === 1 && weekNum !== lastShownWeek)) {
-        // Växla blåmarkering endast på måndagar (eller första dagen om den råkar vara måndag)
         if (date.getDay() === 1 || d === 1) {
           isBlueWeek = !isBlueWeek;
         }
         weekLabel = ' v' + weekNum;
         lastShownWeek = weekNum;
       }
-      
+
       let shiftText = isPerm ? 'Perm' : shiftNames[shift];
       if (shiftOverrideMap.has(dateStr) && !isPerm) shiftText += '*';
       let fromvaroText = '';
@@ -409,7 +473,7 @@ function renderUI(data) {
       tbody += `<tr class="${rowClass.trim()}"><td class="${weekCellClass}">${dayCellContent}</td><td>${shiftText}</td><td>${fd(ob.ob1,2)}h</td><td>${fd(ob.ob2,2)}h</td><td>${fd(ob.ob3,2)}h</td><td>${fromvaroCell}</td><td>${station}</td><td>${passSelect}</td></tr>`;
     }
     tableBody.innerHTML = tbody;
-} else {
+  } else {
     tableBody.innerHTML = '<tr><td colspan="8">Välj ett lag</td></tr>';
   }
 }
