@@ -1,4 +1,4 @@
-Jag har en webbaserad lönekalkylator för IKEM:s lokala avtal – specifikt Recipharm Uppsala AB.
+Jag har en webbaserad lönekalkylator för IKEM:s lokala avtal – specifikt mitt jobb.
 Kalkylatorn är uppdelad i filer:
 - index.html (gränssnitt, Chart.js CDN, laddar js-filer)
 - css/style.css (mörkt/ljust tema, färger för dag/natt/frånvaro/veckomarkering)
