@@ -83,56 +83,69 @@ function countParentalDaysInMonth(year, month) {
   return cnt;
 }
 
-// ---------- NY FUNKTION FÖR FÖRÄLDRALEDIGHETSAVDRAG MED 5‑DAGARSREGELN ----------
+// ---------- KORRIGERAD 5‑DAGARSREGEL FÖR FÖRÄLDRALEDIGHET ----------
 function calcParentalDeduction(year, month, lag, baseSalary, sickRate100) {
   const daysInMonth = new Date(year, month, 0).getDate();
-  const flDates = [];
-  // Samla alla datum med föräldraledighet i denna månad
+  const allDates = [];
+  
+  // Samla alla dagar i månaden och markera om de är FL
   for (let d = 1; d <= daysInMonth; d++) {
     const date = new Date(year, month - 1, d);
     const key = date.toISOString().split('T')[0];
-    if (fromvaroMap.get(key) === 3) flDates.push(date);
+    const isFL = (fromvaroMap.get(key) === 3);
+    const shift = getOrdinaryShift(date, lag);
+    const isWork = (shift > 0 && !isPermissionDay(date, lag));
+    allDates.push({ date, isFL, isWork });
   }
-  if (flDates.length === 0) return 0;
-
-  // Sortera kronologiskt
-  flDates.sort((a,b) => a - b);
-
-  // Bygg perioder av sammanhängande dagar
+  
+  // Bygg sammanhängande frånvaroperioder
   const periods = [];
-  let currentStart = flDates[0];
-  let currentEnd = flDates[0];
-  for (let i = 1; i < flDates.length; i++) {
-    const prev = new Date(currentEnd);
-    prev.setDate(prev.getDate() + 1);
-    if (flDates[i].getTime() === prev.getTime()) {
-      currentEnd = flDates[i];
+  let currentStart = null;
+  
+  for (let i = 0; i < allDates.length; i++) {
+    const day = allDates[i];
+    
+    if (day.isFL) {
+      if (currentStart === null) {
+        currentStart = day.date;
+      }
+    } else if (!day.isWork && currentStart !== null) {
+      // Ledig dag (helg/röd dag) – perioden fortsätter
+      continue;
     } else {
-      periods.push({start: new Date(currentStart), end: new Date(currentEnd)});
-      currentStart = flDates[i];
-      currentEnd = flDates[i];
+      // Arbetsdag utan FL – avsluta period
+      if (currentStart !== null) {
+        periods.push({ start: new Date(currentStart), end: new Date(allDates[i-1].date) });
+        currentStart = null;
+      }
     }
   }
-  periods.push({start: new Date(currentStart), end: new Date(currentEnd)});
-
+  
+  // Avsluta sista perioden om den sträcker sig till månadsslut
+  if (currentStart !== null) {
+    periods.push({ start: new Date(currentStart), end: new Date(allDates[allDates.length-1].date) });
+  }
+  
+  if (periods.length === 0) return 0;
+  
   let totalDeduction = 0;
-
+  
   for (const period of periods) {
     // Räkna arbetsdagar (måndag–fredag) i perioden
     let workDays = 0;
     const d = new Date(period.start);
     while (d <= period.end) {
       const dayOfWeek = d.getDay();
-      if (dayOfWeek >= 1 && dayOfWeek <= 5) { // måndag–fredag
+      if (dayOfWeek >= 1 && dayOfWeek <= 5) {
         const shift = getOrdinaryShift(d, lag);
         if (shift > 0 && !isPermissionDay(d, lag)) workDays++;
       }
       d.setDate(d.getDate() + 1);
     }
-
-    // Antal kalenderdagar totalt i perioden
+    
+    // Antal kalenderdagar i perioden
     const calDays = Math.round((period.end - period.start) / 86400000) + 1;
-
+    
     if (workDays > 5) {
       // Lång frånvaro → kalenderdagsavdrag
       totalDeduction += (baseSalary / 30) * calDays;
@@ -141,10 +154,10 @@ function calcParentalDeduction(year, month, lag, baseSalary, sickRate100) {
       totalDeduction += sickRate100 * (workDays * VAB_HPD);
     }
   }
-
+  
   return f2(totalDeduction);
 }
-// -------------------------------------------------------------------------------------
+// --------------------------------------------------------------------
 
 function setFromvaro(dateStr, value){
   const date = new Date(dateStr);
@@ -215,12 +228,8 @@ function calculateEverything() {
   const sickDeduct100 = extraSick > 0 ? f2(extraSick * sickRate100) : 0;
   const sickPay80 = extraSick > 0 ? f2(extraSick * sickRate80) : 0;
 
-  // VAB-avdrag (oförändrat)
   const vabDeduction = f2(vabD * VAB_HPD * sickRate100);
-
-  // Föräldraledighetsavdrag med 5‑dagarsregeln
   const parentalDeduction = calcParentalDeduction(obYear, obMonth, lag, baseSalary, sickRate100);
-
   const vabParentalDeduction = f2(vabDeduction + parentalDeduction);
 
   const sgiVab = Math.min(sgiVal, SGI_TAK_VAB);
