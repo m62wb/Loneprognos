@@ -26,7 +26,7 @@ function getMondayOfISOWeek(w, year) {
 const sickDetailMap = new Map();
 window.isLoadingProfile = false;
 
-// Saknade funktioner som HTML anropar
+// Funktioner som HTML anropar – MÅSTE ligga utanför DOMContentLoaded
 function toggleSettings() {
   const c = document.getElementById('settingsContent');
   const a = document.getElementById('settingsArrow');
@@ -263,7 +263,6 @@ function calculateEverything() {
   const sickResult = calcSickDeduction(obYear, obMonth, lag, baseSalary, sickRate100, sickRate80, ob1r, ob2r, ob3r);
   const totalSickLoss = sickResult.deduction;
   const sickOBGain = sickResult.sickOBGain;
-  const sickVisible = (totalSickLoss > 0 || sickOBGain > 0);
 
   const sgiVab = Math.min(sgiVal, SGI_TAK_VAB);
   const sgiVabDay = f2(sgiVab / 365 * 0.8);
@@ -313,7 +312,7 @@ function calculateEverything() {
   const netSalary = Math.round(netSalaryExact);
   return {
     baseSalary, selectedYear, selectedMonth, lag, isAuto,
-    sickVisible, extraSick: 0, totalVABParental: vabD + parentalD, vacationCount,
+    sickVisible: (totalSickLoss > 0 || sickOBGain > 0), extraSick: 0, totalVABParental: vabD + parentalD, vacationCount,
     driftAddition, obGroundingBase,
     ob1RatePerHour: ob1Rate, ob2RatePerHour: ob2Rate, ob3RatePerHour: ob3Rate,
     otRatePerHour: f2(obGroundingBase / OTD), otEnkelRatePerHour: f2(obGroundingBase / OTENKELD),
@@ -333,7 +332,6 @@ function calculateEverything() {
 
 function renderUI(data) {
   const lagName = {A:'Lag A',B:'Lag B',C:'Lag C',D:'Lag D',E:'Lag E'}[data.lag] || 'Manuell';
-  if (data.sickVisible) { /* inga containrar längre, men låt stå */ }
   vabSummary.style.display = data.totalVABParental > 0 ? 'flex' : 'none';
   obGroundingDisplay.innerText = fc(data.obGroundingBase) + ' kr';
   ob1Rate.innerText = '/460 = ' + fd(data.ob1RatePerHour,2) + ' kr/h';
