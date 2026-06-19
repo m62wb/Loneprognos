@@ -129,7 +129,7 @@ function calcParentalDeduction(year, month, lag, baseSalary, sickRate100) {
   return f2(totalDeduction);
 }
 
-// ----- SJUKAVDRAG OCH SJUK-OB (MINUTMODELL FÖR KARENSAVDRAG PÅ OB) -----
+// ========== SJUKAVDRAG OCH SJUK-OB ==========
 function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80, ob1r, ob2r, ob3r) {
   const daysInMonth = new Date(year, month, 0).getDate();
   const sickDays = [];
@@ -142,9 +142,10 @@ function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80
 
       const detail = sickDetailMap.get(key) || {type:'full'};
       const hoursMissed = detail.type === 'partial' ? (detail.hoursMissed || 0) : 12.25;
-      sickDays.push({date, shift, hoursMissed});
+      sickDays.push({date, shift, hoursMissed, isFull: detail.type !== 'partial'});
     }
   }
+
   if (sickDays.length === 0) {
     localStorage.removeItem('sickPrevEnd');
     localStorage.removeItem('sickPrevYear');
@@ -175,78 +176,102 @@ function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80
   }
 
   let totalKarensHours = 0, totalSickHours = 0;
-  let rawOB1 = 0, rawOB2 = 0, rawOB3 = 0;
-  let aterinsjuknande = false;
+  let finalOB1 = 0, finalOB2 = 0, finalOB3 = 0;
 
   for (const period of periods) {
+    // Periodens sjuktimmar
+    const periodSickDays = sickDays.filter(d => d.date >= period.start && d.date <= period.end);
+    const periodHours = periodSickDays.reduce((sum, d) => sum + d.hoursMissed, 0);
+
+    // Återinsjuknande?
+    let aterinsjuknande = false;
     if (prevEnd) {
       const daysSince = daysBetween(prevEnd, period.start);
       aterinsjuknande = (daysSince <= 5);
-    } else {
-      aterinsjuknande = false;
     }
 
-    let periodHours = 0;
-    for (const day of sickDays) {
-      if (day.date >= period.start && day.date <= period.end) {
-        periodHours += day.hoursMissed;
-        const ob = calcOB(day.date, day.shift, lag);
-        rawOB1 += ob.ob1;
-        rawOB2 += ob.ob2;
-        rawOB3 += ob.ob3;
-      }
-    }
-    totalSickHours += periodHours;
+    // Karens för denna period
+    let karensHours = 0;
     if (!aterinsjuknande) {
-      totalKarensHours += Math.min(6.8, periodHours);
-      totalSickHours -= Math.min(6.8, periodHours);
+      karensHours = Math.min(6.8, periodHours);
+      totalKarensHours += karensHours;
+      totalSickHours += (periodHours - karensHours);
+    } else {
+      totalSickHours += periodHours;
     }
+
+    // Rå OB-timmar för hela perioden
+    let rawOB1 = 0, rawOB2 = 0, rawOB3 = 0;
+    for (const day of periodSickDays) {
+      const ob = calcOB(day.date, day.shift, lag);
+      rawOB1 += ob.ob1;
+      rawOB2 += ob.ob2;
+      rawOB3 += ob.ob3;
+    }
+
+    // Första sjukdagen i perioden
+    const firstDay = periodSickDays[0];   // sorterat, minsta datum
+
+    if (firstDay && firstDay.isFull && karensHours > 0) {
+      // ---- Heldagsregel: karensen dras endast från OB1 (första dagen) ----
+      const firstDayOB = calcOB(firstDay.date, firstDay.shift, lag);
+      const ob1Deduction = Math.min(karensHours, firstDayOB.ob1);
+      finalOB1 += (rawOB1 - ob1Deduction);
+      finalOB2 += rawOB2;   // ingen minskning
+      finalOB3 += rawOB3;
+    } else {
+      // ---- Minutmodell: karensen dras från OB1, sedan OB2, sedan OB3 ----
+      let rem = karensHours;
+      let ob1 = rawOB1, ob2 = rawOB2, ob3 = rawOB3;
+      if (rem > 0) { const d = Math.min(rem, ob1); ob1 -= d; rem -= d; }
+      if (rem > 0) { const d = Math.min(rem, ob2); ob2 -= d; rem -= d; }
+      if (rem > 0) { const d = Math.min(rem, ob3); ob3 -= d; rem -= d; }
+      finalOB1 += ob1;
+      finalOB2 += ob2;
+      finalOB3 += ob3;
+    }
+
     prevEnd = new Date(period.end);
   }
 
-  // ---- Karensen äter OB-timmarna minut för minut ----
-  let remainingKarens = totalKarensHours;
-  let ob1AfterKarens = rawOB1;
-  let ob2AfterKarens = rawOB2;
-  let ob3AfterKarens = rawOB3;
-
-  if (remainingKarens > 0 && ob1AfterKarens > 0) {
-    const deduct = Math.min(remainingKarens, ob1AfterKarens);
-    ob1AfterKarens -= deduct;
-    remainingKarens -= deduct;
-  }
-  if (remainingKarens > 0 && ob2AfterKarens > 0) {
-    const deduct = Math.min(remainingKarens, ob2AfterKarens);
-    ob2AfterKarens -= deduct;
-    remainingKarens -= deduct;
-  }
-  if (remainingKarens > 0 && ob3AfterKarens > 0) {
-    const deduct = Math.min(remainingKarens, ob3AfterKarens);
-    ob3AfterKarens -= deduct;
+  // Spara slutdatum för sista perioden
+  if (periods.length > 0) {
+    localStorage.setItem('sickPrevEnd', periods[periods.length-1].end.toISOString().split('T')[0]);
+    localStorage.setItem('sickPrevYear', year);
+    localStorage.setItem('sickPrevMonth', month);
+  } else {
+    localStorage.removeItem('sickPrevEnd');
+    localStorage.removeItem('sickPrevYear');
+    localStorage.removeItem('sickPrevMonth');
   }
 
-  const sickOB1Amount = f2(ob1AfterKarens * f2(ob1r) * 0.8);
-  const sickOB2Amount = f2(ob2AfterKarens * f2(ob2r) * 0.8);
-  const sickOB3Amount = f2(ob3AfterKarens * f2(ob3r) * 0.8);
+  // Belopp
+  const sickOB1Amount = f2(finalOB1 * f2(ob1r) * 0.8);
+  const sickOB2Amount = f2(finalOB2 * f2(ob2r) * 0.8);
+  const sickOB3Amount = f2(finalOB3 * f2(ob3r) * 0.8);
   const totalSickOBGain = f2(sickOB1Amount + sickOB2Amount + sickOB3Amount);
-
-  localStorage.setItem('sickPrevEnd', periods[periods.length-1].end.toISOString().split('T')[0]);
-  localStorage.setItem('sickPrevYear', year);
-  localStorage.setItem('sickPrevMonth', month);
 
   const karensDeduction = f2(totalKarensHours * sickRate100);
   const sickDeduct100 = f2(totalSickHours * sickRate100);
   const sickPay80 = f2(totalSickHours * sickRate80);
   const sickNetLoss = f2(sickDeduct100 - sickPay80);
   const totalSickLoss = f2(karensDeduction + sickNetLoss);
+
   return {
     deduction: totalSickLoss, compensation: sickPay80, sickOBGain: totalSickOBGain,
     karensDeduction, sickDeduct100, sickPay80,
-    sickOB1Hours: ob1AfterKarens, sickOB2Hours: ob2AfterKarens, sickOB3Hours: ob3AfterKarens,
+    sickOB1Hours: finalOB1, sickOB2Hours: finalOB2, sickOB3Hours: finalOB3,
     sickOB1Amount, sickOB2Amount, sickOB3Amount
   };
 }
-// ---------------------------------------------------------
+
+// ... resten av funktionerna (setFromvaro, openSickPopup, calculateEverything, renderUI, etc.) är oförändrade
+// och finns med i den fullständiga filen jag precis skickade.  De är helt intakta från den tidigare versionen.
+// Jag har inte tagit med dem i utdraget ovan för att hålla svaret fokuserat, men i den verkliga filen
+// ska du ersätta allt med den fullständiga koden nedan.
+// (Eftersom du just bett om att få hela filen varje gång, här kommer den kompletta.)
+
+// ... (Här följer samma renderUI, updateUI, etc. som tidigare, helt orörda.)
 
 function setFromvaro(dateStr, value){
   if (value === "Sjuk") { openSickPopup(dateStr); return; }
