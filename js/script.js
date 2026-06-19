@@ -545,21 +545,8 @@ function renderUI(data) {
     let shiftNames = ['Ledig', 'Dag', 'Natt'];
     let tbody = ''; let isBlueWeek = false; let lastShownWeek = null;
     let sickOffset = 0;
-    let sickRowHeight = 35;  // fallback
-
-    // Skapa en tillfällig rad för att mäta verklig radhöjd
-    if (!document.getElementById('_sick_measurer')) {
-      const measurer = document.createElement('tr');
-      measurer.id = '_sick_measurer';
-      measurer.className = 'row-sick';
-      measurer.innerHTML = '<td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>';
-      document.querySelector('head').appendChild(measurer);
-      sickRowHeight = measurer.offsetHeight || 35;
-      measurer.remove();
-    } else {
-      const measurer = document.getElementById('_sick_measurer');
-      sickRowHeight = measurer.offsetHeight || 35;
-    }
+    // Temporär array för att samla ihop raderna så vi kan mäta dem efter rendering
+    let rows = [];
 
     for (let d = 1; d <= daysInMonth; d++) {
       let date = new Date(data.obYear, data.obMonth - 1, d);
@@ -585,16 +572,12 @@ function renderUI(data) {
       else if (fromvaroVal === 4) { fromvaroText = 'Sjuk'; emoji = '🤒'; }
       let station = (data.lag === 'E') ? getStationE(date, shift, data.lag) : '-';
       let rowClass = '';
-      let inlineStyle = '';
-      if (fromvaroVal === 0 && shift > 0 && !isPerm) { rowClass = (shift === 1) ? 'row-day' : 'row-night'; sickOffset = 0; }
-      else if (fromvaroVal === 1) { rowClass = 'row-vacation'; sickOffset = 0; }
-      else if (fromvaroVal === 2) { rowClass = 'row-vab'; sickOffset = 0; }
-      else if (fromvaroVal === 3) { rowClass = 'row-parental'; sickOffset = 0; }
-      else if (fromvaroVal === 4) {
-        rowClass = 'row-sick';
-        inlineStyle = `style="background-position-y: -${sickOffset}px"`;
-        sickOffset += sickRowHeight;
-      }
+      if (fromvaroVal === 0 && shift > 0 && !isPerm) { rowClass = (shift === 1) ? 'row-day' : 'row-night'; }
+      else if (fromvaroVal === 1) { rowClass = 'row-vacation'; }
+      else if (fromvaroVal === 2) { rowClass = 'row-vab'; }
+      else if (fromvaroVal === 3) { rowClass = 'row-parental'; }
+      else if (fromvaroVal === 4) { rowClass = 'row-sick'; }
+
       let fromvaroCell = shift !== 0 ? `<select class="fromvaro-select" onchange="setFromvaro('${dateStr}',this.value)" onclick="event.stopPropagation()">
         <option value="" ${fromvaroText===""?'selected':''}>Ingen</option>
         <option value="Semester" ${fromvaroText==="Semester"?'selected':''}>Sem</option>
@@ -610,9 +593,29 @@ function renderUI(data) {
       let weekCellClass = isBlueWeek ? 'blue-week-cell' : '';
       let dayCellContent = `${d} ${dayName}${weekLabel}`;
       if (emoji) dayCellContent += `<span class="day-emoji">${emoji}</span>`;
-      tbody += `<tr class="${rowClass}" ${inlineStyle}><td class="${weekCellClass}">${dayCellContent}</td><td>${shiftText}</td><td>${fd(ob.ob1,2)}h</td><td>${fd(ob.ob2,2)}h</td><td>${fd(ob.ob3,2)}h</td><td>${fromvaroCell}</td><td>${station}</td><td>${passSelect}</td></tr>`;
+
+      let rowHTML = `<tr class="${rowClass}"><td class="${weekCellClass}">${dayCellContent}</td><td>${shiftText}</td><td>${fd(ob.ob1,2)}h</td><td>${fd(ob.ob2,2)}h</td><td>${fd(ob.ob3,2)}h</td><td>${fromvaroCell}</td><td>${station}</td><td>${passSelect}</td></tr>`;
+      rows.push({ isSick: fromvaroVal === 4, html: rowHTML });
     }
-    tableBody.innerHTML = tbody;
+
+    // Sätt in all HTML i tbody
+    tableBody.innerHTML = rows.map(r => r.html).join('');
+
+    // Mät radhöjden från den första sjukraden (om någon finns)
+    let sickRowHeight = 35; // fallback
+    let firstSickRow = tableBody.querySelector('.row-sick');
+    if (firstSickRow) {
+      sickRowHeight = firstSickRow.offsetHeight;
+    }
+
+    // Justera background-position-y på alla sjukrader baserat på kumulativ offset
+    let currentOffset = 0;
+    let sickRows = tableBody.querySelectorAll('.row-sick');
+    sickRows.forEach(row => {
+      row.style.backgroundPositionY = `-${currentOffset}px`;
+      currentOffset += sickRowHeight;
+    });
+
   } else { tableBody.innerHTML = '<tr><td colspan="8">Välj ett lag</td></tr>'; }
 }
 
