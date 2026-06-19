@@ -26,7 +26,7 @@ function getMondayOfISOWeek(w, year) {
 const sickDetailMap = new Map();
 window.isLoadingProfile = false;
 
-// Funktioner som HTML anropar – MÅSTE ligga utanför DOMContentLoaded
+// ----- ALLA FUNKTIONER SOM HTML ANROPAR MÅSTE VARA GLOBALA -----
 function toggleSettings() {
   const c = document.getElementById('settingsContent');
   const a = document.getElementById('settingsArrow');
@@ -42,6 +42,7 @@ function toggleTheme() {
   document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
   localStorage.setItem('theme', isDark ? 'dark' : 'light');
 }
+// -----------------------------------------------------------------
 
 document.addEventListener('DOMContentLoaded', function() {
 
