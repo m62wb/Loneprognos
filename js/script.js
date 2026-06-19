@@ -129,6 +129,7 @@ function calcParentalDeduction(year, month, lag, baseSalary, sickRate100) {
   return f2(totalDeduction);
 }
 
+// ----- AUTOMATISK ÅTERINSJUKNANDE -----
 function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80, ob1r, ob2r, ob3r) {
   const daysInMonth = new Date(year, month, 0).getDate();
   const sickDays = [];
@@ -140,7 +141,14 @@ function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80
       sickDays.push({date, shift: getShift(date, lag), hoursMissed});
     }
   }
-  if (sickDays.length === 0) return { deduction:0, compensation:0, sickOBGain:0, karensDeduction:0, sickDeduct100:0, sickPay80:0 };
+  if (sickDays.length === 0) {
+    // Rensa sparad slutdatum om inga sjukdagar denna månad
+    localStorage.removeItem('sickPrevEnd');
+    localStorage.removeItem('sickPrevYear');
+    localStorage.removeItem('sickPrevMonth');
+    return { deduction:0, compensation:0, sickOBGain:0, karensDeduction:0, sickDeduct100:0, sickPay80:0 };
+  }
+
   sickDays.sort((a,b) => a.date - b.date);
   const periods = []; let start = sickDays[0].date, end = sickDays[0].date;
   for (let i = 1; i < sickDays.length; i++) {
@@ -149,9 +157,32 @@ function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80
     else { periods.push({start: new Date(start), end: new Date(end)}); start = sickDays[i].date; end = sickDays[i].date; }
   }
   periods.push({start: new Date(start), end: new Date(end)});
-  const aterinsjuknande = document.getElementById('aterinsjuknandeCheck').checked;
+
+  // Hämta slutdatum från föregående månad (om den är den förväntade)
+  let prevEnd = null;
+  const prevYear = parseInt(localStorage.getItem('sickPrevYear'));
+  const prevMonth = parseInt(localStorage.getItem('sickPrevMonth'));
+  if (prevYear && prevMonth) {
+    let expectedPrevYear = year, expectedPrevMonth = month - 1;
+    if (expectedPrevMonth === 0) { expectedPrevMonth = 12; expectedPrevYear--; }
+    if (prevYear === expectedPrevYear && prevMonth === expectedPrevMonth) {
+      const prevEndStr = localStorage.getItem('sickPrevEnd');
+      if (prevEndStr) prevEnd = new Date(prevEndStr);
+    }
+  }
+
   let totalKarensHours = 0, totalSickHours = 0, totalSickOBGain = 0;
+  let aterinsjuknande = false;
+
   for (const period of periods) {
+    // Kontrollera återinsjuknande
+    if (prevEnd) {
+      const daysSince = daysBetween(prevEnd, period.start);
+      aterinsjuknande = (daysSince <= 5);
+    } else {
+      aterinsjuknande = false;
+    }
+
     let periodHours = 0, periodSickOB = 0;
     for (const day of sickDays) {
       if (day.date >= period.start && day.date <= period.end) {
@@ -171,7 +202,16 @@ function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80
       totalSickHours -= Math.min(6.8, periodHours);
     }
     totalSickOBGain += periodSickOB;
+
+    // Uppdatera prevEnd till denna periods slut (för nästa iteration)
+    prevEnd = new Date(period.end);
   }
+
+  // Spara slutdatum för sista perioden
+  localStorage.setItem('sickPrevEnd', periods[periods.length-1].end.toISOString().split('T')[0]);
+  localStorage.setItem('sickPrevYear', year);
+  localStorage.setItem('sickPrevMonth', month);
+
   const karensDeduction = f2(totalKarensHours * sickRate100);
   const sickDeduct100 = f2(totalSickHours * sickRate100);
   const sickPay80 = f2(totalSickHours * sickRate80);
@@ -179,6 +219,7 @@ function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80
   const totalSickLoss = f2(karensDeduction + sickNetLoss);
   return { deduction: totalSickLoss, compensation: sickPay80, sickOBGain: f2(totalSickOBGain), karensDeduction, sickDeduct100, sickPay80 };
 }
+// ------------------------------------
 
 function setFromvaro(dateStr, value){
   if (value === "Sjuk") { openSickPopup(dateStr); return; }
@@ -448,13 +489,11 @@ function updateUI() {
     ob1Hours.value = fd(data.autoOB.ob1,2); ob2Hours.value = fd(data.autoOB.ob2,2); ob3Hours.value = fd(data.autoOB.ob3,2);
   }
   closeSettingsBoxIfNeeded(); renderOBChart();
-  // --- INBAKAD showMainIfValid ---
   const main = document.getElementById('mainContent');
   if (main) {
     const lag = lagSelect.value;
     main.style.display = (lag !== '' && lag !== 'manual') || lag === 'manual' ? '' : 'none';
   }
-  // ------------------------------
   autoSaveState();
 }
 function closeSettingsBoxIfNeeded() {
