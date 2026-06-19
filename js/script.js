@@ -129,7 +129,7 @@ function calcParentalDeduction(year, month, lag, baseSalary, sickRate100) {
   return f2(totalDeduction);
 }
 
-// ----- SJUKAVDRAG OCH SJUK-OB (MINUTMODELL + HELDAGSREGEL) -----
+// ----- SJUKAVDRAG OCH SJUK-OB -----
 function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80, ob1r, ob2r, ob3r) {
   const daysInMonth = new Date(year, month, 0).getDate();
   const sickDays = [];
@@ -544,9 +544,6 @@ function renderUI(data) {
     let daysInMonth = new Date(data.obYear, data.obMonth, 0).getDate();
     let shiftNames = ['Ledig', 'Dag', 'Natt'];
     let tbody = ''; let isBlueWeek = false; let lastShownWeek = null;
-    let sickOffset = 0;
-    // Temporär array för att samla ihop raderna så vi kan mäta dem efter rendering
-    let rows = [];
 
     for (let d = 1; d <= daysInMonth; d++) {
       let date = new Date(data.obYear, data.obMonth - 1, d);
@@ -594,28 +591,9 @@ function renderUI(data) {
       let dayCellContent = `${d} ${dayName}${weekLabel}`;
       if (emoji) dayCellContent += `<span class="day-emoji">${emoji}</span>`;
 
-      let rowHTML = `<tr class="${rowClass}"><td class="${weekCellClass}">${dayCellContent}</td><td>${shiftText}</td><td>${fd(ob.ob1,2)}h</td><td>${fd(ob.ob2,2)}h</td><td>${fd(ob.ob3,2)}h</td><td>${fromvaroCell}</td><td>${station}</td><td>${passSelect}</td></tr>`;
-      rows.push({ isSick: fromvaroVal === 4, html: rowHTML });
+      tbody += `<tr class="${rowClass}"><td class="${weekCellClass}">${dayCellContent}</td><td>${shiftText}</td><td>${fd(ob.ob1,2)}h</td><td>${fd(ob.ob2,2)}h</td><td>${fd(ob.ob3,2)}h</td><td>${fromvaroCell}</td><td>${station}</td><td>${passSelect}</td></tr>`;
     }
-
-    // Sätt in all HTML i tbody
-    tableBody.innerHTML = rows.map(r => r.html).join('');
-
-    // Mät radhöjden från den första sjukraden (om någon finns)
-    let sickRowHeight = 35; // fallback
-    let firstSickRow = tableBody.querySelector('.row-sick');
-    if (firstSickRow) {
-      sickRowHeight = firstSickRow.offsetHeight;
-    }
-
-    // Justera background-position-y på alla sjukrader baserat på kumulativ offset
-    let currentOffset = 0;
-    let sickRows = tableBody.querySelectorAll('.row-sick');
-    sickRows.forEach(row => {
-      row.style.backgroundPositionY = `-${currentOffset}px`;
-      currentOffset += sickRowHeight;
-    });
-
+    tableBody.innerHTML = tbody;
   } else { tableBody.innerHTML = '<tr><td colspan="8">Välj ett lag</td></tr>'; }
 }
 
