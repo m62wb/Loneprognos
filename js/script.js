@@ -129,7 +129,7 @@ function calcParentalDeduction(year, month, lag, baseSalary, sickRate100) {
   return f2(totalDeduction);
 }
 
-// ----- SJUKAVDRAG OCH SJUK-OB (BLOCK-SCHABLON, DETALJERAD DATA) -----
+// ----- SJUKAVDRAG OCH SJUK-OB (BLOCK-SCHABLON, KARENSEN MINSKAR OB1) -----
 function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80, ob1r, ob2r, ob3r) {
   const daysInMonth = new Date(year, month, 0).getDate();
   const sickDays = [];
@@ -176,8 +176,8 @@ function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80
 
   let totalKarensHours = 0, totalSickHours = 0, totalSickOBGain = 0;
   let totalSickOB1Hours = 0, totalSickOB2Hours = 0, totalSickOB3Hours = 0;
-  let totalSickOB1Amount = 0, totalSickOB2Amount = 0, totalSickOB3Amount = 0;
   let aterinsjuknande = false;
+  let karensPeriodCount = 0;   // antal perioder som får karens
 
   for (const period of periods) {
     if (prevEnd) {
@@ -196,23 +196,32 @@ function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80
         const obAmount = ob.ob1 * f2(ob1r) + ob.ob2 * f2(ob2r) + ob.ob3 * f2(ob3r);
         periodSickOB += obAmount * 0.8;
 
-        // Samla detaljer
         totalSickOB1Hours += ob.ob1;
         totalSickOB2Hours += ob.ob2;
         totalSickOB3Hours += ob.ob3;
-        totalSickOB1Amount += ob.ob1 * f2(ob1r) * 0.8;
-        totalSickOB2Amount += ob.ob2 * f2(ob2r) * 0.8;
-        totalSickOB3Amount += ob.ob3 * f2(ob3r) * 0.8;
       }
     }
     totalSickHours += periodHours;
     if (!aterinsjuknande) {
       totalKarensHours += Math.min(6.8, periodHours);
       totalSickHours -= Math.min(6.8, periodHours);
+      karensPeriodCount++;
     }
     totalSickOBGain += periodSickOB;
     prevEnd = new Date(period.end);
   }
+
+  // ---- KARENSEN MINSKAR SJUK-OB1 MED 6 H PER KARENSPERIOD ----
+  if (karensPeriodCount > 0) {
+    totalSickOB1Hours = Math.max(0, totalSickOB1Hours - 6 * karensPeriodCount);
+  }
+  // ------------------------------------------------------------
+
+  // Beräkna belopp med justerade timmar
+  const sickOB1Amount = f2(totalSickOB1Hours * f2(ob1r) * 0.8);
+  const sickOB2Amount = f2(totalSickOB2Hours * f2(ob2r) * 0.8);
+  const sickOB3Amount = f2(totalSickOB3Hours * f2(ob3r) * 0.8);
+  totalSickOBGain = f2(sickOB1Amount + sickOB2Amount + sickOB3Amount);
 
   localStorage.setItem('sickPrevEnd', periods[periods.length-1].end.toISOString().split('T')[0]);
   localStorage.setItem('sickPrevYear', year);
@@ -224,10 +233,10 @@ function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80
   const sickNetLoss = f2(sickDeduct100 - sickPay80);
   const totalSickLoss = f2(karensDeduction + sickNetLoss);
   return {
-    deduction: totalSickLoss, compensation: sickPay80, sickOBGain: f2(totalSickOBGain),
+    deduction: totalSickLoss, compensation: sickPay80, sickOBGain: totalSickOBGain,
     karensDeduction, sickDeduct100, sickPay80,
     sickOB1Hours: totalSickOB1Hours, sickOB2Hours: totalSickOB2Hours, sickOB3Hours: totalSickOB3Hours,
-    sickOB1Amount: f2(totalSickOB1Amount), sickOB2Amount: f2(totalSickOB2Amount), sickOB3Amount: f2(totalSickOB3Amount)
+    sickOB1Amount, sickOB2Amount, sickOB3Amount
   };
 }
 // ---------------------------------------------------------
