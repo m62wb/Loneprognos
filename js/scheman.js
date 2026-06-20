@@ -69,16 +69,14 @@ function getAllHelgons(year) { let d = new Date(year, 9, 31); while (d.getDay() 
 
 function isPermissionDay(date, lag) {
   let m = date.getMonth(), d = date.getDate(), shift = getShift(date, lag);
-  if (m === 11 && d === 24) return true;
-  if (m === 11 && d === 25 && shift === 1) return true;
-  if (m === 11 && d === 31 && shift === 2) return true;
-  if (m === 0 && d === 1 && shift === 1) return true;
+  if (m === 11 && d === 24) return true;                 // julafton: alla pass
+  if (m === 11 && d === 25 && shift === 1) return true;  // juldagen dag
+  if (m === 11 && d === 31 && shift === 2) return true;  // nyårsafton natt
+  if (m === 0 && d === 1 && shift === 1) return true;    // nyårsdagen dag
   let mid = getMidsummer(date.getFullYear()), eve = new Date(mid);
   eve.setDate(mid.getDate() - 1);
-  if (date.toDateString() === eve.toDateString()) return true;
-  if (date.toDateString() === mid.toDateString()) return true;
-  let mids = new Date(mid); mids.setDate(mid.getDate() + 1);
-  if (date.toDateString() === mids.toDateString() && shift === 1) return true;
+  if (date.toDateString() === eve.toDateString()) return true;           // midsommarafton: alla pass
+  if (date.toDateString() === mid.toDateString() && shift === 1) return true; // midsommardagen: endast dag
   return false;
 }
 
