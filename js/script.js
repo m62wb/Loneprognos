@@ -85,47 +85,98 @@ function countParentalDaysInMonth(year, month) {
   return cnt;
 }
 
+// ---- FÖRÄLDRALEDIGHET (5-dagarsregel) ----
 function calcParentalDeduction(year, month, lag, baseSalary, sickRate100) {
   const daysInMonth = new Date(year, month, 0).getDate();
-  const allDates = [];
+  const flDatesInMonth = [];
   for (let d = 1; d <= daysInMonth; d++) {
     const date = new Date(year, month - 1, d);
     const key = date.toISOString().split('T')[0];
-    const isFL = (fromvaroMap.get(key) === 3);
-    const shift = getOrdinaryShift(date, lag);
-    const isWork = (shift > 0 && !isPermissionDay(date, lag));
-    allDates.push({ date, isFL, isWork });
-  }
-  const periods = []; let currentStart = null;
-  for (let i = 0; i < allDates.length; i++) {
-    const day = allDates[i];
-    if (day.isFL) {
-      if (currentStart === null) currentStart = day.date;
-    } else if (!day.isWork && currentStart !== null) {
-      continue;
-    } else {
-      if (currentStart !== null) {
-        periods.push({ start: new Date(currentStart), end: new Date(allDates[i-1].date) });
-        currentStart = null;
-      }
+    if (fromvaroMap.get(key) === 3) {
+      flDatesInMonth.push(date);
     }
   }
-  if (currentStart !== null) periods.push({ start: new Date(currentStart), end: new Date(allDates[allDates.length-1].date) });
-  if (periods.length === 0) return 0;
+  if (flDatesInMonth.length === 0) return 0;
+
+  flDatesInMonth.sort((a, b) => a - b);
+
+  function isWorkDay(d) {
+    const shift = getOrdinaryShift(d, lag);
+    return shift > 0 && !isPermissionDay(d, lag);
+  }
+
+  const processed = new Set();
   let totalDeduction = 0;
-  for (const period of periods) {
-    let workDays = 0; const d = new Date(period.start);
-    while (d <= period.end) {
-      const dayOfWeek = d.getDay();
-      if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-        const shift = getOrdinaryShift(d, lag);
-        if (shift > 0 && !isPermissionDay(d, lag)) workDays++;
+
+  for (const startDate of flDatesInMonth) {
+    const startKey = startDate.toISOString().split('T')[0];
+    if (processed.has(startKey)) continue;
+
+    // Expandera bakåt
+    let periodStart = new Date(startDate);
+    while (true) {
+      const prev = new Date(periodStart);
+      prev.setDate(prev.getDate() - 1);
+      const prevKey = prev.toISOString().split('T')[0];
+      if (fromvaroMap.get(prevKey) === 3) {
+        periodStart = prev;
+        continue;
       }
+      if (isWorkDay(prev)) break;   // arbetsdag utan FL → stopp
+      periodStart = prev;           // ledig dag eller permission → utöka
+    }
+
+    // Expandera framåt
+    let periodEnd = new Date(startDate);
+    while (true) {
+      const next = new Date(periodEnd);
+      next.setDate(next.getDate() + 1);
+      const nextKey = next.toISOString().split('T')[0];
+      if (fromvaroMap.get(nextKey) === 3) {
+        periodEnd = next;
+        continue;
+      }
+      if (isWorkDay(next)) break;
+      periodEnd = next;
+    }
+
+    // Räkna arbetsdagar i HELA perioden (alla schemalagda pass räknas)
+    let workDays = 0;
+    const d = new Date(periodStart);
+    while (d <= periodEnd) {
+      if (isWorkDay(d)) workDays++;
       d.setDate(d.getDate() + 1);
     }
-    const calDays = Math.round((period.end - period.start) / 86400000) + 1;
-    totalDeduction += workDays > 5 ? (baseSalary / 30) * calDays : sickRate100 * (workDays * VAB_HPD);
+
+    // Överlapp med aktuell månad
+    const monthFirst = new Date(year, month - 1, 1);
+    const monthLast = new Date(year, month, 0);
+    const overlapStart = new Date(Math.max(periodStart.getTime(), monthFirst.getTime()));
+    const overlapEnd   = new Date(Math.min(periodEnd.getTime(), monthLast.getTime()));
+
+    if (workDays > 5) {
+      // Kalenderdagsavdrag för alla dagar i överlappet
+      const daysInOverlap = Math.round((overlapEnd - overlapStart) / 86400000) + 1;
+      totalDeduction += (baseSalary / 30) * daysInOverlap;
+    } else {
+      // Timavdrag för arbetsdagar inom månaden
+      const d2 = new Date(overlapStart);
+      while (d2 <= overlapEnd) {
+        if (isWorkDay(d2)) {
+          totalDeduction += sickRate100 * VAB_HPD;
+        }
+        d2.setDate(d2.getDate() + 1);
+      }
+    }
+
+    // Markera alla dagar i perioden som behandlade
+    const mark = new Date(periodStart);
+    while (mark <= periodEnd) {
+      processed.add(mark.toISOString().split('T')[0]);
+      mark.setDate(mark.getDate() + 1);
+    }
   }
+
   return f2(totalDeduction);
 }
 
