@@ -204,15 +204,39 @@ function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80
       rawOB3 += ob.ob3;
     }
 
-    // *** RÄTTELSE: Samma prioriteringskedja för ALLA sjukdagar ***
-    let rem = karensHours;
-    let ob1 = rawOB1, ob2 = rawOB2, ob3 = rawOB3;
-    if (rem > 0) { let d = Math.min(rem, ob1); ob1 -= d; rem -= d; }
-    if (rem > 0) { let d = Math.min(rem, ob2); ob2 -= d; rem -= d; }
-    if (rem > 0) { let d = Math.min(rem, ob3); ob3 -= d; rem -= d; }
-    finalOB1 += ob1;
-    finalOB2 += ob2;
-    finalOB3 += ob3;
+    const firstDay = periodSickDays[0];
+
+    if (firstDay && firstDay.isFull && karensHours > 0) {
+      // HELDAG: företaget drar endast 6 timmar från den första OB‑typen (bugg)
+      let deductionRemaining = 6.0;
+      let ob1 = rawOB1, ob2 = rawOB2, ob3 = rawOB3;
+      if (ob1 > 0) {
+        let d = Math.min(deductionRemaining, ob1);
+        ob1 -= d;
+        deductionRemaining -= d;
+      } else if (ob2 > 0) {
+        let d = Math.min(deductionRemaining, ob2);
+        ob2 -= d;
+        deductionRemaining -= d;
+      } else if (ob3 > 0) {
+        let d = Math.min(deductionRemaining, ob3);
+        ob3 -= d;
+        deductionRemaining -= d;
+      }
+      finalOB1 += ob1;
+      finalOB2 += ob2;
+      finalOB3 += ob3;
+    } else {
+      // DEL AV DAG (eller återinsjuknande): prioriteringskedja med hela karensen
+      let rem = karensHours;
+      let ob1 = rawOB1, ob2 = rawOB2, ob3 = rawOB3;
+      if (rem > 0) { let d = Math.min(rem, ob1); ob1 -= d; rem -= d; }
+      if (rem > 0) { let d = Math.min(rem, ob2); ob2 -= d; rem -= d; }
+      if (rem > 0) { let d = Math.min(rem, ob3); ob3 -= d; rem -= d; }
+      finalOB1 += ob1;
+      finalOB2 += ob2;
+      finalOB3 += ob3;
+    }
 
     prevEnd = new Date(period.end);
   }
