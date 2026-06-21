@@ -204,24 +204,15 @@ function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80
       rawOB3 += ob.ob3;
     }
 
-    const firstDay = periodSickDays[0];
-
-    if (firstDay && firstDay.isFull && karensHours > 0) {
-      const firstDayOB = calcOB(firstDay.date, firstDay.shift, lag);
-      const ob1Deduction = Math.min(karensHours, firstDayOB.ob1);
-      finalOB1 += (rawOB1 - ob1Deduction);
-      finalOB2 += rawOB2;
-      finalOB3 += rawOB3;
-    } else {
-      let rem = karensHours;
-      let ob1 = rawOB1, ob2 = rawOB2, ob3 = rawOB3;
-      if (rem > 0) { const d = Math.min(rem, ob1); ob1 -= d; rem -= d; }
-      if (rem > 0) { const d = Math.min(rem, ob2); ob2 -= d; rem -= d; }
-      if (rem > 0) { const d = Math.min(rem, ob3); ob3 -= d; rem -= d; }
-      finalOB1 += ob1;
-      finalOB2 += ob2;
-      finalOB3 += ob3;
-    }
+    // *** RÄTTELSE: Samma prioriteringskedja för ALLA sjukdagar ***
+    let rem = karensHours;
+    let ob1 = rawOB1, ob2 = rawOB2, ob3 = rawOB3;
+    if (rem > 0) { let d = Math.min(rem, ob1); ob1 -= d; rem -= d; }
+    if (rem > 0) { let d = Math.min(rem, ob2); ob2 -= d; rem -= d; }
+    if (rem > 0) { let d = Math.min(rem, ob3); ob3 -= d; rem -= d; }
+    finalOB1 += ob1;
+    finalOB2 += ob2;
+    finalOB3 += ob3;
 
     prevEnd = new Date(period.end);
   }
