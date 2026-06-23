@@ -67,6 +67,59 @@ function getEaster(year) {
 function getMidsummer(year) { let d = new Date(year, 5, 20); while (d.getDay() !== 6) d.setDate(d.getDate() + 1); return d; }
 function getAllHelgons(year) { let d = new Date(year, 9, 31); while (d.getDay() !== 6) d.setDate(d.getDate() + 1); return d; }
 
+// Kontrollerar om datumet är en röd dag (helgdag) i Sverige
+function isHoliday(date) {
+  const y = date.getFullYear();
+  const m = date.getMonth();     // 0 = januari
+  const d = date.getDate();
+
+  // Fast datum
+  if (m === 0 && d === 1)  return true;  // Nyårsdagen
+  if (m === 0 && d === 6)  return true;  // Trettondedag jul
+  if (m === 4 && d === 1)  return true;  // Första maj
+  if (m === 5 && d === 6)  return true;  // Nationaldagen
+  if (m === 11 && d === 24) return true; // Julafton
+  if (m === 11 && d === 25) return true; // Juldagen
+  if (m === 11 && d === 26) return true; // Annandag jul
+  if (m === 11 && d === 31) return true; // Nyårsafton
+
+  // Rörliga helgdagar baserade på påsk
+  const easter = getEaster(y);
+  const easterTime = easter.getTime();
+
+  // Långfredag (2 dagar före påsk)
+  const langfredag = new Date(easterTime - 2 * 86400000);
+  if (date.toDateString() === langfredag.toDateString()) return true;
+
+  // Påskafton (1 dag före)
+  const paskafton = new Date(easterTime - 1 * 86400000);
+  if (date.toDateString() === paskafton.toDateString()) return true;
+
+  // Påskdagen
+  if (date.toDateString() === easter.toDateString()) return true;
+
+  // Annandag påsk (1 dag efter)
+  const annandagPask = new Date(easterTime + 1 * 86400000);
+  if (date.toDateString() === annandagPask.toDateString()) return true;
+
+  // Kristi himmelsfärdsdag (40 dagar efter påsk, alltid en torsdag)
+  const kristi = new Date(easterTime + 39 * 86400000);
+  if (date.toDateString() === kristi.toDateString()) return true;
+
+  // Pingst och midsommar etc. men midsommar hanteras separat
+  // Midsommarafton och midsommardagen är redan med i permissions/OB3, men vi tar med dem ändå
+  const midsummer = getMidsummer(y);
+  const midsummerEve = new Date(midsummer.getTime() - 1 * 86400000);
+  if (date.toDateString() === midsummerEve.toDateString()) return true;
+  if (date.toDateString() === midsummer.toDateString()) return true;
+
+  // Alla helgons dag (alltid en lördag, redan helg)
+  const allHelgons = getAllHelgons(y);
+  if (date.toDateString() === allHelgons.toDateString()) return true;
+
+  return false;
+}
+
 function isPermissionDay(date, lag) {
   let m = date.getMonth(), d = date.getDate(), shift = getShift(date, lag);
   if (m === 11 && d === 24) return true;                 // julafton: alla pass
@@ -143,22 +196,26 @@ function calcOB(date, shift, lag) {
 
   // 2) Räkna ut OB3‑timmar
   const ob3 = Math.round(getOB3Hours(date, shift) * 100) / 100;
-  if (ob3 === 0) return {ob1, ob2, ob3:0};
+  if (ob3 > 0) {
+    // Blanda: minska OB1/OB2 med de timmar som ersätts av OB3
+    let remaining = ob3;
+    let fromOB1 = Math.min(remaining, ob1);
+    ob1 -= fromOB1;
+    remaining -= fromOB1;
+    let fromOB2 = Math.min(remaining, ob2);
+    ob2 -= fromOB2;
+    remaining -= fromOB2;
+    return {ob1, ob2, ob3};
+  }
 
-  // 3) Blanda: minska OB1/OB2 med de timmar som ersätts av OB3,
-  //    prioritera att OB3 ”tar över” den tid som normalt hade varit OB1 först (måndag–fredag 18–24), sedan OB2.
-  let remaining = ob3;
-  // Dra först från OB1
-  let fromOB1 = Math.min(remaining, ob1);
-  ob1 -= fromOB1;
-  remaining -= fromOB1;
-  // Dra sedan från OB2
-  let fromOB2 = Math.min(remaining, ob2);
-  ob2 -= fromOB2;
-  remaining -= fromOB2;
-  // (OB3 är alltid max 12.25, så remaining blir 0 här)
+  // 3) Ingen OB3 – men om dagen är en helgdag (röd dag) och inte permission,
+  //    då ska hela passet ha OB2 (som en lördag/söndag)
+  if (isHoliday(date)) {
+    ob2 = 12.25;
+    ob1 = 0;
+  }
 
-  return {ob1, ob2, ob3};
+  return {ob1, ob2, ob3:0};
 }
 
 function getOBForMonth(year, month, lag) {
