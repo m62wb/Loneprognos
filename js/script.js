@@ -372,7 +372,7 @@ function openSickPopup(dateStr) {
 
 let lastAutoOB={ob1:0,ob2:0,ob3:0}, lastAutoLag='', lastAutoYear=0, lastAutoMonth=0;
 
-// ---------- HUVUDBERÄKNING (med lås-fix) ----------
+// ---------- HUVUDBERÄKNING (med lås-fix OCH exakta OB‑timmar) ----------
 function calculateEverything() {
   const baseSalary = p(salaryInput.value) || 0;
   const selectedYear = parseInt(yearSelect.value);
@@ -463,7 +463,8 @@ function calculateEverything() {
 
   let obData;
   if (isAuto && lockEnabled && !manualOBOverride) {
-    obData = { ob1: Math.round(p(ob1Hours.value)), ob2: Math.round(p(ob2Hours.value)), ob3: Math.round(p(ob3Hours.value)) };
+    // Använd EXAKTA autoOB‑timmarna istället för att avrunda från inputfälten
+    obData = { ob1: autoOB.ob1, ob2: autoOB.ob2, ob3: autoOB.ob3 };
   } else if (isAuto && lockEnabled && manualOBOverride) {
     obData = { ob1: p(ob1Hours.value), ob2: p(ob2Hours.value), ob3: p(ob3Hours.value) };
   } else {
