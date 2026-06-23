@@ -372,6 +372,7 @@ function openSickPopup(dateStr) {
 
 let lastAutoOB={ob1:0,ob2:0,ob3:0}, lastAutoLag='', lastAutoYear=0, lastAutoMonth=0;
 
+// ---------- HUVUDBERÄKNING (med lås-fix) ----------
 function calculateEverything() {
   const baseSalary = p(salaryInput.value) || 0;
   const selectedYear = parseInt(yearSelect.value);
@@ -448,7 +449,9 @@ function calculateEverything() {
     }
   }
 
-  if (autoOB) {
+  // ---------- RÄTTELSE: endast uppdatera fälten om låst och ingen manuell överskrivning ----------
+  const lockEnabled = obLockToggle.checked;
+  if (autoOB && lockEnabled && !manualOBOverride) {
     ob1Hours.value = fd(autoOB.ob1, 2);
     ob2Hours.value = fd(autoOB.ob2, 2);
     ob3Hours.value = fd(autoOB.ob3, 2);
@@ -458,7 +461,6 @@ function calculateEverything() {
   lastAutoLag = lag; lastAutoYear = obYear; lastAutoMonth = obMonth;
   if (!isAuto) manualOBOverride = false;
 
-  const lockEnabled = obLockToggle.checked;
   let obData;
   if (isAuto && lockEnabled && !manualOBOverride) {
     obData = { ob1: Math.round(p(ob1Hours.value)), ob2: Math.round(p(ob2Hours.value)), ob3: Math.round(p(ob3Hours.value)) };
@@ -508,6 +510,8 @@ function calculateEverything() {
     netSalary, netSalaryExact, utjämning: f2(netSalary - netSalaryExact)
   };
 }
+
+// ... resten av filen är oförändrad ...
 
 function renderUI(data) {
   const lagName = {A:'Lag A',B:'Lag B',C:'Lag C',D:'Lag D',E:'Lag E'}[data.lag] || 'Manuell';
