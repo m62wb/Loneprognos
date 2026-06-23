@@ -153,45 +153,38 @@ function getOB3Hours(date, shift) {
   return 0;
 }
 
-// ---- Huvudfunktion för OB ----
+// ---- Huvudfunktion för OB (rättad ordning) ----
 function calcOB(date, shift, lag) {
   if (isPermissionDay(date, lag) || shift === 0) return {ob1:0, ob2:0, ob3:0};
 
   const w = date.getDay(), isWeekend = (w === 0 || w === 6);
   let ob1 = 0, ob2 = 0;
 
-  // Normal OB
+  // 1) Grund‑OB efter veckodag
   if (shift === 1) { if (isWeekend) ob2 = 12.25; else ob2 = 1.25; }
   else if (shift === 2) { if (isWeekend) ob2 = 12.25; else { ob1 = 6; ob2 = 6; } }
   let dst = getDSTAdjustment(date);
   if (dst !== 0 && shift === 2) { if (ob2 >= 6) ob2 += dst; else if (ob1 >= 6) ob1 += dst; }
 
-  // OB3
-  const ob3 = Math.round(getOB3Hours(date, shift) * 100) / 100;
-  if (ob3 > 0) {
-    // Beräkna exakt hur många OB3-timmar som faller inom OB1-resp. OB2-tidsfönster
-    let ob3Remaining = ob3;
-    if (shift === 2 && !isWeekend) {
-      // OB1: 18:00-24:00
-      const ob1Start = new Date(date); ob1Start.setHours(18,0,0,0);
-      const ob1End = new Date(date); ob1End.setHours(24,0,0,0);
-      const ob1Overlap = Math.max(0, Math.min(ob3Remaining, (ob1End - ob1Start)/3600000));
-      const fromOB1 = Math.min(ob1, ob1Overlap);
-      ob1 -= fromOB1;
-      ob3Remaining -= fromOB1;
-    }
-    // OB2: 00:00-07:00 (nästa dag) för natt, eller 05:45-07:00 för dag
-    // Vi subtraherar resterande OB3 från ob2
-    const fromOB2 = Math.min(ob2, ob3Remaining);
-    ob2 -= fromOB2;
-    // ob3 blir kvar som angivet
-    return {ob1, ob2, ob3};
-  }
-
-  // Ingen OB3 – helgdagar ger OB2 för hela passet
+  // 2) Alla röda dagar som inte är permissionsdagar ger OB2 för hela passet
   if (isHoliday(date)) {
     ob2 = 12.25;
     ob1 = 0;
+  }
+
+  // 3) OB3-ersättning (ersätter OB1/OB2 i de timmar som överlappar storhelgen)
+  const ob3 = Math.round(getOB3Hours(date, shift) * 100) / 100;
+  if (ob3 > 0) {
+    let remainingOB3 = ob3;
+    // Dra först från OB1, sedan från OB2 – precis så många timmar som OB3 täcker
+    const fromOB1 = Math.min(ob1, remainingOB3);
+    ob1 -= fromOB1;
+    remainingOB3 -= fromOB1;
+    const fromOB2 = Math.min(ob2, remainingOB3);
+    ob2 -= fromOB2;
+    remainingOB3 -= fromOB2;
+    // (remainingOB3 blir alltid 0 eftersom ob1+ob2 = 12.25, och ob3 <= 12.25)
+    return {ob1, ob2, ob3};
   }
 
   return {ob1, ob2, ob3:0};
