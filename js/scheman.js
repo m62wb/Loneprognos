@@ -97,16 +97,17 @@ function isHoliday(date) {
   return false;
 }
 
+// Uppdaterad: permission för 31 dec gäller nu alla pass
 function isPermissionDay(date, lag) {
   let m = date.getMonth(), d = date.getDate(), shift = getShift(date, lag);
-  if (m === 11 && d === 24) return true;
-  if (m === 11 && d === 25 && shift === 1) return true;
-  if (m === 11 && d === 31 && shift === 2) return true;
-  if (m === 0 && d === 1 && shift === 1) return true;
+  if (m === 11 && d === 24) return true;                 // julafton: alla pass
+  if (m === 11 && d === 25 && shift === 1) return true;  // juldagen dag
+  if (m === 11 && d === 31) return true;                 // nyårsafton: ALLA pass (ändrat)
+  if (m === 0 && d === 1 && shift === 1) return true;    // nyårsdagen dag
   let mid = getMidsummer(date.getFullYear()), eve = new Date(mid);
   eve.setDate(mid.getDate() - 1);
-  if (date.toDateString() === eve.toDateString()) return true;
-  if (date.toDateString() === mid.toDateString() && shift === 1) return true;
+  if (date.toDateString() === eve.toDateString()) return true;           // midsommarafton: alla pass
+  if (date.toDateString() === mid.toDateString() && shift === 1) return true; // midsommardagen: endast dag
   return false;
 }
 
@@ -186,14 +187,12 @@ function calcOB(date, shift, lag) {
   // 3) OB3
   const ob3 = Math.round(getOB3Hours(date, shift) * 100) / 100;
   if (ob3 > 0) {
-    // Dra OB3 från OB1 först, sedan OB2
     let remaining = ob3;
     const fromOB1 = Math.min(ob1, remaining);
     ob1 -= fromOB1;
     remaining -= fromOB1;
     const fromOB2 = Math.min(ob2, remaining);
     ob2 -= fromOB2;
-    // remaining ska nu vara 0 (OB3 kan aldrig vara mer än totala passets timmar)
   }
 
   return {ob1, ob2, ob3};
