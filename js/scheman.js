@@ -99,25 +99,27 @@ function isHoliday(date) {
 
 function isPermissionDay(date, lag) {
   let m = date.getMonth(), d = date.getDate(), shift = getShift(date, lag);
-  if (m === 11 && d === 24) return true;                 // julafton: alla pass
-  if (m === 11 && d === 25 && shift === 1) return true;  // juldagen dag
-  if (m === 11 && d === 31 && shift === 2) return true;  // nyårsafton natt
-  if (m === 0 && d === 1 && shift === 1) return true;    // nyårsdagen dag
+  if (m === 11 && d === 24) return true;
+  if (m === 11 && d === 25 && shift === 1) return true;
+  if (m === 11 && d === 31 && shift === 2) return true;
+  if (m === 0 && d === 1 && shift === 1) return true;
   let mid = getMidsummer(date.getFullYear()), eve = new Date(mid);
   eve.setDate(mid.getDate() - 1);
-  if (date.toDateString() === eve.toDateString()) return true;           // midsommarafton: alla pass
-  if (date.toDateString() === mid.toDateString() && shift === 1) return true; // midsommardagen: endast dag
+  if (date.toDateString() === eve.toDateString()) return true;
+  if (date.toDateString() === mid.toDateString() && shift === 1) return true;
   return false;
+}
+
+// ---- Global overlapHours ----
+function overlapHours(ps, pe, s, e) {
+  const oS = ps > s ? ps : s, oE = pe < e ? pe : e;
+  return Math.max(0, (oE - oS) / (1000 * 60 * 60));
 }
 
 // ---- OB3‑överlapp ----
 function getOB3Hours(date, shift) {
   if (shift === 0) return 0;
   const y = date.getFullYear();
-  function overlapHours(ps, pe, s, e) {
-    const oS = ps > s ? ps : s, oE = pe < e ? pe : e;
-    return Math.max(0, (oE - oS) / (1000 * 60 * 60));
-  }
   let passStart, passEnd;
   if (shift === 1) { passStart = new Date(date); passStart.setHours(5,45,0,0); passEnd = new Date(date); passEnd.setHours(18,0,0,0); }
   else { passStart = new Date(date); passStart.setHours(17,45,0,0); passEnd = new Date(date); passEnd.setDate(passEnd.getDate()+1); passEnd.setHours(6,0,0,0); }
@@ -134,14 +136,11 @@ function getOB3Hours(date, shift) {
   h = overlapHours(passStart, passEnd, new Date(maj.setHours(7,0,0,0)), new Date(vmaj.setHours(0,0,0,0)));
   if (h > 0) return Math.min(h, 12.25);
 
-  // Nationaldag (6 juni) – anpassad efter FlexHRM: om lör/sön startar OB3 kl. 07 dagen före
+  // Nationaldag (anpassad efter FlexHRM)
   let nat = new Date(y,5,6);
   let ob3Start = new Date(nat);
-  if (nat.getDay() === 6) {          // lördag -> start fredag
-    ob3Start.setDate(nat.getDate() - 1);
-  } else if (nat.getDay() === 0) {   // söndag -> start lördag
-    ob3Start.setDate(nat.getDate() - 1);
-  }
+  if (nat.getDay() === 6) { ob3Start.setDate(nat.getDate() - 1); }
+  else if (nat.getDay() === 0) { ob3Start.setDate(nat.getDate() - 1); }
   ob3Start.setHours(7,0,0,0);
   let vnat = new Date(nat); vnat.setDate(vnat.getDate()+1); while (vnat.getDay()===0||vnat.getDay()===6) vnat.setDate(vnat.getDate()+1);
   h = overlapHours(passStart, passEnd, ob3Start, new Date(vnat.setHours(0,0,0,0)));
@@ -166,6 +165,51 @@ function getOB3Hours(date, shift) {
   return 0;
 }
 
+// ---- Hjälpfunktion: hur mycket OB3 överlappar ett specifikt tidsintervall ----
+function getOB3OverlapForInterval(intervalStart, intervalEnd, date, shift) {
+  // Använder samma OB3‑perioder som getOB3Hours, men beräknar överlapp för det givna intervallet.
+  const y = date.getFullYear();
+  const easter = getEaster(y);
+  const periods = [];
+
+  // Påsk
+  const skartorsdag = new Date(easter); skartorsdag.setDate(easter.getDate()-3);
+  const tisdagEfter = new Date(easter); tisdagEfter.setDate(easter.getDate()+2);
+  periods.push([new Date(skartorsdag.setHours(18,0,0,0)), new Date(tisdagEfter.setHours(0,0,0,0))]);
+
+  // Första maj
+  let maj = new Date(y,4,1), vmaj = new Date(maj); vmaj.setDate(vmaj.getDate()+1); while (vmaj.getDay()===0||vmaj.getDay()===6) vmaj.setDate(vmaj.getDate()+1);
+  periods.push([new Date(maj.setHours(7,0,0,0)), new Date(vmaj.setHours(0,0,0,0))]);
+
+  // Nationaldag
+  let nat = new Date(y,5,6);
+  let ob3Start = new Date(nat);
+  if (nat.getDay() === 6) ob3Start.setDate(nat.getDate()-1);
+  else if (nat.getDay() === 0) ob3Start.setDate(nat.getDate()-1);
+  ob3Start.setHours(7,0,0,0);
+  let vnat = new Date(nat); vnat.setDate(vnat.getDate()+1); while (vnat.getDay()===0||vnat.getDay()===6) vnat.setDate(vnat.getDate()+1);
+  periods.push([ob3Start, new Date(vnat.setHours(0,0,0,0))]);
+
+  // Midsommar
+  let mid = getMidsummer(y), ma = new Date(mid); ma.setDate(ma.getDate()-1);
+  let sd = new Date(mid); sd.setDate(sd.getDate()+2); sd.setHours(0,0,0,0);
+  periods.push([new Date(ma.setHours(7,0,0,0)), sd]);
+
+  // Jul
+  let jul = new Date(y,11,24), vjul = new Date(y,11,27); while (vjul.getDay()===0||vjul.getDay()===6) vjul.setDate(vjul.getDate()+1);
+  periods.push([new Date(jul.setHours(7,0,0,0)), new Date(vjul.setHours(0,0,0,0))]);
+
+  // Nyår
+  let ny = new Date(y,11,31), vny = new Date(y+1,0,2); while (vny.getDay()===0||vny.getDay()===6) vny.setDate(vny.getDate()+1);
+  periods.push([new Date(ny.setHours(7,0,0,0)), new Date(vny.setHours(0,0,0,0))]);
+
+  for (const [s, e] of periods) {
+    const h = overlapHours(intervalStart, intervalEnd, s, e);
+    if (h > 0) return Math.min(h, 12.25);
+  }
+  return 0;
+}
+
 // ---- Huvudfunktion för OB (med exakt ersättning) ----
 function calcOB(date, shift, lag) {
   if (isPermissionDay(date, lag) || shift === 0) return {ob1:0, ob2:0, ob3:0};
@@ -185,86 +229,30 @@ function calcOB(date, shift, lag) {
     ob1 = 0;
   }
 
-  // 3) OB3‑ersättning – exakt ersättning
+  // 3) OB3-ersättning – exakt ersättning
   const ob3 = Math.round(getOB3Hours(date, shift) * 100) / 100;
   if (ob3 > 0) {
-    // Bestäm passets tidszoner
-    const passStart = shift === 1 ? new Date(date) : new Date(date);
-    if (shift === 1) { passStart.setHours(5,45,0,0); }
-    else { passStart.setHours(17,45,0,0); }
-    const passEnd = new Date(passStart);
-    passEnd.setHours(passStart.getHours() + 12, passStart.getMinutes() + 15); // 12h 15min? Passen är 12.25h
-    // Dagpass: 05:45-18:00, Nattpass: 17:45-06:00 (nästa dag)
+    // Dela upp i OB1- och OB2-intervall
+    const passStart = new Date(date);
+    if (shift === 1) {
+      // Dagpass: OB2-intervall 05:45-07:00
+      const ob2Start = new Date(date); ob2Start.setHours(5,45,0,0);
+      const ob2End = new Date(date); ob2End.setHours(7,0,0,0);
+      const overlapOB2 = getOB3OverlapForInterval(ob2Start, ob2End, date, shift);
+      ob2 -= Math.min(ob2, overlapOB2);
+      // ob1 existerar inte på dagpass, inget att dra
+    } else { // Nattpass
+      // OB1-intervall: 18:00-24:00
+      const ob1Start = new Date(date); ob1Start.setHours(18,0,0,0);
+      const ob1End = new Date(date); ob1End.setHours(24,0,0,0);
+      const overlapOB1 = getOB3OverlapForInterval(ob1Start, ob1End, date, shift);
+      ob1 -= Math.min(ob1, overlapOB1);
 
-    // Hämta OB3‑intervallet (start och slut) från getOB3Hours kan vi inte direkt, men vi kan återskapa det.
-    // För enkelhetens skull beräknar vi OB3‑start och slut igen här. Inte snyggt men fungerar.
-    const y = date.getFullYear();
-    let ob3Start = null, ob3End = null;
-    const easter = getEaster(y);
-    const skartorsdag = new Date(easter); skartorsdag.setDate(easter.getDate()-3);
-    const tisdagEfter = new Date(easter); tisdagEfter.setDate(easter.getDate()+2);
-    const maj1 = new Date(y,4,1); let vMaj1 = new Date(maj1); vMaj1.setDate(vMaj1.getDate()+1); while (vMaj1.getDay()===0||vMaj1.getDay()===6) vMaj1.setDate(vMaj1.getDate()+1);
-    const natDay = new Date(y,5,6); let vNat = new Date(natDay); vNat.setDate(natDay.getDate()+1); while (vNat.getDay()===0||vNat.getDay()===6) vNat.setDate(vNat.getDate()+1);
-    const midsummer = getMidsummer(y); const ma = new Date(midsummer); ma.setDate(ma.getDate()-1);
-    const julafton = new Date(y,11,24); let vJul = new Date(y,11,27); while (vJul.getDay()===0||vJul.getDay()===6) vJul.setDate(vJul.getDate()+1);
-    const nyarsafton = new Date(y,11,31); let vNy = new Date(y+1,0,2); while (vNy.getDay()===0||vNy.getDay()===6) vNy.setDate(vNy.getDate()+1);
-
-    // Kolla vilken OB3-period det är (samma som i getOB3Hours)
-    if (overlapHours(passStart, passEnd, new Date(skartorsdag.getFullYear(), skartorsdag.getMonth(), skartorsdag.getDate(), 18), new Date(tisdagEfter.getFullYear(), tisdagEfter.getMonth(), tisdagEfter.getDate(), 0)) > 0) {
-      ob3Start = new Date(skartorsdag.getFullYear(), skartorsdag.getMonth(), skartorsdag.getDate(), 18);
-      ob3End = new Date(tisdagEfter.getFullYear(), tisdagEfter.getMonth(), tisdagEfter.getDate(), 0);
-    } else if (overlapHours(passStart, passEnd, new Date(maj1.getFullYear(), maj1.getMonth(), maj1.getDate(), 7), new Date(vMaj1.getFullYear(), vMaj1.getMonth(), vMaj1.getDate(), 0)) > 0) {
-      ob3Start = new Date(maj1.getFullYear(), maj1.getMonth(), maj1.getDate(), 7);
-      ob3End = new Date(vMaj1.getFullYear(), vMaj1.getMonth(), vMaj1.getDate(), 0);
-    } else if (overlapHours(passStart, passEnd, new Date(natDay.getFullYear(), natDay.getMonth(), natDay.getDate(), 7), new Date(vNat.getFullYear(), vNat.getMonth(), vNat.getDate(), 0)) > 0) {
-      // Nationaldag: start enligt vår anpassning
-      let startNat = new Date(natDay);
-      if (natDay.getDay() === 6) startNat.setDate(startNat.getDate()-1);
-      else if (natDay.getDay() === 0) startNat.setDate(startNat.getDate()-1);
-      startNat.setHours(7,0,0,0);
-      ob3Start = startNat;
-      ob3End = new Date(vNat.getFullYear(), vNat.getMonth(), vNat.getDate(), 0);
-    } else if (overlapHours(passStart, passEnd, new Date(ma.getFullYear(), ma.getMonth(), ma.getDate(), 7), new Date(midsummer.getFullYear(), midsummer.getMonth(), midsummer.getDate()+2, 0)) > 0) {
-      ob3Start = new Date(ma.getFullYear(), ma.getMonth(), ma.getDate(), 7);
-      ob3End = new Date(midsummer.getFullYear(), midsummer.getMonth(), midsummer.getDate()+2, 0);
-    } else if (overlapHours(passStart, passEnd, new Date(julafton.getFullYear(), julafton.getMonth(), julafton.getDate(), 7), new Date(vJul.getFullYear(), vJul.getMonth(), vJul.getDate(), 0)) > 0) {
-      ob3Start = new Date(julafton.getFullYear(), julafton.getMonth(), julafton.getDate(), 7);
-      ob3End = new Date(vJul.getFullYear(), vJul.getMonth(), vJul.getDate(), 0);
-    } else if (overlapHours(passStart, passEnd, new Date(nyarsafton.getFullYear(), nyarsafton.getMonth(), nyarsafton.getDate(), 7), new Date(vNy.getFullYear(), vNy.getMonth(), vNy.getDate(), 0)) > 0) {
-      ob3Start = new Date(nyarsafton.getFullYear(), nyarsafton.getMonth(), nyarsafton.getDate(), 7);
-      ob3End = new Date(vNy.getFullYear(), vNy.getMonth(), vNy.getDate(), 0);
-    }
-
-    if (ob3Start && ob3End) {
-      // Dela upp passets normala OB i tidszoner
-      if (shift === 1) {
-        // Dagpass: OB2 05:45-07:00, resten ob-fri (förutom helg, men då är redan ob2=12.25)
-        const ob2Start = new Date(passStart);
-        ob2Start.setHours(5,45,0,0);
-        const ob2End = new Date(passStart);
-        ob2End.setHours(7,0,0,0);
-        const overlapOB2 = overlapHours(ob3Start, ob3End, ob2Start, ob2End);
-        // Minska ob2 med den överlappande delen
-        ob2 -= Math.min(ob2, overlapOB2);
-        // OB3 är redan beräknad, lägg till den
-        // ob1 på dagpass finns inte
-      } else { // Nattpass
-        // OB1 18:00-24:00, OB2 00:00-06:00
-        const ob1Start = new Date(passStart);
-        ob1Start.setHours(18,0,0,0);
-        const ob1End = new Date(passStart);
-        ob1End.setHours(24,0,0,0);
-        const overlapOB1 = overlapHours(ob3Start, ob3End, ob1Start, ob1End);
-        ob1 -= Math.min(ob1, overlapOB1);
-        const ob2Start = new Date(passStart);
-        ob2Start.setDate(ob2Start.getDate()+1); // nästa dag
-        ob2Start.setHours(0,0,0,0);
-        const ob2End = new Date(passStart);
-        ob2End.setDate(ob2End.getDate()+1);
-        ob2End.setHours(6,0,0,0);
-        const overlapOB2 = overlapHours(ob3Start, ob3End, ob2Start, ob2End);
-        ob2 -= Math.min(ob2, overlapOB2);
-      }
+      // OB2-intervall: nästa dag 00:00-06:00
+      const ob2Start = new Date(date); ob2Start.setDate(ob2Start.getDate()+1); ob2Start.setHours(0,0,0,0);
+      const ob2End = new Date(date); ob2End.setDate(ob2End.getDate()+1); ob2End.setHours(6,0,0,0);
+      const overlapOB2 = getOB3OverlapForInterval(ob2Start, ob2End, date, shift);
+      ob2 -= Math.min(ob2, overlapOB2);
     }
 
     return {ob1, ob2, ob3};
