@@ -68,9 +68,16 @@
     <div class="card collapsible-section">
         <div class="collapsible-header" onclick="toggleOB()">OB & Övertid <span id="obArrow">▼</span></div>
         <div class="collapsible-content" id="obContent">
-            <div class="toggle-container"><span id="lockLabel">Lås</span><label class="toggle-switch"><input type="checkbox" id="obLockToggle" checked onchange="updateUI()"><span class="slider"></span></label><button class="reset-btn" onclick="resetOB()">⟳</button></div>
-            <div class="ob-row"><div class="ob-input"><span class="ob-badge">OB1</span><input type="text" id="ob1Hours" inputmode="decimal" class="numeric-only numeric-hours" placeholder="0"><div class="ob-rate" id="ob1Rate">/460</div></div><div class="ob-input"><span class="ob-badge">OB2</span><input type="text" id="ob2Hours" inputmode="decimal" class="numeric-only numeric-hours" placeholder="0"><div class="ob-rate" id="ob2Rate">/260</div></div><div class="ob-input"><span class="ob-badge">OB3</span><input type="text" id="ob3Hours" inputmode="decimal" class="numeric-only numeric-hours" placeholder="0"><div class="ob-rate" id="ob3Rate">/150</div></div></div>
-            <div class="ot-row"><div class="ob-input"><span class="ob-badge ot">ÖT</span><input type="text" id="otHours" inputmode="decimal" class="numeric-only numeric-hours" placeholder="0"><div class="ob-rate" id="otRate">/72</div></div><div class="ob-input"><span class="ob-badge ot">ÖT enkel</span><input type="text" id="otEnkelHours" inputmode="decimal" class="numeric-only numeric-hours" placeholder="0"><div class="ob-rate" id="otEnkelRate">/94</div></div></div>
+            <div class="ob-row">
+                <div class="ob-input"><span class="ob-badge">OB1</span><input type="text" id="ob1Hours" inputmode="decimal" class="numeric-only numeric-hours" placeholder="0"><div class="ob-rate" id="ob1Rate">/460</div></div>
+                <div class="ob-input"><span class="ob-badge">OB2</span><input type="text" id="ob2Hours" inputmode="decimal" class="numeric-only numeric-hours" placeholder="0"><div class="ob-rate" id="ob2Rate">/260</div></div>
+                <div class="ob-input"><span class="ob-badge">OB3</span><input type="text" id="ob3Hours" inputmode="decimal" class="numeric-only numeric-hours" placeholder="0"><div class="ob-rate" id="ob3Rate">/150</div></div>
+                <button class="reset-btn" onclick="resetOB()" style="margin-left:8px;">⟳</button>
+            </div>
+            <div class="ot-row">
+                <div class="ob-input"><span class="ob-badge ot">ÖT</span><input type="text" id="otHours" inputmode="decimal" class="numeric-only numeric-hours" placeholder="0"><div class="ob-rate" id="otRate">/72</div></div>
+                <div class="ob-input"><span class="ob-badge ot">ÖT enkel</span><input type="text" id="otEnkelHours" inputmode="decimal" class="numeric-only numeric-hours" placeholder="0"><div class="ob-rate" id="otEnkelRate">/94</div></div>
+            </div>
         </div>
     </div>
 
@@ -105,7 +112,7 @@
     </div>
 </div>
 
-<!-- Ny profil-popup (ersätter prompt) -->
+<!-- Ny profil-popup -->
 <dialog id="profileDialog" style="padding:24px; border:1px solid var(--border); border-radius:16px; background:var(--card-bg); color:var(--text);">
     <h3 style="margin-bottom:16px;">Ny profil</h3>
     <label>Namn: <input type="text" id="profileName" style="width:100%; margin-bottom:12px;"></label>
