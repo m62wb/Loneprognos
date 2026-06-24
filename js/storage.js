@@ -14,7 +14,7 @@ function getCurrentState() {
     sgi: sgiInput.value, ftpDays: ftpDays.value,
     ob1: ob1Hours.value, ob2: ob2Hours.value, ob3: ob3Hours.value,
     ot: otHours.value, otEnkel: otEnkelHours.value,
-    year: yearSelect.value, month: monthSelect.value, lockEnabled: obLockToggle.checked,
+    year: yearSelect.value, month: monthSelect.value,
     fromvaro: Array.from(fromvaroMap.entries()),
     shiftOverrides: Array.from(shiftOverrideMap.entries()),
     vacationOverrides: Array.from(vacationOverrideMap.entries()),
@@ -28,12 +28,11 @@ function applyState(state) {
   sgiInput.value = state.sgi; ftpDays.value = state.ftpDays;
   ob1Hours.value = state.ob1 || ''; ob2Hours.value = state.ob2 || ''; ob3Hours.value = state.ob3 || '';
   otHours.value = state.ot || ''; otEnkelHours.value = state.otEnkel || '';
-  yearSelect.value = state.year; monthSelect.value = state.month; obLockToggle.checked = state.lockEnabled;
+  yearSelect.value = state.year; monthSelect.value = state.month;
   fromvaroMap.clear(); if (state.fromvaro) for (let [k,v] of state.fromvaro) fromvaroMap.set(k,v);
   shiftOverrideMap.clear(); if (state.shiftOverrides) for (let [k,v] of state.shiftOverrides) shiftOverrideMap.set(k,v);
   vacationOverrideMap.clear(); if (state.vacationOverrides) for (let [k,v] of state.vacationOverrides) vacationOverrideMap.set(k,v);
   sickDetailMap.clear(); if (state.sickDetails) for (let [k,v] of state.sickDetails) sickDetailMap.set(k,v);
-  manualOBOverride = false;
   if (typeof updateUI === 'function') updateUI();
   window.isLoadingProfile = false;
 }
@@ -48,19 +47,17 @@ function updateProfileList() {
   }
 }
 
-// ---------- NY PROFIL-POPUP (ersätter prompt) ----------
 window.saveProfilePopup = function() {
   const dialog = document.getElementById('profileDialog');
   const nameInput = document.getElementById('profileName');
-  const lagSelect = document.getElementById('profileLag');
-  const salaryInput = document.getElementById('profileSalary');
+  const lagSelectEl = document.getElementById('profileLag');
+  const salaryInputEl = document.getElementById('profileSalary');
   const saveBtn = document.getElementById('profileSaveBtn');
   const cancelBtn = document.getElementById('profileCancelBtn');
 
-  // Fyll i nuvarande värden som förslag
   nameInput.value = '';
-  lagSelect.value = document.getElementById('lagSelect').value || 'E';
-  salaryInput.value = document.getElementById('salaryInput').value || '';
+  lagSelectEl.value = document.getElementById('lagSelect').value || 'E';
+  salaryInputEl.value = document.getElementById('salaryInput').value || '';
 
   dialog.showModal();
 
@@ -76,8 +73,8 @@ window.saveProfilePopup = function() {
 
   newSaveBtn.onclick = function() {
     const name = nameInput.value.trim();
-    const lag = lagSelect.value;
-    const salary = salaryInput.value.replace(',', '.').trim();
+    const lag = lagSelectEl.value;
+    const salary = salaryInputEl.value.replace(',', '.').trim();
 
     if (!name || name === '') {
       alert('Ange ett namn.');
@@ -88,7 +85,6 @@ window.saveProfilePopup = function() {
       return;
     }
 
-    // Sätt fälten så att state fångas korrekt
     document.getElementById('lagSelect').value = lag;
     document.getElementById('salaryInput').value = salary;
 
@@ -138,9 +134,7 @@ window.resetAll = function() {
     document.getElementById('otEnkelHours').value = '';
     document.getElementById('yearSelect').value = new Date().getFullYear();
     document.getElementById('monthSelect').value = new Date().getMonth() + 1;
-    document.getElementById('obLockToggle').checked = true;
     fromvaroMap.clear(); shiftOverrideMap.clear(); vacationOverrideMap.clear(); sickDetailMap.clear();
-    manualOBOverride = false;
     if (typeof updateUI === 'function') updateUI();
   }
 };
