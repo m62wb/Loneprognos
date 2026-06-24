@@ -2,7 +2,6 @@
 const fromvaroMap = new Map();
 const shiftOverrideMap = new Map();
 let vacationOverrideMap = new Map();
-let manualOBOverride = false;
 
 // ---- Datumhjälp ----
 function daysBetween(d1, d2) {
@@ -31,7 +30,7 @@ function getShiftB(date) { let d = daysBetween(startB, date); return cycleB[((d 
 const startC = new Date(2025, 11, 29);
 const cycleC = [2,2,0,0,0,1,1,0,0,2,2,0,0,0,1,1,1,0,0,0,0,0,0,0,0,2,2,2,0,0,0,1,1,0,0];
 function getShiftC(date) { let d = daysBetween(startC, date); return cycleC[((d % 35) + 35) % 35]; }
-const startD = new Date(2025, 11, 30);
+const startD = new Date(2025, 11, 30);   // framflyttad 1 dag
 const cycleD = [0,0,2,2,0,0,0,1,1,1,0,0,0,0,0,0,0,2,2,2,0,0,0,1,1,0,0,2,2,0,0,0,1,1,0];
 function getShiftD(date) { let d = daysBetween(startD, date); return cycleD[((d % 35) + 35) % 35]; }
 const startE = new Date(2026, 0, 1);
@@ -100,14 +99,14 @@ function isHoliday(date) {
 
 function isPermissionDay(date, lag) {
   let m = date.getMonth(), d = date.getDate(), shift = getShift(date, lag);
-  if (m === 11 && d === 24) return true;
-  if (m === 11 && d === 25 && shift === 1) return true;
-  if (m === 11 && d === 31 && shift === 2) return true;
-  if (m === 0 && d === 1 && shift === 1) return true;
+  if (m === 11 && d === 24) return true;                 // julafton: alla pass
+  if (m === 11 && d === 25 && shift === 1) return true;  // juldagen dag
+  if (m === 11 && d === 31 && shift === 2) return true;  // nyårsafton natt
+  if (m === 0 && d === 1 && shift === 1) return true;    // nyårsdagen dag
   let mid = getMidsummer(date.getFullYear()), eve = new Date(mid);
   eve.setDate(mid.getDate() - 1);
-  if (date.toDateString() === eve.toDateString()) return true;
-  if (date.toDateString() === mid.toDateString() && shift === 1) return true;
+  if (date.toDateString() === eve.toDateString()) return true;           // midsommarafton: alla pass
+  if (date.toDateString() === mid.toDateString() && shift === 1) return true; // midsommardagen: endast dag
   return false;
 }
 
@@ -123,29 +122,43 @@ function getOB3Hours(date, shift) {
   if (shift === 1) { passStart = new Date(date); passStart.setHours(5,45,0,0); passEnd = new Date(date); passEnd.setHours(18,0,0,0); }
   else { passStart = new Date(date); passStart.setHours(17,45,0,0); passEnd = new Date(date); passEnd.setDate(passEnd.getDate()+1); passEnd.setHours(6,0,0,0); }
 
+  // Påsk
   const easter = getEaster(y);
   const skartorsdag = new Date(easter); skartorsdag.setDate(easter.getDate()-3);
   const tisdagEfter = new Date(easter); tisdagEfter.setDate(easter.getDate()+2);
   let h = overlapHours(passStart, passEnd, new Date(skartorsdag.setHours(18,0,0,0)), new Date(tisdagEfter.setHours(0,0,0,0)));
   if (h > 0) return Math.min(h, 12.25);
 
+  // Första maj
   let maj = new Date(y,4,1), vmaj = new Date(maj); vmaj.setDate(vmaj.getDate()+1); while (vmaj.getDay()===0||vmaj.getDay()===6) vmaj.setDate(vmaj.getDate()+1);
   h = overlapHours(passStart, passEnd, new Date(maj.setHours(7,0,0,0)), new Date(vmaj.setHours(0,0,0,0)));
   if (h > 0) return Math.min(h, 12.25);
 
-  let nat = new Date(y,5,6), vnat = new Date(nat); vnat.setDate(vnat.getDate()+1); while (vnat.getDay()===0||vnat.getDay()===6) vnat.setDate(vnat.getDate()+1);
-  h = overlapHours(passStart, passEnd, new Date(nat.setHours(7,0,0,0)), new Date(vnat.setHours(0,0,0,0)));
+  // Nationaldag (6 juni) – anpassad efter FlexHRM: om lör/sön startar OB3 kl. 07 dagen före
+  let nat = new Date(y,5,6);
+  let ob3Start = new Date(nat);
+  if (nat.getDay() === 6) {          // lördag -> start fredag
+    ob3Start.setDate(nat.getDate() - 1);
+  } else if (nat.getDay() === 0) {   // söndag -> start lördag
+    ob3Start.setDate(nat.getDate() - 1);
+  }
+  ob3Start.setHours(7,0,0,0);
+  let vnat = new Date(nat); vnat.setDate(vnat.getDate()+1); while (vnat.getDay()===0||vnat.getDay()===6) vnat.setDate(vnat.getDate()+1);
+  h = overlapHours(passStart, passEnd, ob3Start, new Date(vnat.setHours(0,0,0,0)));
   if (h > 0) return Math.min(h, 12.25);
 
+  // Midsommar
   let mid = getMidsummer(y), ma = new Date(mid); ma.setDate(ma.getDate()-1);
   let sd = new Date(mid); sd.setDate(sd.getDate()+2); sd.setHours(0,0,0,0);
   h = overlapHours(passStart, passEnd, new Date(ma.setHours(7,0,0,0)), sd);
   if (h > 0) return Math.min(h, 12.25);
 
+  // Jul
   let jul = new Date(y,11,24), vjul = new Date(y,11,27); while (vjul.getDay()===0||vjul.getDay()===6) vjul.setDate(vjul.getDate()+1);
   h = overlapHours(passStart, passEnd, new Date(jul.setHours(7,0,0,0)), new Date(vjul.setHours(0,0,0,0)));
   if (h > 0) return Math.min(h, 12.25);
 
+  // Nyår
   let ny = new Date(y,11,31), vny = new Date(y+1,0,2); while (vny.getDay()===0||vny.getDay()===6) vny.setDate(vny.getDate()+1);
   h = overlapHours(passStart, passEnd, new Date(ny.setHours(7,0,0,0)), new Date(vny.setHours(0,0,0,0)));
   if (h > 0) return Math.min(h, 12.25);
@@ -153,7 +166,7 @@ function getOB3Hours(date, shift) {
   return 0;
 }
 
-// ---- Huvudfunktion för OB (rättad ordning) ----
+// ---- Huvudfunktion för OB ----
 function calcOB(date, shift, lag) {
   if (isPermissionDay(date, lag) || shift === 0) return {ob1:0, ob2:0, ob3:0};
 
@@ -172,18 +185,16 @@ function calcOB(date, shift, lag) {
     ob1 = 0;
   }
 
-  // 3) OB3-ersättning (ersätter OB1/OB2 i de timmar som överlappar storhelgen)
+  // 3) OB3-ersättning
   const ob3 = Math.round(getOB3Hours(date, shift) * 100) / 100;
   if (ob3 > 0) {
     let remainingOB3 = ob3;
-    // Dra först från OB1, sedan från OB2 – precis så många timmar som OB3 täcker
     const fromOB1 = Math.min(ob1, remainingOB3);
     ob1 -= fromOB1;
     remainingOB3 -= fromOB1;
     const fromOB2 = Math.min(ob2, remainingOB3);
     ob2 -= fromOB2;
     remainingOB3 -= fromOB2;
-    // (remainingOB3 blir alltid 0 eftersom ob1+ob2 = 12.25, och ob3 <= 12.25)
     return {ob1, ob2, ob3};
   }
 
