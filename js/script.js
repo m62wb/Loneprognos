@@ -610,7 +610,7 @@ function renderUI(data) {
         if (date.getDay() === 1 || d === 1) isBlueWeek = !isBlueWeek;
         weekLabel = ' v' + weekNum; lastShownWeek = weekNum;
       }
-      let shiftText = isPerm ? 'Perm' : shiftNames[shift];
+      let shiftText = (isPerm && shift !== 0) ? 'Perm' : shiftNames[shift];
       if (shiftOverrideMap.has(dateStr) && !isPerm) shiftText += '*';
       let emoji = ''; let fromvaroText = '';
       if (fromvaroVal === 1) { fromvaroText = 'Semester'; emoji = '🏖️'; }
