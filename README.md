@@ -111,3 +111,5 @@ Tabell 33 (kolumn 1), platt upp till 120 000 kr, därefter 52 % marginalskatt. �
 3. Testa storhelg: 1 maj, nationaldag, midsommar.
 4. Markera semester, VAB, FL, sjuk – kontrollera att OB‑fälten och översikten uppdateras direkt.
 5. Årsöversikten ska visa summerad bruttolön, nettolön, skatt, fackavgift, total OB och semestertillägg.
+
+6. Hämta skattetabell för 2027 när den finns tillgänglig
