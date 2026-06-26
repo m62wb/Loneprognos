@@ -26,6 +26,9 @@ function getMondayOfISOWeek(w, year) {
 const sickDetailMap = new Map();
 window.isLoadingProfile = false;
 
+// Ny flagga: har användaren ändrat OB‑fälten manuellt?
+let obManuallyEdited = false;
+
 function toggleSettings() {
   const c = document.getElementById('settingsContent');
   const a = document.getElementById('settingsArrow');
@@ -155,11 +158,9 @@ function calcParentalDeduction(year, month, lag, baseSalary, sickRate100) {
     const overlapEnd   = new Date(Math.min(periodEnd.getTime(), monthLast.getTime()));
 
     if (workDays > 5) {
-      // Kalenderdagsavdrag för alla dagar i överlappet
       const daysInOverlap = Math.round((overlapEnd - overlapStart) / 86400000) + 1;
       totalDeduction += (baseSalary / 30) * daysInOverlap;
     } else {
-      // Timavdrag för arbetsdagar inom månaden
       const d2 = new Date(overlapStart);
       while (d2 <= overlapEnd) {
         if (isWorkDay(d2)) {
@@ -169,7 +170,6 @@ function calcParentalDeduction(year, month, lag, baseSalary, sickRate100) {
       }
     }
 
-    // Markera alla dagar i perioden som behandlade
     const mark = new Date(periodStart);
     while (mark <= periodEnd) {
       processed.add(mark.toISOString().split('T')[0]);
@@ -258,7 +258,6 @@ function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80
     const firstDay = periodSickDays[0];
 
     if (firstDay && firstDay.isFull && karensHours > 0) {
-      // HELDAG: företaget drar endast 6 timmar från den första OB‑typen (bugg)
       let deductionRemaining = 6.0;
       let ob1 = rawOB1, ob2 = rawOB2, ob3 = rawOB3;
       if (ob1 > 0) {
@@ -278,7 +277,6 @@ function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80
       finalOB2 += ob2;
       finalOB3 += ob3;
     } else {
-      // DEL AV DAG (eller återinsjuknande): prioriteringskedja med hela karensen
       let rem = karensHours;
       let ob1 = rawOB1, ob2 = rawOB2, ob3 = rawOB3;
       if (rem > 0) { let d = Math.min(rem, ob1); ob1 -= d; rem -= d; }
@@ -370,7 +368,7 @@ function openSickPopup(dateStr) {
   };
 }
 
-// ---------- HUVUDBERÄKNING (förenklad, alltid autoOB) ----------
+// ---------- HUVUDBERÄKNING ----------
 function calculateEverything() {
   const baseSalary = p(salaryInput.value) || 0;
   const selectedYear = parseInt(yearSelect.value);
@@ -447,21 +445,22 @@ function calculateEverything() {
     }
   }
 
-  // Fyll alltid i OB‑fälten med det automatiskt beräknade värdet
-  if (autoOB) {
+  // Fyll i auto‑OB endast om användaren inte har ändrat manuellt
+  if (autoOB && !obManuallyEdited) {
     ob1Hours.value = fd(autoOB.ob1, 2);
     ob2Hours.value = fd(autoOB.ob2, 2);
     ob3Hours.value = fd(autoOB.ob3, 2);
   }
 
   let obData;
-  if (autoOB) {
+  if (autoOB && !obManuallyEdited) {
     obData = { ob1: autoOB.ob1, ob2: autoOB.ob2, ob3: autoOB.ob3 };
   } else {
     obData = { ob1: p(ob1Hours.value), ob2: p(ob2Hours.value), ob3: p(ob3Hours.value) };
   }
 
   const otH = p(otHours.value), otEnkelH = p(otEnkelHours.value);
+  const extra = p(document.getElementById('extraInput')?.value || 0);
   const ob1Amt = f2(obData.ob1 * ob1r);
   const ob2Amt = f2(obData.ob2 * ob2r);
   const ob3Amt = f2(obData.ob3 * ob3r);
@@ -470,7 +469,7 @@ function calculateEverything() {
   const totalOBOnly = f2(ob1Amt + ob2Amt + ob3Amt);
   const totalOB = f2(totalOBOnly + otAmt + otEnkelAmt);
 
-  const totalBeforeDeductions = f2(obGroundingBase + totalOB + semesterTillagg);
+  const totalBeforeDeductions = f2(obGroundingBase + totalOB + semesterTillagg + extra);
   const jobbBruttoExact = f2(totalBeforeDeductions - totalSickLoss + sickOBGain - vabParentalDeduction);
   const jobbBrutto = Math.round(jobbBruttoExact);
   const taxExact = taxFromTable33Col1(jobbBruttoExact, selectedYear);
@@ -487,7 +486,7 @@ function calculateEverything() {
     semesterSupplementPerDay, semesterTillagg,
     karensDeduction: sickResult.karensDeduction, sickDeduct100: sickResult.sickDeduct100, sickPay80: sickResult.sickPay80,
     vabParentalDeduction, totalErsattningNetto,
-    obYear, obMonth, autoOB, obData,
+    obYear, obMonth, autoOB, obData, extra,
     ob1Amount: ob1Amt, ob2Amount: ob2Amt, ob3Amount: ob3Amt, otAmount: otAmt, otEnkelAmount: otEnkelAmt,
     totalOBOnly, totalOBOnlyHours: obData.ob1 + obData.ob2 + obData.ob3, totalOB,
     totalSjukOBGain: sickOBGain,
@@ -568,6 +567,10 @@ function renderUI(data) {
     chips.push({ type:'danger', html: `<div class="detail-chip danger"><span>VAB/F-ledig avdrag</span><span>-${fd(data.vabParentalDeduction,2)} kr</span></div>` });
   }
 
+  if (data.extra > 0) {
+    chips.push({ type:'neutral', html: `<div class="detail-chip"><span>Övrigt tillägg</span><span>+${fc(data.extra)} kr</span></div>` });
+  }
+
   chips.push({ type:'neutral', html: `<div class="detail-chip"><span>Bruttolön jobb</span><span>${fd(data.jobbBruttoExact,2)} kr</span></div>` });
   chips.push({ type:'danger', html: `<div class="detail-chip danger"><span>Skatt (tabell 33)</span><span>-${fc(data.tax)} kr</span></div>` });
   chips.push({ type:'neutral', html: `<div class="detail-chip"><span>Nettolön före fack</span><span>${fc(data.netBeforeFack)} kr</span></div>` });
@@ -610,7 +613,7 @@ function renderUI(data) {
         if (date.getDay() === 1 || d === 1) isBlueWeek = !isBlueWeek;
         weekLabel = ' v' + weekNum; lastShownWeek = weekNum;
       }
-      let shiftText = (isPerm && shift !== 0) ? 'Perm' : shiftNames[shift];
+      let shiftText = isPerm ? 'Perm' : shiftNames[shift];
       if (shiftOverrideMap.has(dateStr) && !isPerm) shiftText += '*';
       let emoji = ''; let fromvaroText = '';
       if (fromvaroVal === 1) { fromvaroText = 'Semester'; emoji = '🏖️'; }
@@ -680,6 +683,7 @@ function closeSettingsBoxIfNeeded() {
   }
 }
 function resetOB() {
+  obManuallyEdited = false;
   const lag = lagSelect.value;
   if (lag !== 'manual' && lag !== '') {
     let y = parseInt(yearSelect.value), m = parseInt(monthSelect.value), om = m - 1;
@@ -762,12 +766,22 @@ let lagSelect=document.getElementById('lagSelect'), salaryInput=document.getElem
     yearSummaryYear=document.getElementById('yearSummaryYear'), yearSummaryGrid=document.getElementById('yearSummaryGrid'),
     overviewTotalNet=document.getElementById('overviewTotalNet');
 
-lagSelect.addEventListener('change', updateUI);
+lagSelect.addEventListener('change', function() { obManuallyEdited = false; updateUI(); });
 salaryInput.addEventListener('input',updateUI);
-yearSelect.addEventListener('change',updateUI); monthSelect.addEventListener('change',updateUI);
+yearSelect.addEventListener('change', function() { obManuallyEdited = false; updateUI(); });
+monthSelect.addEventListener('change', function() { obManuallyEdited = false; updateUI(); });
 otHours.addEventListener('input',updateUI); otEnkelHours.addEventListener('input',updateUI);
-ob1Hours.addEventListener('input',updateUI); ob2Hours.addEventListener('input',updateUI); ob3Hours.addEventListener('input',updateUI);
+
+// OB‑fält: sätt flaggan vid manuell ändring
+ob1Hours.addEventListener('input', function() { obManuallyEdited = true; updateUI(); });
+ob2Hours.addEventListener('input', function() { obManuallyEdited = true; updateUI(); });
+ob3Hours.addEventListener('input', function() { obManuallyEdited = true; updateUI(); });
+
 sgiInput.addEventListener('input',updateUI); ftpDays.addEventListener('change',updateUI);
+
+// Även övrigtfältet ska trigga updateUI
+const extraInput = document.getElementById('extraInput');
+if (extraInput) extraInput.addEventListener('input', updateUI);
 
 (function() {
   const savedTheme = localStorage.getItem('theme') || 'dark';
