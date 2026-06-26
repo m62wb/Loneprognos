@@ -25,8 +25,6 @@ function getMondayOfISOWeek(w, year) {
 
 const sickDetailMap = new Map();
 window.isLoadingProfile = false;
-
-// Ny flagga: har användaren ändrat OB‑fälten manuellt?
 let obManuallyEdited = false;
 
 function toggleSettings() {
@@ -260,31 +258,17 @@ function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80
     if (firstDay && firstDay.isFull && karensHours > 0) {
       let deductionRemaining = 6.0;
       let ob1 = rawOB1, ob2 = rawOB2, ob3 = rawOB3;
-      if (ob1 > 0) {
-        let d = Math.min(deductionRemaining, ob1);
-        ob1 -= d;
-        deductionRemaining -= d;
-      } else if (ob2 > 0) {
-        let d = Math.min(deductionRemaining, ob2);
-        ob2 -= d;
-        deductionRemaining -= d;
-      } else if (ob3 > 0) {
-        let d = Math.min(deductionRemaining, ob3);
-        ob3 -= d;
-        deductionRemaining -= d;
-      }
-      finalOB1 += ob1;
-      finalOB2 += ob2;
-      finalOB3 += ob3;
+      if (ob1 > 0) { let d = Math.min(deductionRemaining, ob1); ob1 -= d; deductionRemaining -= d; }
+      else if (ob2 > 0) { let d = Math.min(deductionRemaining, ob2); ob2 -= d; deductionRemaining -= d; }
+      else if (ob3 > 0) { let d = Math.min(deductionRemaining, ob3); ob3 -= d; deductionRemaining -= d; }
+      finalOB1 += ob1; finalOB2 += ob2; finalOB3 += ob3;
     } else {
       let rem = karensHours;
       let ob1 = rawOB1, ob2 = rawOB2, ob3 = rawOB3;
       if (rem > 0) { let d = Math.min(rem, ob1); ob1 -= d; rem -= d; }
       if (rem > 0) { let d = Math.min(rem, ob2); ob2 -= d; rem -= d; }
       if (rem > 0) { let d = Math.min(rem, ob3); ob3 -= d; rem -= d; }
-      finalOB1 += ob1;
-      finalOB2 += ob2;
-      finalOB3 += ob3;
+      finalOB1 += ob1; finalOB2 += ob2; finalOB3 += ob3;
     }
 
     prevEnd = new Date(period.end);
@@ -406,12 +390,6 @@ function calculateEverything() {
   const sickResult = calcSickDeduction(obYear, obMonth, lag, baseSalary, sickRate100, sickRate80, ob1r, ob2r, ob3r);
   const totalSickLoss = sickResult.deduction;
   const sickOBGain = sickResult.sickOBGain;
-  const sickOB1Hours = sickResult.sickOB1Hours;
-  const sickOB2Hours = sickResult.sickOB2Hours;
-  const sickOB3Hours = sickResult.sickOB3Hours;
-  const sickOB1Amount = sickResult.sickOB1Amount;
-  const sickOB2Amount = sickResult.sickOB2Amount;
-  const sickOB3Amount = sickResult.sickOB3Amount;
 
   const sgiVab = Math.min(sgiVal, SGI_TAK_VAB);
   const sgiVabDay = f2(sgiVab / 365 * 0.8);
@@ -445,7 +423,6 @@ function calculateEverything() {
     }
   }
 
-  // Fyll i auto‑OB endast om användaren inte har ändrat manuellt
   if (autoOB && !obManuallyEdited) {
     ob1Hours.value = fd(autoOB.ob1, 2);
     ob2Hours.value = fd(autoOB.ob2, 2);
@@ -461,6 +438,7 @@ function calculateEverything() {
 
   const otH = p(otHours.value), otEnkelH = p(otEnkelHours.value);
   const extra = p(document.getElementById('extraInput')?.value || 0);
+  const extraTax = p(document.getElementById('extraTaxInput')?.value || 0);
   const ob1Amt = f2(obData.ob1 * ob1r);
   const ob2Amt = f2(obData.ob2 * ob2r);
   const ob3Amt = f2(obData.ob3 * ob3r);
@@ -474,7 +452,7 @@ function calculateEverything() {
   const jobbBrutto = Math.round(jobbBruttoExact);
   const taxExact = taxFromTable33Col1(jobbBruttoExact, selectedYear);
   const tax = f2(taxExact);
-  const netSalaryExact = f2(jobbBruttoExact - taxExact - calcUnion(jobbBrutto) + totalErsattningNetto);
+  const netSalaryExact = f2(jobbBruttoExact - taxExact - calcUnion(jobbBrutto) + totalErsattningNetto - extraTax);
   const netSalary = Math.round(netSalaryExact);
   return {
     baseSalary, selectedYear, selectedMonth, lag, isAuto,
@@ -486,11 +464,12 @@ function calculateEverything() {
     semesterSupplementPerDay, semesterTillagg,
     karensDeduction: sickResult.karensDeduction, sickDeduct100: sickResult.sickDeduct100, sickPay80: sickResult.sickPay80,
     vabParentalDeduction, totalErsattningNetto,
-    obYear, obMonth, autoOB, obData, extra,
+    obYear, obMonth, autoOB, obData, extra, extraTax,
     ob1Amount: ob1Amt, ob2Amount: ob2Amt, ob3Amount: ob3Amt, otAmount: otAmt, otEnkelAmount: otEnkelAmt,
     totalOBOnly, totalOBOnlyHours: obData.ob1 + obData.ob2 + obData.ob3, totalOB,
     totalSjukOBGain: sickOBGain,
-    sickOB1Hours, sickOB2Hours, sickOB3Hours, sickOB1Amount, sickOB2Amount, sickOB3Amount,
+    sickOB1Hours: sickResult.sickOB1Hours, sickOB2Hours: sickResult.sickOB2Hours, sickOB3Hours: sickResult.sickOB3Hours,
+    sickOB1Amount: sickResult.sickOB1Amount, sickOB2Amount: sickResult.sickOB2Amount, sickOB3Amount: sickResult.sickOB3Amount,
     jobbBrutto, jobbBruttoExact, tax, netBeforeFack: f2(jobbBrutto - tax),
     unionFee: calcUnion(jobbBrutto), jobbNetto: f2(jobbBrutto - tax - calcUnion(jobbBrutto)),
     netSalary, netSalaryExact, utjämning: f2(netSalary - netSalaryExact)
@@ -573,6 +552,9 @@ function renderUI(data) {
 
   chips.push({ type:'neutral', html: `<div class="detail-chip"><span>Bruttolön jobb</span><span>${fd(data.jobbBruttoExact,2)} kr</span></div>` });
   chips.push({ type:'danger', html: `<div class="detail-chip danger"><span>Skatt (tabell 33)</span><span>-${fc(data.tax)} kr</span></div>` });
+  if (data.extraTax > 0) {
+    chips.push({ type:'danger', html: `<div class="detail-chip danger"><span>Engångsskatt</span><span>-${fc(data.extraTax)} kr</span></div>` });
+  }
   chips.push({ type:'neutral', html: `<div class="detail-chip"><span>Nettolön före fack</span><span>${fc(data.netBeforeFack)} kr</span></div>` });
   chips.push({ type:'danger', html: `<div class="detail-chip danger"><span>IF Metall</span><span>-${fc(data.unionFee)} kr</span></div>` });
   chips.push({ type:'neutral', html: `<div class="detail-chip"><span>Nettolön jobb</span><span>${fc(data.jobbNetto)} kr</span></div>` });
@@ -772,16 +754,16 @@ yearSelect.addEventListener('change', function() { obManuallyEdited = false; upd
 monthSelect.addEventListener('change', function() { obManuallyEdited = false; updateUI(); });
 otHours.addEventListener('input',updateUI); otEnkelHours.addEventListener('input',updateUI);
 
-// OB‑fält: sätt flaggan vid manuell ändring
 ob1Hours.addEventListener('input', function() { obManuallyEdited = true; updateUI(); });
 ob2Hours.addEventListener('input', function() { obManuallyEdited = true; updateUI(); });
 ob3Hours.addEventListener('input', function() { obManuallyEdited = true; updateUI(); });
 
 sgiInput.addEventListener('input',updateUI); ftpDays.addEventListener('change',updateUI);
 
-// Även övrigtfältet ska trigga updateUI
 const extraInput = document.getElementById('extraInput');
 if (extraInput) extraInput.addEventListener('input', updateUI);
+const extraTaxInput = document.getElementById('extraTaxInput');
+if (extraTaxInput) extraTaxInput.addEventListener('input', updateUI);
 
 (function() {
   const savedTheme = localStorage.getItem('theme') || 'dark';
