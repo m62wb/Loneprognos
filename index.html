@@ -80,9 +80,15 @@
                 <div class="ob-input"><span class="ob-badge ot">ÖT</span><input type="text" id="otHours" inputmode="decimal" class="numeric-only numeric-hours" placeholder="0"><div class="ob-rate" id="otRate">/72</div></div>
                 <div class="ob-input"><span class="ob-badge ot">ÖT enkel</span><input type="text" id="otEnkelHours" inputmode="decimal" class="numeric-only numeric-hours" placeholder="0"><div class="ob-rate" id="otEnkelRate">/94</div></div>
             </div>
-            <div class="input-group" style="margin-top: 8px;">
-                <label>Övrigt (kr)</label>
-                <input type="text" id="extraInput" inputmode="decimal" class="numeric-only" placeholder="0">
+            <div style="display: flex; gap: 12px; margin-top: 8px;">
+                <div class="input-group" style="flex: 1;">
+                    <label>Övrigt (kr)</label>
+                    <input type="text" id="extraInput" inputmode="decimal" class="numeric-only" placeholder="0">
+                </div>
+                <div class="input-group" style="flex: 1;">
+                    <label>Engångsskatt (kr)</label>
+                    <input type="text" id="extraTaxInput" inputmode="decimal" class="numeric-only" placeholder="0">
+                </div>
             </div>
         </div>
     </div>
