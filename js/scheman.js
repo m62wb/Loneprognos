@@ -110,13 +110,13 @@ function isPermissionDay(date, lag) {
   return false;
 }
 
-// Global overlapHours (används både av getOB3Hours och den nya intervallogiken)
+// Global overlapHours (används av både getOB3Hours och intervallogiken)
 function overlapHours(ps, pe, s, e) {
   const oS = ps > s ? ps : s, oE = pe < e ? pe : e;
   return Math.max(0, (oE - oS) / (1000 * 60 * 60));
 }
 
-// Hjälpfunktion: lista alla OB3-perioder för ett år (för intervallmatchning)
+// Hjälpfunktion: lista alla OB3-perioder för ett år
 function getOB3Periods(year) {
   const easter = getEaster(year);
   const periods = [];
@@ -136,7 +136,7 @@ function getOB3Periods(year) {
     end: new Date(vmaj.getFullYear(), vmaj.getMonth(), vmaj.getDate(), 0)
   });
 
-  // Nationaldag (med FlexHRM-anpassning)
+  // Nationaldag (FlexHRM-anpassad)
   let nat = new Date(year,5,6);
   let ob3Start = new Date(nat);
   if (nat.getDay() === 6) ob3Start.setDate(nat.getDate()-1);
@@ -173,7 +173,7 @@ function getOB3Periods(year) {
   return periods;
 }
 
-// Räkna OB3-timmar för hela passet (för bakåtkompatibilitet, används i getOBForMonth etc.)
+// Räkna OB3-timmar för hela passet
 function getOB3Hours(date, shift) {
   if (shift === 0) return 0;
   const y = date.getFullYear();
@@ -189,7 +189,7 @@ function getOB3Hours(date, shift) {
   return 0;
 }
 
-// Beräkna OB3-överlapp för ett specifikt tidsintervall (används för att justera normal OB)
+// Beräkna OB3-överlapp för ett specifikt tidsintervall
 function getOB3OverlapForInterval(intervalStart, intervalEnd, shiftDate) {
   const y = shiftDate.getFullYear();
   const periods = getOB3Periods(y);
@@ -200,7 +200,7 @@ function getOB3OverlapForInterval(intervalStart, intervalEnd, shiftDate) {
   return 0;
 }
 
-// ---- Huvudfunktion för OB (ny, exakt blandning) ----
+// ---- Huvudfunktion för OB (exakt blandning) ----
 function calcOB(date, shift, lag) {
   if (isPermissionDay(date, lag) || shift === 0) return {ob1:0, ob2:0, ob3:0};
 
@@ -229,18 +229,19 @@ function calcOB(date, shift, lag) {
       const passStart = new Date(date); passStart.setHours(5,45,0,0);
       if (isHoliday(date) || isWeekend) {
         // Hela passet är OB2
-        intervals.push({ type: 'ob2', start: new Date(passStart), end: new Date(date); end.setHours(18,0,0,0) });
+        const passEnd = new Date(date); passEnd.setHours(18,0,0,0);
+        intervals.push({ type: 'ob2', start: new Date(passStart), end: passEnd });
       } else {
         // Endast 05:45-07:00 är OB2
         const ob2End = new Date(date); ob2End.setHours(7,0,0,0);
         intervals.push({ type: 'ob2', start: new Date(passStart), end: ob2End });
       }
     } else { // Nattpass
-      const passStart = new Date(date); passStart.setHours(17,45,0,0);
       if (isHoliday(date) || isWeekend) {
         // Hela passet 17:45-06:00 är OB2
+        const passStart = new Date(date); passStart.setHours(17,45,0,0);
         const passEnd = new Date(date); passEnd.setDate(passEnd.getDate()+1); passEnd.setHours(6,0,0,0);
-        intervals.push({ type: 'ob2', start: new Date(passStart), end: passEnd });
+        intervals.push({ type: 'ob2', start: passStart, end: passEnd });
       } else {
         // OB1 18:00-24:00
         const ob1Start = new Date(date); ob1Start.setHours(18,0,0,0);
