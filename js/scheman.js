@@ -20,7 +20,7 @@ function getDSTAdjustment(date) {
   return 0;
 }
 
-// ---- Skiftscheman ----
+// ---- Skiftscheman A-E ----
 const startA = new Date(2025, 11, 29);
 const cycleA = [0,0,0,0,2,2,2,0,0,0,1,1,0,0,2,2,0,0,0,1,1,0,0,2,2,0,0,0,1,1,1,0,0,0,0];
 function getShiftA(date) { let d = daysBetween(startA, date); return cycleA[((d % 35) + 35) % 35]; }
@@ -37,12 +37,33 @@ const startE = new Date(2026, 0, 1);
 const cycleE = [0,0,0,0,0,0,0,0,2,2,2,0,0,0,1,1,0,0,2,2,0,0,0,1,1,0,0,2,2,0,0,0,1,1,1];
 function getShiftE(date) { let d = daysBetween(startE, date); return cycleE[((d % 35) + 35) % 35]; }
 
+// ---- R3: GUCH & BEAB (dagtid 06:00–15:00, roterande 5/4-dagarsvecka) ----
+const startR3 = new Date(2025, 11, 29); // måndag i veckan som innehåller 1 jan 2026
+
+function getShiftGUCH(date) {
+  const weekIndex = Math.floor(daysBetween(startR3, date) / 7);
+  const day = date.getDay(); // 0 sön, 1 mån ... 6 lör
+  const isFiveDayWeek = (weekIndex % 2 === 0); // GUCH 5 dagar i jämn vecka
+  if (isFiveDayWeek) return (day >= 1 && day <= 5) ? 1 : 0;
+  else return (day >= 1 && day <= 4) ? 1 : 0;
+}
+
+function getShiftBEAB(date) {
+  const weekIndex = Math.floor(daysBetween(startR3, date) / 7);
+  const day = date.getDay();
+  const isFourDayWeek = (weekIndex % 2 === 0); // BEAB 4 dagar i jämn vecka
+  if (isFourDayWeek) return (day >= 1 && day <= 4) ? 1 : 0;
+  else return (day >= 1 && day <= 5) ? 1 : 0;
+}
+
 function getOrdinaryShift(date, lag) {
   if (lag === 'A') return getShiftA(date);
   if (lag === 'B') return getShiftB(date);
   if (lag === 'C') return getShiftC(date);
   if (lag === 'D') return getShiftD(date);
   if (lag === 'E') return getShiftE(date);
+  if (lag === 'GUCH') return getShiftGUCH(date);
+  if (lag === 'BEAB') return getShiftBEAB(date);
   return 0;
 }
 
@@ -110,13 +131,13 @@ function isPermissionDay(date, lag) {
   return false;
 }
 
-// Global overlapHours (används av både getOB3Hours och intervallogiken)
+// Global overlapHours
 function overlapHours(ps, pe, s, e) {
   const oS = ps > s ? ps : s, oE = pe < e ? pe : e;
   return Math.max(0, (oE - oS) / (1000 * 60 * 60));
 }
 
-// Hjälpfunktion: lista alla OB3-perioder för ett år
+// Lista alla OB3-perioder
 function getOB3Periods(year) {
   const easter = getEaster(year);
   const periods = [];
@@ -222,39 +243,31 @@ function calcOB(date, shift, lag) {
   // 3) OB3 – subtrahera endast den del av normal OB som överlappar OB3-perioden
   const ob3 = Math.round(getOB3Hours(date, shift) * 100) / 100;
   if (ob3 > 0) {
-    // Bygg upp de normala OB-intervallen
     const intervals = [];
     if (shift === 1) {
-      // Dagpass
       const passStart = new Date(date); passStart.setHours(5,45,0,0);
       if (isHoliday(date) || isWeekend) {
-        // Hela passet är OB2
         const passEnd = new Date(date); passEnd.setHours(18,0,0,0);
         intervals.push({ type: 'ob2', start: new Date(passStart), end: passEnd });
       } else {
-        // Endast 05:45-07:00 är OB2
         const ob2End = new Date(date); ob2End.setHours(7,0,0,0);
         intervals.push({ type: 'ob2', start: new Date(passStart), end: ob2End });
       }
     } else { // Nattpass
       if (isHoliday(date) || isWeekend) {
-        // Hela passet 17:45-06:00 är OB2
         const passStart = new Date(date); passStart.setHours(17,45,0,0);
         const passEnd = new Date(date); passEnd.setDate(passEnd.getDate()+1); passEnd.setHours(6,0,0,0);
         intervals.push({ type: 'ob2', start: passStart, end: passEnd });
       } else {
-        // OB1 18:00-24:00
         const ob1Start = new Date(date); ob1Start.setHours(18,0,0,0);
         const ob1End = new Date(date); ob1End.setHours(24,0,0,0);
         intervals.push({ type: 'ob1', start: ob1Start, end: ob1End });
-        // OB2 00:00-06:00 nästa dag
         const ob2Start = new Date(date); ob2Start.setDate(ob2Start.getDate()+1); ob2Start.setHours(0,0,0,0);
         const ob2End = new Date(date); ob2End.setDate(ob2End.getDate()+1); ob2End.setHours(6,0,0,0);
         intervals.push({ type: 'ob2', start: ob2Start, end: ob2End });
       }
     }
 
-    // För varje intervall, dra bort OB3-överlapp
     for (const iv of intervals) {
       const overlap = getOB3OverlapForInterval(iv.start, iv.end, date);
       if (iv.type === 'ob1') {
