@@ -71,7 +71,11 @@ function getOrdinaryShift(date, lag) {
 
 function getShift(date, lag) {
   let key = date.toISOString().split('T')[0];
-  if (shiftOverrideMap.has(key)) return shiftOverrideMap.get(key);
+  if (shiftOverrideMap.has(key)) {
+    // För GUCH/BEAB: tvinga ledig på helgdagar, oavsett manuell överstyrning
+    if ((lag === 'GUCH' || lag === 'BEAB') && isHoliday(date)) return 0;
+    return shiftOverrideMap.get(key);
+  }
   return getOrdinaryShift(date, lag);
 }
 
