@@ -352,7 +352,7 @@ function openSickPopup(dateStr) {
   };
 }
 
-// ---------- HUVUDBERÄKNING ----------
+// ---------- HUVUDBERÄKNING (med R3-tillägg) ----------
 function calculateEverything() {
   const baseSalary = p(salaryInput.value) || 0;
   const selectedYear = parseInt(yearSelect.value);
@@ -362,6 +362,10 @@ function calculateEverything() {
   const ftpD = parseInt(ftpDays.value);
   const sgiVal = Math.min(p(sgiInput.value) || 0, SGI_TAK_PARENTAL);
 
+  // R3-tillägg: 4000 kr OB-grundande för GUCH och BEAB
+  const isR3 = (lag === 'GUCH' || lag === 'BEAB');
+  const allowance = isR3 ? 4000 : 0;
+
   let obYear = selectedYear, obMonth = selectedMonth - 1;
   if (obMonth === 0) { obMonth = 12; obYear--; }
   const vabD = countVABDaysInMonth(obYear, obMonth);
@@ -369,7 +373,7 @@ function calculateEverything() {
   const vacationCount = countVacationDaysInMonth(obYear, obMonth);
 
   const driftAddition = f2(baseSalary * DRIFT / 100);
-  const obGroundingBase = f2(baseSalary + driftAddition);
+  const obGroundingBase = f2(baseSalary + allowance + driftAddition);
 
   const ob1r = f2(obGroundingBase / O1D);
   const ob2r = f2(obGroundingBase / O2D);
@@ -457,7 +461,7 @@ function calculateEverything() {
   return {
     baseSalary, selectedYear, selectedMonth, lag, isAuto,
     sickVisible: (totalSickLoss > 0 || sickOBGain > 0), extraSick: 0, totalVABParental: vabD + parentalD, vacationCount,
-    driftAddition, obGroundingBase,
+    driftAddition, obGroundingBase, allowance,
     ob1RatePerHour: ob1r, ob2RatePerHour: ob2r, ob3RatePerHour: ob3r,
     otRatePerHour: otRate, otEnkelRatePerHour: otEnkelRate,
     sickRate100, sickRate80,
@@ -477,7 +481,7 @@ function calculateEverything() {
 }
 
 function renderUI(data) {
-  const lagName = {A:'Lag A',B:'Lag B',C:'Lag C',D:'Lag D',E:'Lag E'}[data.lag] || 'Manuell';
+  const lagName = {A:'Lag A',B:'Lag B',C:'Lag C',D:'Lag D',E:'Lag E', GUCH:'GUCH', BEAB:'BEAB'}[data.lag] || 'Manuell';
   vabSummary.style.display = data.totalVABParental > 0 ? 'flex' : 'none';
   obGroundingDisplay.innerText = fc(data.obGroundingBase) + ' kr';
   ob1Rate.innerText = '/460 = ' + fd(data.ob1RatePerHour,2) + ' kr/h';
@@ -493,6 +497,10 @@ function renderUI(data) {
   const chips = [];
 
   chips.push({ type:'neutral', html: `<div class="detail-chip"><span>Grundlön + Driftformstillägg</span><span>${fc(data.obGroundingBase)} kr</span></div>` });
+
+  if (data.allowance > 0) {
+    chips.push({ type:'neutral', html: `<div class="detail-chip"><span>R3-tillägg (OB-grundande)</span><span>+${fc(data.allowance)} kr</span></div>` });
+  }
 
   if (data.totalOBOnlyHours > 0) {
     const obOTHTML = `<div class="expandable-chip" onclick="toggleExpand(this)">
@@ -680,7 +688,11 @@ function updateYearSummary() {
   const y = parseInt(yearSelect.value); const lag = lagSelect.value;
   if (lag === 'manual' || lag === '') { document.getElementById('yearSummaryGrid').innerHTML = 'Välj lag'; return; }
   document.getElementById('yearSummaryYear').innerText = y;
-  const bs = p(salaryInput.value) || 0; const da = f2(bs * DRIFT / 100); const obBase = bs + da;
+  const bs = p(salaryInput.value) || 0;
+  const isR3 = (lag === 'GUCH' || lag === 'BEAB');
+  const allowance = isR3 ? 4000 : 0;
+  const da = f2(bs * DRIFT / 100);
+  const obBase = f2(bs + allowance + da);
   const o1r = f2(obBase / O1D), o2r = f2(obBase / O2D), o3r = f2(obBase / O3D);
   let totBrutto = 0, totNetto = 0, totSkatt = 0, totFack = 0, totOB = 0, totSemester = 0;
   for (let m = 1; m <= 12; m++) {
@@ -712,7 +724,11 @@ function updateSettingsLabel() {
 function renderOBChart() {
   const lag = lagSelect.value; if (lag === 'manual' || lag === '') return;
   const year = parseInt(yearSelect.value);
-  const bs = p(salaryInput.value) || 0; const da = f2(bs * DRIFT / 100); const obBase = bs + da;
+  const bs = p(salaryInput.value) || 0;
+  const isR3 = (lag === 'GUCH' || lag === 'BEAB');
+  const allowance = isR3 ? 4000 : 0;
+  const da = f2(bs * DRIFT / 100);
+  const obBase = f2(bs + allowance + da);
   const o1r = f2(obBase / O1D), o2r = f2(obBase / O2D), o3r = f2(obBase / O3D);
   const labels = []; const data = [];
   for (let m = 1; m <= 12; m++) {
