@@ -37,10 +37,11 @@ const startE = new Date(2026, 0, 1);
 const cycleE = [0,0,0,0,0,0,0,0,2,2,2,0,0,0,1,1,0,0,2,2,0,0,0,1,1,0,0,2,2,0,0,0,1,1,1];
 function getShiftE(date) { let d = daysBetween(startE, date); return cycleE[((d % 35) + 35) % 35]; }
 
-// ---- R3: GUCH & BEAB (dagtid 06:00–15:00, roterande 5/4-dagarsvecka) ----
+// ---- R3: GUCH & BEAB (dagtid 06:00–15:00, roterande 5/4-dagarsvecka, ej röda dagar) ----
 const startR3 = new Date(2025, 11, 29); // måndag i veckan som innehåller 1 jan 2026
 
 function getShiftGUCH(date) {
+  if (isHoliday(date)) return 0;  // GUCH arbetar inte röda dagar
   const weekIndex = Math.floor(daysBetween(startR3, date) / 7);
   const day = date.getDay(); // 0 sön, 1 mån ... 6 lör
   const isFiveDayWeek = (weekIndex % 2 === 0); // GUCH 5 dagar i jämn vecka
@@ -49,6 +50,7 @@ function getShiftGUCH(date) {
 }
 
 function getShiftBEAB(date) {
+  if (isHoliday(date)) return 0;  // BEAB arbetar inte röda dagar
   const weekIndex = Math.floor(daysBetween(startR3, date) / 7);
   const day = date.getDay();
   const isFourDayWeek = (weekIndex % 2 === 0); // BEAB 4 dagar i jämn vecka
