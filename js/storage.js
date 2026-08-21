@@ -53,6 +53,18 @@ function updateProfileList() {
   }
 }
 
+// NY: Automatiskt välja första profilen om det finns profiler
+window.autoSelectFirstProfile = function() {
+  const select = document.getElementById('profileSelect');
+  if (!select) return;
+  const profiles = getAllProfiles();
+  const names = Object.keys(profiles);
+  if (names.length > 0) {
+    select.value = names[0];
+    if (typeof loadScenario === 'function') loadScenario();
+  }
+};
+
 window.saveProfilePopup = function() {
   const dialog = document.getElementById('profileDialog');
   const nameInput = document.getElementById('profileName');
