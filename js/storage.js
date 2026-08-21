@@ -15,8 +15,7 @@ function getCurrentState() {
     ob1: ob1Hours.value, ob2: ob2Hours.value, ob3: ob3Hours.value,
     ot: otHours.value, otEnkel: otEnkelHours.value,
     year: yearSelect.value, month: monthSelect.value,
-    // OBS! fromvaro (semester, VAB, FL, sjuk, Komp/Flex) sparas inte i profiler längre.
-    // Den sparas separat i localStorage-nyckeln 'loneprognos_fromvaro' via script.js.
+    // Frånvaro sparas separat per profil
     shiftOverrides: Array.from(shiftOverrideMap.entries()),
     vacationOverrides: Array.from(vacationOverrideMap.entries()),
     sickDetails: Array.from(sickDetailMap.entries())
@@ -62,29 +61,20 @@ window.saveProfilePopup = function() {
 
   dialog.showModal();
 
-  // Rensa tidigare lyssnare
   saveBtn.replaceWith(saveBtn.cloneNode(true));
   cancelBtn.replaceWith(cancelBtn.cloneNode(true));
   const newSaveBtn = document.getElementById('profileSaveBtn');
   const newCancelBtn = document.getElementById('profileCancelBtn');
 
-  newCancelBtn.onclick = function() {
-    dialog.close();
-  };
+  newCancelBtn.onclick = function() { dialog.close(); };
 
   newSaveBtn.onclick = function() {
     const name = nameInput.value.trim();
     const lag = lagSelectEl.value;
     const salary = salaryInputEl.value.replace(',', '.').trim();
 
-    if (!name || name === '') {
-      alert('Ange ett namn.');
-      return;
-    }
-    if (!salary || isNaN(parseFloat(salary))) {
-      alert('Ange en giltig lön.');
-      return;
-    }
+    if (!name || name === '') { alert('Ange ett namn.'); return; }
+    if (!salary || isNaN(parseFloat(salary))) { alert('Ange en giltig lön.'); return; }
 
     document.getElementById('lagSelect').value = lag;
     document.getElementById('salaryInput').value = salary;
@@ -95,8 +85,11 @@ window.saveProfilePopup = function() {
     saveAllProfiles(profiles);
     updateProfileList();
     document.getElementById('profileSelect').value = name;
-    dialog.close();
 
+    // Ladda rätt (tom) fromvaro för den nya profilen
+    if (typeof loadFromvaroMap === 'function') loadFromvaroMap();
+
+    dialog.close();
     if (typeof updateUI === 'function') updateUI();
   };
 };
@@ -109,6 +102,8 @@ window.loadScenario = function() {
   const state = profiles[name];
   if (!state) { alert('Profilen kunde inte hittas.'); return; }
   applyState(state);
+  // Viktigt: ladda rätt fromvaro för den valda profilen
+  if (typeof loadFromvaroMap === 'function') loadFromvaroMap();
 };
 
 window.deleteScenario = function() {
