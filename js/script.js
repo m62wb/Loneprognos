@@ -30,7 +30,6 @@ let obManuallyEdited = false;
 let monthlyManualInputs = new Map();   // Per-månad/lag sparning
 
 const MONTHLY_MANUAL_KEY = 'loneprognos_monthly_manual_v1';
-const FROMVARO_KEY = 'loneprognos_fromvaro';
 
 function persistMonthlyManualInputs() {
   localStorage.setItem(MONTHLY_MANUAL_KEY, JSON.stringify(Array.from(monthlyManualInputs.entries())));
@@ -47,20 +46,28 @@ function loadMonthlyManualInputs() {
   }
 }
 
+// --- Profilmedveten fromvaro-sparning ---
+function getFromvaroKey() {
+  const profile = document.getElementById('profileSelect')?.value || '';
+  return profile ? `loneprognos_fromvaro_${profile}` : 'loneprognos_fromvaro_default';
+}
+
 function saveFromvaroMap() {
-  localStorage.setItem(FROMVARO_KEY, JSON.stringify(Array.from(fromvaroMap.entries())));
+  localStorage.setItem(getFromvaroKey(), JSON.stringify(Array.from(fromvaroMap.entries())));
 }
 
 function loadFromvaroMap() {
-  const saved = localStorage.getItem(FROMVARO_KEY);
+  const saved = localStorage.getItem(getFromvaroKey());
   if (saved) {
     try {
       const entries = JSON.parse(saved);
       fromvaroMap.clear();
       for (const [k, v] of entries) fromvaroMap.set(k, v);
     } catch(e) {
-      // Om JSON är trasigt, gör inget
+      fromvaroMap.clear();
     }
+  } else {
+    fromvaroMap.clear();
   }
 }
 
@@ -68,7 +75,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Ladda per-månads manuella fält från localStorage direkt vid start
 loadMonthlyManualInputs();
-// Ladda frånvaro (semester, vab, FL, sjuk, Komp/Flex) separat
+// Ladda frånvaro för aktuell profil (eller default)
 loadFromvaroMap();
 
 function toggleSettings() {
@@ -137,7 +144,7 @@ function applyIndustrialVacation(year, lag) {
       }
     }
   }
-  saveFromvaroMap(); // Spara industriell semester
+  saveFromvaroMap();
 }
 
 function countVacationDaysInMonth(year, month) {
@@ -202,8 +209,8 @@ function calcParentalDeduction(year, month, lag, baseSalary, sickRate100) {
         periodStart = prev;
         continue;
       }
-      if (isWorkDay(prev)) break;   // arbetsdag utan FL → stopp
-      periodStart = prev;           // ledig dag eller permission → utöka
+      if (isWorkDay(prev)) break;
+      periodStart = prev;
     }
 
     // Expandera framåt
@@ -220,7 +227,6 @@ function calcParentalDeduction(year, month, lag, baseSalary, sickRate100) {
       periodEnd = next;
     }
 
-    // Räkna arbetsdagar i HELA perioden (alla schemalagda pass räknas)
     let workDays = 0;
     const d = new Date(periodStart);
     while (d <= periodEnd) {
@@ -228,7 +234,6 @@ function calcParentalDeduction(year, month, lag, baseSalary, sickRate100) {
       d.setDate(d.getDate() + 1);
     }
 
-    // Överlapp med aktuell månad
     const monthFirst = new Date(year, month - 1, 1);
     const monthLast = new Date(year, month, 0);
     const overlapStart = new Date(Math.max(periodStart.getTime(), monthFirst.getTime()));
@@ -444,7 +449,6 @@ function calculateEverything() {
   const ftpD = parseInt(ftpDays.value);
   const sgiVal = Math.min(p(sgiInput.value) || 0, SGI_TAK_PARENTAL);
 
-  // R3-tillägg: 4000 kr OB-grundande för GUCH och BEAB
   const isR3 = (lag === 'GUCH' || lag === 'BEAB');
   const allowance = isR3 ? 4000 : 0;
 
@@ -454,7 +458,6 @@ function calculateEverything() {
   const parentalD = countParentalDaysInMonth(obYear, obMonth);
   const vacationCount = countVacationDaysInMonth(obYear, obMonth);
 
-  // Semesterkvot: endast för skiftarbetare (A–E)
   const isShiftWorker = ['A','B','C','D','E'].includes(lag);
   const semesterDagar = isShiftWorker ? vacationCount * SEMESTER_KVOT : vacationCount;
 
@@ -900,7 +903,7 @@ const savedAutosave = localStorage.getItem(AUTOSAVE_KEY);
 if (savedAutosave) { try { applyState(JSON.parse(savedAutosave)); } catch(e) { updateUI(); } }
 else { if (lagSelect.value && lagSelect.value !== 'manual') applyIndustrialVacation(parseInt(yearSelect.value), lagSelect.value); updateUI(); }
 
-// Ladda manuella fält och fromvaro (separat) efter autosave för att säkerställa att senaste sparning vinner
+// Ladda manuella fält och fromvaro (för aktuell profil) efter autosave
 loadManualInputsFromCurrentPeriod();
 loadFromvaroMap();
 updateUI();
