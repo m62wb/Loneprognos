@@ -30,6 +30,7 @@ let obManuallyEdited = false;
 let monthlyManualInputs = new Map();   // Per-månad/lag sparning
 
 const MONTHLY_MANUAL_KEY = 'loneprognos_monthly_manual_v1';
+const FROMVARO_KEY = 'loneprognos_fromvaro';
 
 function persistMonthlyManualInputs() {
   localStorage.setItem(MONTHLY_MANUAL_KEY, JSON.stringify(Array.from(monthlyManualInputs.entries())));
@@ -46,10 +47,29 @@ function loadMonthlyManualInputs() {
   }
 }
 
+function saveFromvaroMap() {
+  localStorage.setItem(FROMVARO_KEY, JSON.stringify(Array.from(fromvaroMap.entries())));
+}
+
+function loadFromvaroMap() {
+  const saved = localStorage.getItem(FROMVARO_KEY);
+  if (saved) {
+    try {
+      const entries = JSON.parse(saved);
+      fromvaroMap.clear();
+      for (const [k, v] of entries) fromvaroMap.set(k, v);
+    } catch(e) {
+      // Om JSON är trasigt, gör inget
+    }
+  }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
 
 // Ladda per-månads manuella fält från localStorage direkt vid start
 loadMonthlyManualInputs();
+// Ladda frånvaro (semester, vab, FL, sjuk) separat
+loadFromvaroMap();
 
 function toggleSettings() {
   const c = document.getElementById('settingsContent');
@@ -117,6 +137,7 @@ function applyIndustrialVacation(year, lag) {
       }
     }
   }
+  saveFromvaroMap(); // Spara industriell semester
 }
 
 function countVacationDaysInMonth(year, month) {
@@ -370,12 +391,14 @@ function setFromvaro(dateStr, value){
   else if(value==="VAB") fromvaroMap.set(dateStr,2);
   else if(value==="F-ledig") fromvaroMap.set(dateStr,3);
   updateUI();
+  saveFromvaroMap();
 }
-function resetSchema(){ fromvaroMap.clear(); vacationOverrideMap.clear(); sickDetailMap.clear(); updateUI(); }
+function resetSchema(){ fromvaroMap.clear(); vacationOverrideMap.clear(); sickDetailMap.clear(); updateUI(); saveFromvaroMap(); }
 function resetAllShifts(){ shiftOverrideMap.clear(); updateUI(); }
 function changeShift(dateStr,val,lag){
   let nv = parseInt(val, 10); shiftOverrideMap.set(dateStr, nv);
-  if(nv === 0) fromvaroMap.delete(dateStr); updateUI();
+  if(nv === 0) { fromvaroMap.delete(dateStr); saveFromvaroMap(); }
+  updateUI();
 }
 
 function openSickPopup(dateStr) {
@@ -386,7 +409,7 @@ function openSickPopup(dateStr) {
   document.getElementById('sickTimeInput').value = '';
   document.getElementById('sickFullDayBtn').onclick = function() {
     fromvaroMap.set(dateStr, 4); sickDetailMap.set(dateStr, {type:'full'});
-    overlay.style.display = 'none'; updateUI();
+    overlay.style.display = 'none'; updateUI(); saveFromvaroMap();
   };
   document.getElementById('sickPartialBtn').onclick = function() {
     document.getElementById('sickPartialInput').style.display = 'block';
@@ -402,11 +425,11 @@ function openSickPopup(dateStr) {
     hoursMissed = Math.min(Math.max(hoursMissed, 0), 12.25);
     fromvaroMap.set(dateStr, 4);
     sickDetailMap.set(dateStr, {type:'partial', hoursMissed: f2(hoursMissed)});
-    overlay.style.display = 'none'; updateUI();
+    overlay.style.display = 'none'; updateUI(); saveFromvaroMap();
   };
   document.getElementById('sickCancelBtn').onclick = function() {
     fromvaroMap.delete(dateStr); sickDetailMap.delete(dateStr);
-    overlay.style.display = 'none'; updateUI();
+    overlay.style.display = 'none'; updateUI(); saveFromvaroMap();
   };
 }
 
@@ -864,8 +887,10 @@ const savedAutosave = localStorage.getItem(AUTOSAVE_KEY);
 if (savedAutosave) { try { applyState(JSON.parse(savedAutosave)); } catch(e) { updateUI(); } }
 else { if (lagSelect.value && lagSelect.value !== 'manual') applyIndustrialVacation(parseInt(yearSelect.value), lagSelect.value); updateUI(); }
 
-// Ladda manuella fält för den aktuella perioden efter att autosave är klart
+// Ladda manuella fält och fromvaro (separat) efter autosave för att säkerställa att senaste sparning vinner
 loadManualInputsFromCurrentPeriod();
+loadFromvaroMap();
+updateUI();
 
 window.setFromvaro=setFromvaro; window.changeShift=changeShift; window.resetSchema=resetSchema;
 window.resetAllShifts=resetAllShifts; window.toggleExpand=toggleExpand;
