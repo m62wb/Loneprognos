@@ -926,4 +926,7 @@ document.querySelectorAll('.numeric-only').forEach(field => {
 });
 
 updateProfileList();
+
+// Välj automatiskt första profilen om det finns
+if (typeof autoSelectFirstProfile === 'function') autoSelectFirstProfile();
 });
