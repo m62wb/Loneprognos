@@ -8,6 +8,7 @@ const DRIFT=4.0, VAB_HPD=12.25, UPCT=0.0165, UMAX=701, UMIN=255;
 const O1D=460, O2D=260, O3D=150, OTD=72, OTENKELD=94, SY=2024, EY=2036;
 const PBB=59200, SGI_TAK_PARENTAL=10*PBB, SGI_TAK_VAB=7.5*PBB, FK_SKATT=0.30;
 const MONTHS = ['Januari','Februari','Mars','April','Maj','Juni','Juli','Augusti','September','Oktober','November','December'];
+const SEMESTER_KVOT = 1.78;
 
 function calcUnion(s){ let f=Math.round(s*UPCT); if(f<UMIN) return UMIN; if(f>UMAX) return UMAX; return f; }
 function getWeekNumber(date) {
@@ -352,7 +353,7 @@ function openSickPopup(dateStr) {
   };
 }
 
-// ---------- HUVUDBERÄKNING (med R3-tillägg) ----------
+// ---------- HUVUDBERÄKNING ----------
 function calculateEverything() {
   const baseSalary = p(salaryInput.value) || 0;
   const selectedYear = parseInt(yearSelect.value);
@@ -372,6 +373,10 @@ function calculateEverything() {
   const parentalD = countParentalDaysInMonth(obYear, obMonth);
   const vacationCount = countVacationDaysInMonth(obYear, obMonth);
 
+  // Semesterkvot: endast för skiftarbetare (A–E)
+  const isShiftWorker = ['A','B','C','D','E'].includes(lag);
+  const semesterDagar = isShiftWorker ? vacationCount * SEMESTER_KVOT : vacationCount;
+
   const driftAddition = f2(baseSalary * DRIFT / 100);
   const obGroundingBase = f2(baseSalary + allowance + driftAddition);
 
@@ -385,7 +390,7 @@ function calculateEverything() {
   const sickRate80  = f2(baseSalary / (177 + 1/12));
 
   const semesterSupplementPerDay = f2(obGroundingBase / 125);
-  const semesterTillagg = f2(vacationCount * semesterSupplementPerDay);
+  const semesterTillagg = f2(semesterDagar * semesterSupplementPerDay);
 
   const vabDeduction = f2(vabD * VAB_HPD * sickRate100);
   const parentalDeduction = calcParentalDeduction(obYear, obMonth, lag, baseSalary, sickRate100);
@@ -460,7 +465,7 @@ function calculateEverything() {
   const netSalary = Math.round(netSalaryExact);
   return {
     baseSalary, selectedYear, selectedMonth, lag, isAuto,
-    sickVisible: (totalSickLoss > 0 || sickOBGain > 0), extraSick: 0, totalVABParental: vabD + parentalD, vacationCount,
+    sickVisible: (totalSickLoss > 0 || sickOBGain > 0), extraSick: 0, totalVABParental: vabD + parentalD, vacationCount, semesterDagar,
     driftAddition, obGroundingBase, allowance,
     ob1RatePerHour: ob1r, ob2RatePerHour: ob2r, ob3RatePerHour: ob3r,
     otRatePerHour: otRate, otEnkelRatePerHour: otEnkelRate,
@@ -520,9 +525,9 @@ function renderUI(data) {
     chips.push({ type:'success', html: `<div class="detail-chip"><span>ÖT enkel (${fd(p(otEnkelHours.value),2)}h x ${fd(data.otEnkelRatePerHour,2)} kr)</span><span>+${fd(data.otEnkelAmount,2)} kr</span></div>` });
   }
 
-  if (data.vacationCount > 0) {
+  if (data.semesterDagar > 0) {
     const semesterMonthName = data.isAuto ? MONTHS[data.obMonth-1] + ' ' + data.obYear : '';
-    const semHTML = `<div class="detail-chip info"><span>Semestertillägg (${data.vacationCount} dgr, ${fd(data.semesterSupplementPerDay,2)} kr/d)</span><span>+${fd(data.semesterTillagg,2)} kr (intjänad ${semesterMonthName})</span></div>`;
+    const semHTML = `<div class="detail-chip info"><span>Semestertillägg (${fd(data.semesterDagar,2)} dgr, ${fd(data.semesterSupplementPerDay,2)} kr/d)</span><span>+${fd(data.semesterTillagg,2)} kr (intjänad ${semesterMonthName})</span></div>`;
     chips.push({ type:'info', html: semHTML });
   }
 
@@ -657,6 +662,9 @@ function renderUI(data) {
 function autoSaveState() { localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(getCurrentState())); }
 function updateUI() {
   const data = calculateEverything(); renderUI(data); updateSettingsLabel();
+  if (document.getElementById('yearDetails')?.style.display === 'block') {
+    updateYearSummary();
+  }
   closeSettingsBoxIfNeeded(); renderOBChart();
   const main = document.getElementById('mainContent');
   if (main) {
@@ -700,7 +708,9 @@ function updateYearSummary() {
     const obData = getOBForMonth(obYear, obMonth, lag);
     const mOB = f2(obData.ob1 * o1r + obData.ob2 * o2r + obData.ob3 * o3r); totOB += mOB;
     const vacDays = countVacationDaysInMonth(obYear, obMonth);
-    const semTillagg = f2(vacDays * f2(obBase / 125)); totSemester += semTillagg;
+    const isShiftWorker = ['A','B','C','D','E'].includes(lag);
+    const semesterDagar = isShiftWorker ? vacDays * SEMESTER_KVOT : vacDays;
+    const semTillagg = f2(semesterDagar * f2(obBase / 125)); totSemester += semTillagg;
     const jb = Math.round(obBase + mOB + semTillagg);
     const tax = taxFromTable33Col1(jb, y); const uf = calcUnion(jb); const net = jb - tax - uf;
     totBrutto += jb; totNetto += net; totSkatt += tax; totFack += uf;
