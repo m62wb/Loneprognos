@@ -200,6 +200,10 @@ td select {
 .row-parental td:not(:first-child) {
     background: rgba(137,207,240,0.35) !important;
 }
+   .row-kompflex td:not(:first-child) {
+    background: rgba(128, 128, 128, 0.25) !important;
+}
+}
 
 /* Sjukrader – genomskinlig så att tbody-gradienten syns */
 .row-sick td {
