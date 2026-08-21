@@ -27,9 +27,29 @@ function getMondayOfISOWeek(w, year) {
 const sickDetailMap = new Map();
 window.isLoadingProfile = false;
 let obManuallyEdited = false;
-let monthlyManualInputs = new Map();   // Ny: per-månad/lag sparning av manuella fält
+let monthlyManualInputs = new Map();   // Per-månad/lag sparning
+
+const MONTHLY_MANUAL_KEY = 'loneprognos_monthly_manual_v1';
+
+function persistMonthlyManualInputs() {
+  localStorage.setItem(MONTHLY_MANUAL_KEY, JSON.stringify(Array.from(monthlyManualInputs.entries())));
+}
+
+function loadMonthlyManualInputs() {
+  const saved = localStorage.getItem(MONTHLY_MANUAL_KEY);
+  if (saved) {
+    try {
+      monthlyManualInputs = new Map(JSON.parse(saved));
+    } catch(e) {
+      monthlyManualInputs = new Map();
+    }
+  }
+}
 
 document.addEventListener('DOMContentLoaded', function() {
+
+// Ladda per-månads manuella fält från localStorage direkt vid start
+loadMonthlyManualInputs();
 
 function toggleSettings() {
   const c = document.getElementById('settingsContent');
@@ -47,7 +67,7 @@ function toggleTheme() {
   localStorage.setItem('theme', isDark ? 'dark' : 'light');
 }
 
-// --- Ny: periodnyckel och sparning/laddning av manuella fält ---
+// --- Per-månads manuella fält ---
 function getPeriodKey() {
   return `${yearSelect.value}-${monthSelect.value}-${lagSelect.value}`;
 }
@@ -60,6 +80,7 @@ function saveManualInputsToCurrentPeriod() {
     extra: document.getElementById('extraInput')?.value || '',
     extraTax: document.getElementById('extraTaxInput')?.value || ''
   });
+  persistMonthlyManualInputs();
 }
 
 function loadManualInputsFromCurrentPeriod() {
