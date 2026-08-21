@@ -15,7 +15,8 @@ function getCurrentState() {
     ob1: ob1Hours.value, ob2: ob2Hours.value, ob3: ob3Hours.value,
     ot: otHours.value, otEnkel: otEnkelHours.value,
     year: yearSelect.value, month: monthSelect.value,
-    fromvaro: Array.from(fromvaroMap.entries()),
+    // OBS! fromvaro (semester, VAB, FL, sjuk, Komp/Flex) sparas inte i profiler längre.
+    // Den sparas separat i localStorage-nyckeln 'loneprognos_fromvaro' via script.js.
     shiftOverrides: Array.from(shiftOverrideMap.entries()),
     vacationOverrides: Array.from(vacationOverrideMap.entries()),
     sickDetails: Array.from(sickDetailMap.entries())
@@ -29,7 +30,7 @@ function applyState(state) {
   ob1Hours.value = state.ob1 || ''; ob2Hours.value = state.ob2 || ''; ob3Hours.value = state.ob3 || '';
   otHours.value = state.ot || ''; otEnkelHours.value = state.otEnkel || '';
   yearSelect.value = state.year; monthSelect.value = state.month;
-  fromvaroMap.clear(); if (state.fromvaro) for (let [k,v] of state.fromvaro) fromvaroMap.set(k,v);
+  // Vi rör INTE fromvaroMap här – den laddas separat i script.js.
   shiftOverrideMap.clear(); if (state.shiftOverrides) for (let [k,v] of state.shiftOverrides) shiftOverrideMap.set(k,v);
   vacationOverrideMap.clear(); if (state.vacationOverrides) for (let [k,v] of state.vacationOverrides) vacationOverrideMap.set(k,v);
   sickDetailMap.clear(); if (state.sickDetails) for (let [k,v] of state.sickDetails) sickDetailMap.set(k,v);
