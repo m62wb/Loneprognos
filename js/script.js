@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Ladda per-månads manuella fält från localStorage direkt vid start
 loadMonthlyManualInputs();
-// Ladda frånvaro (semester, vab, FL, sjuk) separat
+// Ladda frånvaro (semester, vab, FL, sjuk, Komp/Flex) separat
 loadFromvaroMap();
 
 function toggleSettings() {
@@ -390,6 +390,7 @@ function setFromvaro(dateStr, value){
   else if(value==="Semester") fromvaroMap.set(dateStr,1);
   else if(value==="VAB") fromvaroMap.set(dateStr,2);
   else if(value==="F-ledig") fromvaroMap.set(dateStr,3);
+  else if(value==="Komp/Flex") fromvaroMap.set(dateStr,5);
   updateUI();
   saveFromvaroMap();
 }
@@ -695,6 +696,7 @@ function renderUI(data) {
       else if (fromvaroVal === 2) { fromvaroText = 'VAB'; emoji = '👶'; }
       else if (fromvaroVal === 3) { fromvaroText = 'F-ledig'; emoji = '🍼'; }
       else if (fromvaroVal === 4) { fromvaroText = 'Sjuk'; emoji = '🤒'; }
+      else if (fromvaroVal === 5) { fromvaroText = 'Komp/Flex'; emoji = '🕒'; }
       let station = (data.lag === 'E') ? getStationE(date, shift, data.lag) : '-';
       let rowClass = '';
       if (fromvaroVal === 0 && shift > 0 && !isPerm) { rowClass = (shift === 1) ? 'row-day' : 'row-night'; }
@@ -702,12 +704,14 @@ function renderUI(data) {
       else if (fromvaroVal === 2) { rowClass = 'row-vab'; }
       else if (fromvaroVal === 3) { rowClass = 'row-parental'; }
       else if (fromvaroVal === 4) { rowClass = 'row-sick'; }
+      else if (fromvaroVal === 5) { rowClass = 'row-kompflex'; }
 
       let fromvaroCell = shift !== 0 ? `<select class="fromvaro-select" onchange="setFromvaro('${dateStr}',this.value)" onclick="event.stopPropagation()">
         <option value="" ${fromvaroText===""?'selected':''}>Ingen</option>
         <option value="Semester" ${fromvaroText==="Semester"?'selected':''}>Sem</option>
         <option value="VAB" ${fromvaroText==="VAB"?'selected':''}>VAB</option>
         <option value="F-ledig" ${fromvaroText==="F-ledig"?'selected':''}>F-ledig</option>
+        <option value="Komp/Flex" ${fromvaroText==="Komp/Flex"?'selected':''}>Komp/Flex</option>
         <option value="Sjuk" ${fromvaroText==="Sjuk"?'selected':''}>Sjuk</option>
       </select>` : '';
       let passSelect = `<select class="shift-select" onchange="changeShift('${dateStr}',this.value,'${data.lag}')" onclick="event.stopPropagation()">
