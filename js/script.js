@@ -27,6 +27,7 @@ function getMondayOfISOWeek(w, year) {
 const sickDetailMap = new Map();
 window.isLoadingProfile = false;
 let obManuallyEdited = false;
+let monthlyManualInputs = new Map();   // Ny: per-månad/lag sparning av manuella fält
 
 document.addEventListener('DOMContentLoaded', function() {
 
@@ -44,6 +45,41 @@ function toggleTheme() {
   const isDark = checkbox.checked;
   document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
   localStorage.setItem('theme', isDark ? 'dark' : 'light');
+}
+
+// --- Ny: periodnyckel och sparning/laddning av manuella fält ---
+function getPeriodKey() {
+  return `${yearSelect.value}-${monthSelect.value}-${lagSelect.value}`;
+}
+
+function saveManualInputsToCurrentPeriod() {
+  const key = getPeriodKey();
+  monthlyManualInputs.set(key, {
+    ot: otHours.value,
+    otEnkel: otEnkelHours.value,
+    extra: document.getElementById('extraInput')?.value || '',
+    extraTax: document.getElementById('extraTaxInput')?.value || ''
+  });
+}
+
+function loadManualInputsFromCurrentPeriod() {
+  const key = getPeriodKey();
+  const saved = monthlyManualInputs.get(key);
+  if (saved) {
+    otHours.value = saved.ot ?? '';
+    otEnkelHours.value = saved.otEnkel ?? '';
+    const extraInput = document.getElementById('extraInput');
+    if (extraInput) extraInput.value = saved.extra ?? '';
+    const extraTaxInput = document.getElementById('extraTaxInput');
+    if (extraTaxInput) extraTaxInput.value = saved.extraTax ?? '';
+  } else {
+    otHours.value = '';
+    otEnkelHours.value = '';
+    const extraInput = document.getElementById('extraInput');
+    if (extraInput) extraInput.value = '';
+    const extraTaxInput = document.getElementById('extraTaxInput');
+    if (extraTaxInput) extraTaxInput.value = '';
+  }
 }
 
 function applyIndustrialVacation(year, lag) {
@@ -774,11 +810,12 @@ let lagSelect=document.getElementById('lagSelect'), salaryInput=document.getElem
     yearSummaryYear=document.getElementById('yearSummaryYear'), yearSummaryGrid=document.getElementById('yearSummaryGrid'),
     overviewTotalNet=document.getElementById('overviewTotalNet');
 
-lagSelect.addEventListener('change', function() { obManuallyEdited = false; updateUI(); });
+lagSelect.addEventListener('change', function() { obManuallyEdited = false; loadManualInputsFromCurrentPeriod(); updateUI(); });
 salaryInput.addEventListener('input',updateUI);
-yearSelect.addEventListener('change', function() { obManuallyEdited = false; updateUI(); });
-monthSelect.addEventListener('change', function() { obManuallyEdited = false; updateUI(); });
-otHours.addEventListener('input',updateUI); otEnkelHours.addEventListener('input',updateUI);
+yearSelect.addEventListener('change', function() { obManuallyEdited = false; loadManualInputsFromCurrentPeriod(); updateUI(); });
+monthSelect.addEventListener('change', function() { obManuallyEdited = false; loadManualInputsFromCurrentPeriod(); updateUI(); });
+otHours.addEventListener('input', function() { saveManualInputsToCurrentPeriod(); updateUI(); });
+otEnkelHours.addEventListener('input', function() { saveManualInputsToCurrentPeriod(); updateUI(); });
 
 ob1Hours.addEventListener('input', function() { obManuallyEdited = true; updateUI(); });
 ob2Hours.addEventListener('input', function() { obManuallyEdited = true; updateUI(); });
@@ -787,9 +824,13 @@ ob3Hours.addEventListener('input', function() { obManuallyEdited = true; updateU
 sgiInput.addEventListener('input',updateUI); ftpDays.addEventListener('change',updateUI);
 
 const extraInput = document.getElementById('extraInput');
-if (extraInput) extraInput.addEventListener('input', updateUI);
+if (extraInput) {
+  extraInput.addEventListener('input', function() { saveManualInputsToCurrentPeriod(); updateUI(); });
+}
 const extraTaxInput = document.getElementById('extraTaxInput');
-if (extraTaxInput) extraTaxInput.addEventListener('input', updateUI);
+if (extraTaxInput) {
+  extraTaxInput.addEventListener('input', function() { saveManualInputsToCurrentPeriod(); updateUI(); });
+}
 
 (function() {
   const savedTheme = localStorage.getItem('theme') || 'dark';
@@ -801,6 +842,9 @@ populateSelectors();
 const savedAutosave = localStorage.getItem(AUTOSAVE_KEY);
 if (savedAutosave) { try { applyState(JSON.parse(savedAutosave)); } catch(e) { updateUI(); } }
 else { if (lagSelect.value && lagSelect.value !== 'manual') applyIndustrialVacation(parseInt(yearSelect.value), lagSelect.value); updateUI(); }
+
+// Ladda manuella fält för den aktuella perioden efter att autosave är klart
+loadManualInputsFromCurrentPeriod();
 
 window.setFromvaro=setFromvaro; window.changeShift=changeShift; window.resetSchema=resetSchema;
 window.resetAllShifts=resetAllShifts; window.toggleExpand=toggleExpand;
