@@ -29,6 +29,12 @@ function applyState(state) {
   ob1Hours.value = state.ob1 || ''; ob2Hours.value = state.ob2 || ''; ob3Hours.value = state.ob3 || '';
   otHours.value = state.ot || ''; otEnkelHours.value = state.otEnkel || '';
   yearSelect.value = state.year; monthSelect.value = state.month;
+
+  // NYTT: Tvinga alltid aktuell månad och år, oavsett vad som var sparat
+  const today = new Date();
+  yearSelect.value = today.getFullYear();
+  monthSelect.value = today.getMonth() + 1;
+
   // Vi rör INTE fromvaroMap här – den laddas separat i script.js.
   shiftOverrideMap.clear(); if (state.shiftOverrides) for (let [k,v] of state.shiftOverrides) shiftOverrideMap.set(k,v);
   vacationOverrideMap.clear(); if (state.vacationOverrides) for (let [k,v] of state.vacationOverrides) vacationOverrideMap.set(k,v);
