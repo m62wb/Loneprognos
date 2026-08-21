@@ -760,8 +760,17 @@ function updateUI() {
 function closeSettingsBoxIfNeeded() {
   const settingsContent = document.getElementById('settingsContent');
   const arrow = document.getElementById('settingsArrow');
-  if (settingsContent && settingsContent.classList.contains('open') && lagSelect.value !== '') {
-    settingsContent.classList.remove('open'); if (arrow) arrow.textContent = '▼';
+  const profileSelect = document.getElementById('profileSelect');
+
+  if (
+    settingsContent &&
+    settingsContent.classList.contains('open') &&
+    lagSelect.value !== '' &&
+    profileSelect &&
+    profileSelect.value !== ''
+  ) {
+    settingsContent.classList.remove('open');
+    if (arrow) arrow.textContent = '▼';
   }
 }
 function resetOB() {
