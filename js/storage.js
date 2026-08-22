@@ -15,7 +15,6 @@ function getCurrentState() {
     ob1: ob1Hours.value, ob2: ob2Hours.value, ob3: ob3Hours.value,
     ot: otHours.value, otEnkel: otEnkelHours.value,
     year: yearSelect.value, month: monthSelect.value,
-    // Frånvaro sparas separat per profil
     shiftOverrides: Array.from(shiftOverrideMap.entries()),
     vacationOverrides: Array.from(vacationOverrideMap.entries()),
     sickDetails: Array.from(sickDetailMap.entries())
@@ -30,12 +29,11 @@ function applyState(state) {
   otHours.value = state.ot || ''; otEnkelHours.value = state.otEnkel || '';
   yearSelect.value = state.year; monthSelect.value = state.month;
 
-  // NYTT: Tvinga alltid aktuell månad och år, oavsett vad som var sparat
+  // Tvinga alltid aktuell månad och år
   const today = new Date();
   yearSelect.value = today.getFullYear();
   monthSelect.value = today.getMonth() + 1;
 
-  // Vi rör INTE fromvaroMap här – den laddas separat i script.js.
   shiftOverrideMap.clear(); if (state.shiftOverrides) for (let [k,v] of state.shiftOverrides) shiftOverrideMap.set(k,v);
   vacationOverrideMap.clear(); if (state.vacationOverrides) for (let [k,v] of state.vacationOverrides) vacationOverrideMap.set(k,v);
   sickDetailMap.clear(); if (state.sickDetails) for (let [k,v] of state.sickDetails) sickDetailMap.set(k,v);
@@ -51,19 +49,14 @@ function updateProfileList() {
   for (const name of Object.keys(profiles)) {
     const opt = document.createElement('option'); opt.value = name; opt.textContent = name; select.appendChild(opt);
   }
-}
 
-// NY: Automatiskt välja första profilen om det finns profiler
-window.autoSelectFirstProfile = function() {
-  const select = document.getElementById('profileSelect');
-  if (!select) return;
-  const profiles = getAllProfiles();
+  // Automatiskt välja första profilen om det finns
   const names = Object.keys(profiles);
   if (names.length > 0) {
     select.value = names[0];
     if (typeof loadScenario === 'function') loadScenario();
   }
-};
+}
 
 window.saveProfilePopup = function() {
   const dialog = document.getElementById('profileDialog');
@@ -104,7 +97,6 @@ window.saveProfilePopup = function() {
     updateProfileList();
     document.getElementById('profileSelect').value = name;
 
-    // Ladda rätt (tom) fromvaro för den nya profilen
     if (typeof loadFromvaroMap === 'function') loadFromvaroMap();
 
     dialog.close();
@@ -120,7 +112,6 @@ window.loadScenario = function() {
   const state = profiles[name];
   if (!state) { alert('Profilen kunde inte hittas.'); return; }
   applyState(state);
-  // Viktigt: ladda rätt fromvaro för den valda profilen
   if (typeof loadFromvaroMap === 'function') loadFromvaroMap();
 };
 
