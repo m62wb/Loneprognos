@@ -175,87 +175,65 @@ function countParentalDaysInMonth(year, month) {
 // ---- FÖRÄLDRALEDIGHET (5-dagarsregel) ----
 function calcParentalDeduction(year, month, lag, baseSalary, sickRate100) {
   const daysInMonth = new Date(year, month, 0).getDate();
-  const flDatesInMonth = [];
+  const allDates = [];
   for (let d = 1; d <= daysInMonth; d++) {
     const date = new Date(year, month - 1, d);
     const key = date.toISOString().split('T')[0];
-    if (fromvaroMap.get(key) === 3) {
-      flDatesInMonth.push(date);
+    const fromvaroVal = fromvaroMap.get(key) || 0;
+    const isFL = (fromvaroVal === 3);
+    const shift = getOrdinaryShift(date, lag);
+    const isWork = (shift > 0 && !isPermissionDay(date, lag));
+    allDates.push({ date, isFL, isWork });
+  }
+
+  const periods = [];
+  let currentStart = null;
+  let currentEnd = null;
+
+  for (const day of allDates) {
+    if (day.isFL) {
+      if (currentStart === null) currentStart = day.date;
+      currentEnd = day.date;
+    } else if (day.isWork) {
+      // Arbetsdag utan FL avslutar perioden
+      if (currentStart !== null) {
+        periods.push({ start: new Date(currentStart), end: new Date(currentEnd) });
+        currentStart = null;
+        currentEnd = null;
+      }
     }
+    // Ledig dag utan FL: gör ingenting, perioden fortsätter
   }
-  if (flDatesInMonth.length === 0) return 0;
-
-  flDatesInMonth.sort((a, b) => a - b);
-
-  function isWorkDay(d) {
-    const shift = getOrdinaryShift(d, lag);
-    return shift > 0 && !isPermissionDay(d, lag);
+  if (currentStart !== null) {
+    periods.push({ start: new Date(currentStart), end: new Date(currentEnd) });
   }
 
-  const processed = new Set();
+  if (periods.length === 0) return 0;
+
   let totalDeduction = 0;
 
-  for (const startDate of flDatesInMonth) {
-    const startKey = startDate.toISOString().split('T')[0];
-    if (processed.has(startKey)) continue;
-
-    // Expandera bakåt
-    let periodStart = new Date(startDate);
-    while (true) {
-      const prev = new Date(periodStart);
-      prev.setDate(prev.getDate() - 1);
-      const prevKey = prev.toISOString().split('T')[0];
-      if (fromvaroMap.get(prevKey) === 3) {
-        periodStart = prev;
-        continue;
-      }
-      if (isWorkDay(prev)) break;
-      periodStart = prev;
-    }
-
-    // Expandera framåt
-    let periodEnd = new Date(startDate);
-    while (true) {
-      const next = new Date(periodEnd);
-      next.setDate(next.getDate() + 1);
-      const nextKey = next.toISOString().split('T')[0];
-      if (fromvaroMap.get(nextKey) === 3) {
-        periodEnd = next;
-        continue;
-      }
-      if (isWorkDay(next)) break;
-      periodEnd = next;
-    }
-
+  for (const period of periods) {
+    // Räkna arbetsdagar i perioden
     let workDays = 0;
-    const d = new Date(periodStart);
-    while (d <= periodEnd) {
-      if (isWorkDay(d)) workDays++;
+    const d = new Date(period.start);
+    while (d <= period.end) {
+      if (getOrdinaryShift(d, lag) > 0 && !isPermissionDay(d, lag)) workDays++;
       d.setDate(d.getDate() + 1);
     }
 
-    const monthFirst = new Date(year, month - 1, 1);
-    const monthLast = new Date(year, month, 0);
-    const overlapStart = new Date(Math.max(periodStart.getTime(), monthFirst.getTime()));
-    const overlapEnd   = new Date(Math.min(periodEnd.getTime(), monthLast.getTime()));
+    const calDays = Math.round((period.end - period.start) / 86400000) + 1;
 
     if (workDays > 5) {
-      const daysInOverlap = Math.round((overlapEnd - overlapStart) / 86400000) + 1;
-      totalDeduction += (baseSalary / 30) * daysInOverlap;
+      totalDeduction += (baseSalary / 30) * calDays;
     } else {
-      const d2 = new Date(overlapStart);
-      while (d2 <= overlapEnd) {
-        if (isWorkDay(d2)) {
+      // Timavdrag för arbetsdagarna i perioden
+      const d2 = new Date(period.start);
+      while (d2 <= period.end) {
+        if (getOrdinaryShift(d2, lag) > 0 && !isPermissionDay(d2, lag)) {
           totalDeduction += sickRate100 * VAB_HPD;
         }
         d2.setDate(d2.getDate() + 1);
       }
-    }
-
-    const mark = new Date(periodStart);
-    while (mark <= periodEnd) {
-      processed.add(mark.toISOString().split('T')[0]);
-      mark.setDate(mark.getDate() + 1);
     }
   }
 
@@ -926,6 +904,4 @@ document.querySelectorAll('.numeric-only').forEach(field => {
 });
 
 updateProfileList();
-
-
 });
