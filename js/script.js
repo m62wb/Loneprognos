@@ -172,29 +172,38 @@ function countParentalDaysInMonth(year, month) {
   return cnt;
 }
 
-// ---- FÖRÄLDRALEDIGHET (5-dagarsregel) ----
+// ---- FÖRÄLDRALEDIGHET (5-dagarsregel, korrigerad för månadsgränser) ----
 function calcParentalDeduction(year, month, lag, baseSalary, sickRate100) {
-  const daysInMonth = new Date(year, month, 0).getDate();
-  const allDates = [];
-  for (let d = 1; d <= daysInMonth; d++) {
-    const date = new Date(year, month - 1, d);
-    const key = date.toISOString().split('T')[0];
-    const fromvaroVal = fromvaroMap.get(key) || 0;
-    const isFL = (fromvaroVal === 3);
-    const shift = getOrdinaryShift(date, lag);
-    const isWork = (shift > 0 && !isPermissionDay(date, lag));
-    allDates.push({ date, isFL, isWork });
+  // Hämta alla FL-datum globalt från fromvaroMap
+  const allFLDates = [];
+  for (const [key, value] of fromvaroMap.entries()) {
+    if (value === 3) {
+      const date = new Date(key + 'T00:00:00');
+      if (!isNaN(date)) allFLDates.push(date);
+    }
   }
+  if (allFLDates.length === 0) return 0;
+  allFLDates.sort((a, b) => a - b);
 
+  // Bygg sammanhängande perioder – startar på första FL-dagen och slutar på sista FL-dagen,
+  // men arbetsdagar utan FL avbryter perioden. Lediga dagar utan FL fortsätter perioden.
   const periods = [];
   let currentStart = null;
   let currentEnd = null;
+  const minDate = allFLDates[0];
+  const maxDate = allFLDates[allFLDates.length - 1];
 
-  for (const day of allDates) {
-    if (day.isFL) {
-      if (currentStart === null) currentStart = day.date;
-      currentEnd = day.date;
-    } else if (day.isWork) {
+  for (let d = new Date(minDate); d <= maxDate; d.setDate(d.getDate() + 1)) {
+    const key = d.toISOString().split('T')[0];
+    const fromvaroVal = fromvaroMap.get(key) || 0;
+    const isFL = fromvaroVal === 3;
+    const shift = getOrdinaryShift(d, lag);
+    const isWork = shift > 0 && !isPermissionDay(d, lag);
+
+    if (isFL) {
+      if (currentStart === null) currentStart = new Date(d);
+      currentEnd = new Date(d);
+    } else if (isWork) {
       // Arbetsdag utan FL avslutar perioden
       if (currentStart !== null) {
         periods.push({ start: new Date(currentStart), end: new Date(currentEnd) });
@@ -202,37 +211,39 @@ function calcParentalDeduction(year, month, lag, baseSalary, sickRate100) {
         currentEnd = null;
       }
     }
-    // Ledig dag utan FL: gör ingenting, perioden fortsätter
+    // Ledig dag utan FL fortsätter perioden
   }
   if (currentStart !== null) {
     periods.push({ start: new Date(currentStart), end: new Date(currentEnd) });
   }
 
-  if (periods.length === 0) return 0;
-
+  // Beräkna avdrag för varje period som överlappar vald månad
   let totalDeduction = 0;
+  const monthStart = new Date(year, month - 1, 1);
+  const monthEnd = new Date(year, month, 0);
 
   for (const period of periods) {
-    // Räkna arbetsdagar i perioden
+    // Räkna arbetsdagar i hela perioden (globalt)
     let workDays = 0;
-    const d = new Date(period.start);
-    while (d <= period.end) {
+    for (let d = new Date(period.start); d <= period.end; d.setDate(d.getDate() + 1)) {
       if (getOrdinaryShift(d, lag) > 0 && !isPermissionDay(d, lag)) workDays++;
-      d.setDate(d.getDate() + 1);
     }
 
-    const calDays = Math.round((period.end - period.start) / 86400000) + 1;
+    // Överlapp med aktuell månad
+    const overlapStart = new Date(Math.max(period.start, monthStart));
+    const overlapEnd = new Date(Math.min(period.end, monthEnd));
+    if (overlapStart > overlapEnd) continue;
 
     if (workDays > 5) {
-      totalDeduction += (baseSalary / 30) * calDays;
+      // Kalenderdagsavdrag för alla dagar i överlappet
+      const days = Math.round((overlapEnd - overlapStart) / 86400000) + 1;
+      totalDeduction += (baseSalary / 30) * days;
     } else {
-      // Timavdrag för arbetsdagarna i perioden
-      const d2 = new Date(period.start);
-      while (d2 <= period.end) {
-        if (getOrdinaryShift(d2, lag) > 0 && !isPermissionDay(d2, lag)) {
+      // Timavdrag för arbetsdagar i överlappet
+      for (let d = new Date(overlapStart); d <= overlapEnd; d.setDate(d.getDate() + 1)) {
+        if (getOrdinaryShift(d, lag) > 0 && !isPermissionDay(d, lag)) {
           totalDeduction += sickRate100 * VAB_HPD;
         }
-        d2.setDate(d2.getDate() + 1);
       }
     }
   }
@@ -427,6 +438,7 @@ function calculateEverything() {
   const ftpD = parseInt(ftpDays.value);
   const sgiVal = Math.min(p(sgiInput.value) || 0, SGI_TAK_PARENTAL);
 
+  // R3-tillägg: 4000 kr OB-grundande för GUCH och BEAB
   const isR3 = (lag === 'GUCH' || lag === 'BEAB');
   const allowance = isR3 ? 4000 : 0;
 
@@ -436,6 +448,7 @@ function calculateEverything() {
   const parentalD = countParentalDaysInMonth(obYear, obMonth);
   const vacationCount = countVacationDaysInMonth(obYear, obMonth);
 
+  // Semesterkvot: endast för skiftarbetare (A–E)
   const isShiftWorker = ['A','B','C','D','E'].includes(lag);
   const semesterDagar = isShiftWorker ? vacationCount * SEMESTER_KVOT : vacationCount;
 
