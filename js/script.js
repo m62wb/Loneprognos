@@ -172,29 +172,34 @@ function countParentalDaysInMonth(year, month) {
   return cnt;
 }
 
-// ---- FÖRÄLDRALEDIGHET (5-dagarsregel, korrigerad för månadsgränser) ----
+// ---- FÖRÄLDRALEDIGHET (5-dagarsregel, korrigerad för månadsgränser och tidszon) ----
 function calcParentalDeduction(year, month, lag, baseSalary, sickRate100) {
-  // Hämta alla FL-datum globalt från fromvaroMap
-  const allFLDates = [];
-  for (const [key, value] of fromvaroMap.entries()) {
-    if (value === 3) {
-      const date = new Date(key + 'T00:00:00');
-      if (!isNaN(date)) allFLDates.push(date);
-    }
+  // Hjälpfunktion för lokal datumnyckel
+  function dateKey(date) {
+    return date.getFullYear() + '-' +
+           String(date.getMonth() + 1).padStart(2, '0') + '-' +
+           String(date.getDate()).padStart(2, '0');
   }
-  if (allFLDates.length === 0) return 0;
-  allFLDates.sort((a, b) => a - b);
 
-  // Bygg sammanhängande perioder – startar på första FL-dagen och slutar på sista FL-dagen,
-  // men arbetsdagar utan FL avbryter perioden. Lediga dagar utan FL fortsätter perioden.
+  // Samla alla FL-datumnycklar
+  const flKeys = [];
+  for (const [key, value] of fromvaroMap.entries()) {
+    if (value === 3) flKeys.push(key);
+  }
+  if (flKeys.length === 0) return 0;
+  flKeys.sort();
+
+  // Bygg perioder – dag för dag med lokala datum
   const periods = [];
   let currentStart = null;
   let currentEnd = null;
-  const minDate = allFLDates[0];
-  const maxDate = allFLDates[allFLDates.length - 1];
+  const minKey = flKeys[0];
+  const maxKey = flKeys[flKeys.length - 1];
+  const minDate = new Date(minKey + 'T00:00:00'); // lokal tid
+  const maxDate = new Date(maxKey + 'T00:00:00');
 
   for (let d = new Date(minDate); d <= maxDate; d.setDate(d.getDate() + 1)) {
-    const key = d.toISOString().split('T')[0];
+    const key = dateKey(d);
     const fromvaroVal = fromvaroMap.get(key) || 0;
     const isFL = fromvaroVal === 3;
     const shift = getOrdinaryShift(d, lag);
@@ -204,7 +209,6 @@ function calcParentalDeduction(year, month, lag, baseSalary, sickRate100) {
       if (currentStart === null) currentStart = new Date(d);
       currentEnd = new Date(d);
     } else if (isWork) {
-      // Arbetsdag utan FL avslutar perioden
       if (currentStart !== null) {
         periods.push({ start: new Date(currentStart), end: new Date(currentEnd) });
         currentStart = null;
@@ -223,23 +227,19 @@ function calcParentalDeduction(year, month, lag, baseSalary, sickRate100) {
   const monthEnd = new Date(year, month, 0);
 
   for (const period of periods) {
-    // Räkna arbetsdagar i hela perioden (globalt)
     let workDays = 0;
     for (let d = new Date(period.start); d <= period.end; d.setDate(d.getDate() + 1)) {
       if (getOrdinaryShift(d, lag) > 0 && !isPermissionDay(d, lag)) workDays++;
     }
 
-    // Överlapp med aktuell månad
     const overlapStart = new Date(Math.max(period.start, monthStart));
     const overlapEnd = new Date(Math.min(period.end, monthEnd));
     if (overlapStart > overlapEnd) continue;
 
     if (workDays > 5) {
-      // Kalenderdagsavdrag för alla dagar i överlappet
       const days = Math.round((overlapEnd - overlapStart) / 86400000) + 1;
       totalDeduction += (baseSalary / 30) * days;
     } else {
-      // Timavdrag för arbetsdagar i överlappet
       for (let d = new Date(overlapStart); d <= overlapEnd; d.setDate(d.getDate() + 1)) {
         if (getOrdinaryShift(d, lag) > 0 && !isPermissionDay(d, lag)) {
           totalDeduction += sickRate100 * VAB_HPD;
