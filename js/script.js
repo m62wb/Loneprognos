@@ -28,22 +28,28 @@ function getMondayOfISOWeek(w, year) {
 const sickDetailMap = new Map();
 window.isLoadingProfile = false;
 let obManuallyEdited = false;
-let monthlyManualInputs = new Map();   // Per-månad/lag sparning
+let monthlyManualInputs = new Map();   // Per-månad/lag sparning av manuella fält
+let monthlyGross = new Map();          // Per arbetsmånad: bruttolön (för auto-SGI)
 
 const MONTHLY_MANUAL_KEY = 'loneprognos_monthly_manual_v1';
+const MONTHLY_GROSS_KEY = 'loneprognos_monthly_gross_v1';
 
 function persistMonthlyManualInputs() {
   localStorage.setItem(MONTHLY_MANUAL_KEY, JSON.stringify(Array.from(monthlyManualInputs.entries())));
 }
-
 function loadMonthlyManualInputs() {
   const saved = localStorage.getItem(MONTHLY_MANUAL_KEY);
   if (saved) {
-    try {
-      monthlyManualInputs = new Map(JSON.parse(saved));
-    } catch(e) {
-      monthlyManualInputs = new Map();
-    }
+    try { monthlyManualInputs = new Map(JSON.parse(saved)); } catch(e) { monthlyManualInputs = new Map(); }
+  }
+}
+function persistMonthlyGross() {
+  localStorage.setItem(MONTHLY_GROSS_KEY, JSON.stringify(Array.from(monthlyGross.entries())));
+}
+function loadMonthlyGross() {
+  const saved = localStorage.getItem(MONTHLY_GROSS_KEY);
+  if (saved) {
+    try { monthlyGross = new Map(JSON.parse(saved)); } catch(e) { monthlyGross = new Map(); }
   }
 }
 
@@ -52,38 +58,28 @@ function getFromvaroKey() {
   const profile = document.getElementById('profileSelect')?.value || '';
   return profile ? `loneprognos_fromvaro_${profile}` : 'loneprognos_fromvaro_default';
 }
-
 function saveFromvaroMap() {
   localStorage.setItem(getFromvaroKey(), JSON.stringify(Array.from(fromvaroMap.entries())));
 }
-
 function loadFromvaroMap() {
   const saved = localStorage.getItem(getFromvaroKey());
   if (saved) {
     try {
       const entries = JSON.parse(saved);
       fromvaroMap.clear();
-      for (const [k, v] of entries) fromvaroMap.set(k, v);
-    } catch(e) {
-      fromvaroMap.clear();
-    }
-  } else {
-    fromvaroMap.clear();
-  }
+      for (const [k,v] of entries) fromvaroMap.set(k,v);
+    } catch(e) { fromvaroMap.clear(); }
+  } else { fromvaroMap.clear(); }
 }
 
-// Hjälpfunktion för lokal datumnyckel – undviker UTC-problem
 function localDateKey(date) {
-  return date.getFullYear() + '-' +
-         String(date.getMonth() + 1).padStart(2, '0') + '-' +
-         String(date.getDate()).padStart(2, '0');
+  return date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0') + '-' + String(date.getDate()).padStart(2,'0');
 }
 
 document.addEventListener('DOMContentLoaded', function() {
 
-// Ladda per-månads manuella fält från localStorage direkt vid start
 loadMonthlyManualInputs();
-// Ladda frånvaro för aktuell profil (eller default)
+loadMonthlyGross();
 loadFromvaroMap();
 
 function toggleSettings() {
@@ -103,10 +99,7 @@ function toggleTheme() {
 }
 
 // --- Per-månads manuella fält ---
-function getPeriodKey() {
-  return `${yearSelect.value}-${monthSelect.value}-${lagSelect.value}`;
-}
-
+function getPeriodKey() { return `${yearSelect.value}-${monthSelect.value}-${lagSelect.value}`; }
 function saveManualInputsToCurrentPeriod() {
   const key = getPeriodKey();
   monthlyManualInputs.set(key, {
@@ -117,7 +110,6 @@ function saveManualInputsToCurrentPeriod() {
   });
   persistMonthlyManualInputs();
 }
-
 function loadManualInputsFromCurrentPeriod() {
   const key = getPeriodKey();
   const saved = monthlyManualInputs.get(key);
@@ -129,8 +121,7 @@ function loadManualInputsFromCurrentPeriod() {
     const extraTaxInput = document.getElementById('extraTaxInput');
     if (extraTaxInput) extraTaxInput.value = saved.extraTax ?? '';
   } else {
-    otHours.value = '';
-    otEnkelHours.value = '';
+    otHours.value = ''; otEnkelHours.value = '';
     const extraInput = document.getElementById('extraInput');
     if (extraInput) extraInput.value = '';
     const extraTaxInput = document.getElementById('extraTaxInput');
@@ -156,26 +147,26 @@ function applyIndustrialVacation(year, lag) {
 }
 
 function countVacationDaysInMonth(year, month) {
-  const daysInMonth = new Date(year, month, 0).getDate(); let cnt = 0;
-  for (let d = 1; d <= daysInMonth; d++) {
-    const date = new Date(year, month - 1, d);
-    if (fromvaroMap.get(localDateKey(date)) === 1) cnt++;
+  const dim = new Date(year, month, 0).getDate(); let cnt = 0;
+  for (let d = 1; d <= dim; d++) {
+    const key = localDateKey(new Date(year, month-1, d));
+    if (fromvaroMap.get(key) === 1) cnt++;
   }
   return cnt;
 }
 function countVABDaysInMonth(year, month) {
-  const daysInMonth = new Date(year, month, 0).getDate(); let cnt = 0;
-  for (let d = 1; d <= daysInMonth; d++) {
-    const date = new Date(year, month - 1, d);
-    if (fromvaroMap.get(localDateKey(date)) === 2) cnt++;
+  const dim = new Date(year, month, 0).getDate(); let cnt = 0;
+  for (let d = 1; d <= dim; d++) {
+    const key = localDateKey(new Date(year, month-1, d));
+    if (fromvaroMap.get(key) === 2) cnt++;
   }
   return cnt;
 }
 function countParentalDaysInMonth(year, month) {
-  const daysInMonth = new Date(year, month, 0).getDate(); let cnt = 0;
-  for (let d = 1; d <= daysInMonth; d++) {
-    const date = new Date(year, month - 1, d);
-    if (fromvaroMap.get(localDateKey(date)) === 3) cnt++;
+  const dim = new Date(year, month, 0).getDate(); let cnt = 0;
+  for (let d = 1; d <= dim; d++) {
+    const key = localDateKey(new Date(year, month-1, d));
+    if (fromvaroMap.get(key) === 3) cnt++;
   }
   return cnt;
 }
@@ -183,77 +174,55 @@ function countParentalDaysInMonth(year, month) {
 // ---- FÖRÄLDRALEDIGHET (5-dagarsregel) ----
 function calcParentalDeduction(year, month, lag, baseSalary, sickRate100) {
   const flKeys = [];
-  for (const [key, value] of fromvaroMap.entries()) {
-    if (value === 3) flKeys.push(key);
-  }
+  for (const [key,value] of fromvaroMap.entries()) if (value === 3) flKeys.push(key);
   if (flKeys.length === 0) return 0;
-
   flKeys.sort();
   const flDates = flKeys.map(key => new Date(key + 'T00:00:00'));
-
   const periods = [];
-  let currentStart = null;
-  let currentEnd = null;
-  const minDate = new Date(flDates[0]);
-  const maxDate = new Date(flDates[flDates.length - 1]);
-
-  for (let d = new Date(minDate); d <= maxDate; d.setDate(d.getDate() + 1)) {
+  let curStart = null, curEnd = null;
+  const minDate = new Date(flDates[0]), maxDate = new Date(flDates[flDates.length-1]);
+  for (let d = new Date(minDate); d <= maxDate; d.setDate(d.getDate()+1)) {
     const key = localDateKey(d);
-    const fromvaroVal = fromvaroMap.get(key) || 0;
-    const isFL = (fromvaroVal === 3);
+    const val = fromvaroMap.get(key) || 0;
+    const isFL = val === 3;
     const shift = getOrdinaryShift(d, lag);
     const isWork = shift > 0 && !isPermissionDay(d, lag);
-
     if (isFL) {
-      if (currentStart === null) currentStart = new Date(d);
-      currentEnd = new Date(d);
+      if (curStart === null) curStart = new Date(d);
+      curEnd = new Date(d);
     } else if (isWork) {
-      if (currentStart !== null) {
-        periods.push({ start: new Date(currentStart), end: new Date(currentEnd) });
-        currentStart = null;
-        currentEnd = null;
-      }
+      if (curStart !== null) { periods.push({start:new Date(curStart), end:new Date(curEnd)}); curStart=null; curEnd=null; }
     }
   }
-  if (currentStart !== null) {
-    periods.push({ start: new Date(currentStart), end: new Date(currentEnd) });
-  }
-
-  let totalDeduction = 0;
-  const monthStart = new Date(year, month - 1, 1);
-  const monthEnd = new Date(year, month, 0);
-
+  if (curStart !== null) periods.push({start:new Date(curStart), end:new Date(curEnd)});
+  let total = 0;
+  const monthStart = new Date(year, month-1, 1), monthEnd = new Date(year, month, 0);
   for (const period of periods) {
     let workDays = 0;
-    for (let d = new Date(period.start); d <= period.end; d.setDate(d.getDate() + 1)) {
+    for (let d = new Date(period.start); d <= period.end; d.setDate(d.getDate()+1)) {
       if (getOrdinaryShift(d, lag) > 0 && !isPermissionDay(d, lag)) workDays++;
     }
-
     const overlapStart = new Date(Math.max(period.start, monthStart));
     const overlapEnd = new Date(Math.min(period.end, monthEnd));
     if (overlapStart > overlapEnd) continue;
-
     if (workDays > 5) {
-      const days = Math.round((overlapEnd - overlapStart) / 86400000) + 1;
-      totalDeduction += (baseSalary / 30) * days;
+      const days = Math.round((overlapEnd - overlapStart)/86400000) + 1;
+      total += (baseSalary/30)*days;
     } else {
-      for (let d = new Date(overlapStart); d <= overlapEnd; d.setDate(d.getDate() + 1)) {
-        if (getOrdinaryShift(d, lag) > 0 && !isPermissionDay(d, lag)) {
-          totalDeduction += sickRate100 * VAB_HPD;
-        }
+      for (let d = new Date(overlapStart); d <= overlapEnd; d.setDate(d.getDate()+1)) {
+        if (getOrdinaryShift(d, lag) > 0 && !isPermissionDay(d, lag)) total += sickRate100*VAB_HPD;
       }
     }
   }
-
-  return f2(totalDeduction);
+  return f2(total);
 }
 
 // ----- SJUKAVDRAG OCH SJUK-OB -----
 function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80, ob1r, ob2r, ob3r) {
-  const daysInMonth = new Date(year, month, 0).getDate();
+  const dim = new Date(year, month, 0).getDate();
   const sickDays = [];
-  for (let d = 1; d <= daysInMonth; d++) {
-    const date = new Date(year, month - 1, d);
+  for (let d = 1; d <= dim; d++) {
+    const date = new Date(year, month-1, d);
     const key = localDateKey(date);
     if (fromvaroMap.get(key) === 4) {
       const shift = getShift(date, lag);
@@ -263,116 +232,82 @@ function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80
       sickDays.push({date, shift, hoursMissed, isFull: detail.type !== 'partial'});
     }
   }
-
   if (sickDays.length === 0) {
-    localStorage.removeItem('sickPrevEnd');
-    localStorage.removeItem('sickPrevYear');
-    localStorage.removeItem('sickPrevMonth');
+    localStorage.removeItem('sickPrevEnd'); localStorage.removeItem('sickPrevYear'); localStorage.removeItem('sickPrevMonth');
     return { deduction:0, compensation:0, sickOBGain:0, karensDeduction:0, sickDeduct100:0, sickPay80:0,
              sickOB1Hours:0, sickOB2Hours:0, sickOB3Hours:0, sickOB1Amount:0, sickOB2Amount:0, sickOB3Amount:0 };
   }
-
-  sickDays.sort((a,b) => a.date - b.date);
-  const periods = []; let start = sickDays[0].date, end = sickDays[0].date;
+  sickDays.sort((a,b)=>a.date-b.date);
+  const periods = [];
+  let start = sickDays[0].date, end = sickDays[0].date;
   for (let i = 1; i < sickDays.length; i++) {
-    const prev = new Date(end); prev.setDate(prev.getDate() + 1);
+    const prev = new Date(end); prev.setDate(prev.getDate()+1);
     if (sickDays[i].date.getTime() === prev.getTime()) end = sickDays[i].date;
-    else { periods.push({start: new Date(start), end: new Date(end)}); start = sickDays[i].date; end = sickDays[i].date; }
+    else { periods.push({start:new Date(start), end:new Date(end)}); start = sickDays[i].date; end = sickDays[i].date; }
   }
-  periods.push({start: new Date(start), end: new Date(end)});
+  periods.push({start:new Date(start), end:new Date(end)});
 
   let prevEnd = null;
-  const prevYear = parseInt(localStorage.getItem('sickPrevYear'));
-  const prevMonth = parseInt(localStorage.getItem('sickPrevMonth'));
+  const prevYear = parseInt(localStorage.getItem('sickPrevYear') || '0');
+  const prevMonth = parseInt(localStorage.getItem('sickPrevMonth') || '0');
   if (prevYear && prevMonth) {
-    let expectedPrevYear = year, expectedPrevMonth = month - 1;
-    if (expectedPrevMonth === 0) { expectedPrevMonth = 12; expectedPrevYear--; }
-    if (prevYear === expectedPrevYear && prevMonth === expectedPrevMonth) {
+    let expYear = year, expMonth = month-1;
+    if (expMonth === 0) { expMonth = 12; expYear--; }
+    if (prevYear === expYear && prevMonth === expMonth) {
       const prevEndStr = localStorage.getItem('sickPrevEnd');
       if (prevEndStr) prevEnd = new Date(prevEndStr);
     }
   }
-
-  let totalKarensHours = 0, totalSickHours = 0;
-  let finalOB1 = 0, finalOB2 = 0, finalOB3 = 0;
-
+  let totalKarens = 0, totalSick = 0, finalOB1=0, finalOB2=0, finalOB3=0;
   for (const period of periods) {
-    const periodSickDays = sickDays.filter(d => d.date >= period.start && d.date <= period.end);
-    const periodHours = periodSickDays.reduce((sum, d) => sum + d.hoursMissed, 0);
-
-    let aterinsjuknande = false;
-    if (prevEnd) {
-      const daysSince = daysBetween(prevEnd, period.start);
-      aterinsjuknande = (daysSince <= 5);
-    }
-
-    let karensHours = 0;
-    if (!aterinsjuknande) {
-      karensHours = Math.min(6.8, periodHours);
-      totalKarensHours += karensHours;
-      totalSickHours += (periodHours - karensHours);
+    const periodDays = sickDays.filter(d => d.date >= period.start && d.date <= period.end);
+    const hours = periodDays.reduce((sum,d)=>sum+d.hoursMissed,0);
+    let ater = false;
+    if (prevEnd) { const daysSince = daysBetween(prevEnd, period.start); ater = daysSince <= 5; }
+    let karens = 0;
+    if (!ater) { karens = Math.min(6.8, hours); totalKarens += karens; totalSick += (hours-karens); }
+    else { totalSick += hours; }
+    let raw1=0, raw2=0, raw3=0;
+    for (const day of periodDays) { const ob = calcOB(day.date, day.shift, lag); raw1+=ob.ob1; raw2+=ob.ob2; raw3+=ob.ob3; }
+    const firstDay = periodDays[0];
+    if (firstDay && firstDay.isFull && karens > 0) {
+      let rem = 6.0;
+      let o1=raw1,o2=raw2,o3=raw3;
+      if (o1>0) { const d=Math.min(rem,o1); o1-=d; rem-=d; }
+      else if (o2>0) { const d=Math.min(rem,o2); o2-=d; rem-=d; }
+      else if (o3>0) { const d=Math.min(rem,o3); o3-=d; rem-=d; }
+      finalOB1+=o1; finalOB2+=o2; finalOB3+=o3;
     } else {
-      totalSickHours += periodHours;
+      let rem = karens;
+      let o1=raw1,o2=raw2,o3=raw3;
+      if (rem>0){const d=Math.min(rem,o1);o1-=d;rem-=d;}
+      if (rem>0){const d=Math.min(rem,o2);o2-=d;rem-=d;}
+      if (rem>0){const d=Math.min(rem,o3);o3-=d;rem-=d;}
+      finalOB1+=o1; finalOB2+=o2; finalOB3+=o3;
     }
-
-    let rawOB1 = 0, rawOB2 = 0, rawOB3 = 0;
-    for (const day of periodSickDays) {
-      const ob = calcOB(day.date, day.shift, lag);
-      rawOB1 += ob.ob1;
-      rawOB2 += ob.ob2;
-      rawOB3 += ob.ob3;
-    }
-
-    const firstDay = periodSickDays[0];
-
-    if (firstDay && firstDay.isFull && karensHours > 0) {
-      let deductionRemaining = 6.0;
-      let ob1 = rawOB1, ob2 = rawOB2, ob3 = rawOB3;
-      if (ob1 > 0) { let d = Math.min(deductionRemaining, ob1); ob1 -= d; deductionRemaining -= d; }
-      else if (ob2 > 0) { let d = Math.min(deductionRemaining, ob2); ob2 -= d; deductionRemaining -= d; }
-      else if (ob3 > 0) { let d = Math.min(deductionRemaining, ob3); ob3 -= d; deductionRemaining -= d; }
-      finalOB1 += ob1; finalOB2 += ob2; finalOB3 += ob3;
-    } else {
-      let rem = karensHours;
-      let ob1 = rawOB1, ob2 = rawOB2, ob3 = rawOB3;
-      if (rem > 0) { let d = Math.min(rem, ob1); ob1 -= d; rem -= d; }
-      if (rem > 0) { let d = Math.min(rem, ob2); ob2 -= d; rem -= d; }
-      if (rem > 0) { let d = Math.min(rem, ob3); ob3 -= d; rem -= d; }
-      finalOB1 += ob1; finalOB2 += ob2; finalOB3 += ob3;
-    }
-
     prevEnd = new Date(period.end);
   }
-
   if (periods.length > 0) {
     localStorage.setItem('sickPrevEnd', periods[periods.length-1].end.toISOString().split('T')[0]);
     localStorage.setItem('sickPrevYear', year);
     localStorage.setItem('sickPrevMonth', month);
   } else {
-    localStorage.removeItem('sickPrevEnd');
-    localStorage.removeItem('sickPrevYear');
-    localStorage.removeItem('sickPrevMonth');
+    localStorage.removeItem('sickPrevEnd'); localStorage.removeItem('sickPrevYear'); localStorage.removeItem('sickPrevMonth');
   }
-
-  // Avrunda alla delposter till ören
   const sickOB1Amount = f2(finalOB1 * f2(ob1r) * 0.8);
   const sickOB2Amount = f2(finalOB2 * f2(ob2r) * 0.8);
   const sickOB3Amount = f2(finalOB3 * f2(ob3r) * 0.8);
   const totalSickOBGain = f2(sickOB1Amount + sickOB2Amount + sickOB3Amount);
-
-  const karensDeduction = f2(totalKarensHours * sickRate100);
-  const sickDeduct100 = f2(totalSickHours * sickRate100);
-  const sickPay80 = f2(totalSickHours * sickRate80);
+  const karensDeduction = f2(totalKarens * sickRate100);
+  const sickDeduct100 = f2(totalSick * sickRate100);
+  const sickPay80 = f2(totalSick * sickRate80);
   const sickNetLoss = f2(sickDeduct100 - sickPay80);
   const totalSickLoss = f2(karensDeduction + sickNetLoss);
-  return {
-    deduction: totalSickLoss, compensation: sickPay80, sickOBGain: totalSickOBGain,
-    karensDeduction, sickDeduct100, sickPay80,
-    sickOB1Hours: finalOB1, sickOB2Hours: finalOB2, sickOB3Hours: finalOB3,
-    sickOB1Amount, sickOB2Amount, sickOB3Amount
-  };
+  return { deduction:totalSickLoss, compensation:sickPay80, sickOBGain:totalSickOBGain,
+           karensDeduction, sickDeduct100, sickPay80,
+           sickOB1Hours:finalOB1, sickOB2Hours:finalOB2, sickOB3Hours:finalOB3,
+           sickOB1Amount, sickOB2Amount, sickOB3Amount };
 }
-// ---------------------------------------------------------
 
 function setFromvaro(dateStr, value){
   if (value === "Sjuk") { openSickPopup(dateStr); return; }
@@ -389,52 +324,30 @@ function setFromvaro(dateStr, value){
 }
 
 function resetSchema(){
-  const year = parseInt(yearSelect.value);
-  const month = parseInt(monthSelect.value);
-  let obYear = year;
-  let obMonth = month - 1;
-  if (obMonth === 0) {
-    obMonth = 12;
-    obYear--;
+  const year = parseInt(yearSelect.value), month = parseInt(monthSelect.value);
+  let obYear = year, obMonth = month - 1;
+  if (obMonth === 0) { obMonth = 12; obYear--; }
+  const dim = new Date(obYear, obMonth, 0).getDate();
+  for (let d = 1; d <= dim; d++) {
+    const key = localDateKey(new Date(obYear, obMonth-1, d));
+    fromvaroMap.delete(key); vacationOverrideMap.delete(key); sickDetailMap.delete(key);
   }
-
-  const daysInMonth = new Date(obYear, obMonth, 0).getDate();
-  for (let d = 1; d <= daysInMonth; d++) {
-    const key = localDateKey(new Date(obYear, obMonth - 1, d));
-    fromvaroMap.delete(key);
-    vacationOverrideMap.delete(key);
-    sickDetailMap.delete(key);
-  }
-  updateUI();
-  saveFromvaroMap();
+  updateUI(); saveFromvaroMap();
 }
 
 function resetAllShifts(){
-  const year = parseInt(yearSelect.value);
-  const month = parseInt(monthSelect.value);
-  let obYear = year;
-  let obMonth = month - 1;
-  if (obMonth === 0) {
-    obMonth = 12;
-    obYear--;
-  }
-
-  const daysInMonth = new Date(obYear, obMonth, 0).getDate();
-  for (let d = 1; d <= daysInMonth; d++) {
-    const key = localDateKey(new Date(obYear, obMonth - 1, d));
-    shiftOverrideMap.delete(key);
-  }
+  const year = parseInt(yearSelect.value), month = parseInt(monthSelect.value);
+  let obYear = year, obMonth = month - 1;
+  if (obMonth === 0) { obMonth = 12; obYear--; }
+  const dim = new Date(obYear, obMonth, 0).getDate();
+  for (let d = 1; d <= dim; d++) shiftOverrideMap.delete(localDateKey(new Date(obYear, obMonth-1, d)));
   updateUI();
 }
 
 function changeShift(dateStr, val, lag){
   let nv = parseInt(val, 10);
-  if (nv === 0) {
-    shiftOverrideMap.delete(dateStr);
-    fromvaroMap.delete(dateStr);
-  } else {
-    shiftOverrideMap.set(dateStr, nv);
-  }
+  if (nv === 0) { shiftOverrideMap.delete(dateStr); fromvaroMap.delete(dateStr); }
+  else shiftOverrideMap.set(dateStr, nv);
   updateUI();
 }
 
@@ -470,7 +383,6 @@ function openSickPopup(dateStr) {
   };
 }
 
-// ---------- HUVUDBERÄKNING ----------
 function calculateEverything() {
   const baseSalary = p(salaryInput.value) || 0;
   const selectedYear = parseInt(yearSelect.value);
@@ -478,7 +390,18 @@ function calculateEverything() {
   const lag = lagSelect.value;
   const isAuto = (lag !== 'manual' && lag !== '');
   const ftpD = parseInt(ftpDays.value);
-  const sgiVal = Math.min(p(sgiInput.value) || 0, SGI_TAK_PARENTAL);
+
+  // Automatisk SGI från historik?
+  const autoSgiCheckbox = document.getElementById('autoSgiCheckbox');
+  const useAutoSgi = autoSgiCheckbox ? autoSgiCheckbox.checked : false;
+  let sgiVal;
+  if (useAutoSgi) {
+    let sum = 0;
+    for (const [key, val] of monthlyGross.entries()) sum += val;
+    sgiVal = Math.min(sum, SGI_TAK_PARENTAL);
+  } else {
+    sgiVal = Math.min(p(sgiInput.value) || 0, SGI_TAK_PARENTAL);
+  }
 
   const isR3 = (lag === 'GUCH' || lag === 'BEAB');
   const allowance = isR3 ? 4000 : 0;
@@ -488,30 +411,24 @@ function calculateEverything() {
   const vabD = countVABDaysInMonth(obYear, obMonth);
   const parentalD = countParentalDaysInMonth(obYear, obMonth);
   const vacationCount = countVacationDaysInMonth(obYear, obMonth);
-
   const isShiftWorker = ['A','B','C','D','E'].includes(lag);
   const semesterDagar = isShiftWorker ? vacationCount * SEMESTER_KVOT : vacationCount;
 
-  // Avrunda varje delpost till ören
-  const driftAddition = f2(baseSalary * DRIFT / 100);
+  const driftAddition = trunc2(baseSalary * DRIFT / 100);
   const obGroundingBase = f2(baseSalary + allowance + driftAddition);
-
   const ob1r = f2(obGroundingBase / O1D);
   const ob2r = f2(obGroundingBase / O2D);
   const ob3r = f2(obGroundingBase / O3D);
   const otRate = f2(obGroundingBase / OTD);
   const otEnkelRate = f2(obGroundingBase / OTENKELD);
-
   const sickRate100 = f2(baseSalary / (141 + 2/3));
   const sickRate80  = f2(baseSalary / (177 + 1/12));
-
   const semesterSupplementPerDay = f2(obGroundingBase / 125);
   const semesterTillagg = f2(semesterDagar * semesterSupplementPerDay);
 
   const vabDeduction = f2(vabD * VAB_HPD * sickRate100);
   const parentalDeduction = calcParentalDeduction(obYear, obMonth, lag, baseSalary, sickRate100);
   const vabParentalDeduction = f2(vabDeduction + parentalDeduction);
-
   const sickResult = calcSickDeduction(obYear, obMonth, lag, baseSalary, sickRate100, sickRate80, ob1r, ob2r, ob3r);
   const totalSickLoss = f2(sickResult.deduction);
   const sickOBGain = f2(sickResult.sickOBGain);
@@ -529,8 +446,7 @@ function calculateEverything() {
   const totalErsattningNetto = f2(fkVabNet + fkFpNet + fkFptNet);
 
   let autoOB = null;
-  if (isAuto) { autoOB = getOBForMonth(obYear, obMonth, lag); }
-
+  if (isAuto) autoOB = getOBForMonth(obYear, obMonth, lag);
   if (autoOB && !obManuallyEdited) {
     ob1Hours.value = fd(autoOB.ob1, 2);
     ob2Hours.value = fd(autoOB.ob2, 2);
@@ -538,16 +454,12 @@ function calculateEverything() {
   }
 
   let obData;
-  if (autoOB && !obManuallyEdited) {
-    obData = { ob1: autoOB.ob1, ob2: autoOB.ob2, ob3: autoOB.ob3 };
-  } else {
-    obData = { ob1: p(ob1Hours.value), ob2: p(ob2Hours.value), ob3: p(ob3Hours.value) };
-  }
+  if (autoOB && !obManuallyEdited) obData = {ob1: autoOB.ob1, ob2: autoOB.ob2, ob3: autoOB.ob3};
+  else obData = {ob1: p(ob1Hours.value), ob2: p(ob2Hours.value), ob3: p(ob3Hours.value)};
 
   const otH = p(otHours.value), otEnkelH = p(otEnkelHours.value);
   const extra = f2(p(document.getElementById('extraInput')?.value || 0));
   const extraTax = f2(p(document.getElementById('extraTaxInput')?.value || 0));
-
   const ob1Amt = f2(obData.ob1 * ob1r);
   const ob2Amt = f2(obData.ob2 * ob2r);
   const ob3Amt = f2(obData.ob3 * ob3r);
@@ -563,6 +475,20 @@ function calculateEverything() {
   const tax = f2(taxExact);
   const netSalaryExact = trunc2(jobbBruttoExact - taxExact - calcUnion(jobbBrutto) + totalErsattningNetto - extraTax);
   const netSalary = Math.round(netSalaryExact);
+
+  // Spara månadsbrutto (arbetsmånad)
+  const grossKey = `${obYear}-${String(obMonth).padStart(2,'0')}`;
+  monthlyGross.set(grossKey, jobbBruttoExact);
+  persistMonthlyGross();
+
+  // Om auto SGI, uppdatera sgiInput-fältet
+  if (useAutoSgi) {
+    let sum = 0;
+    for (const [key, val] of monthlyGross.entries()) sum += val;
+    const autoSgi = Math.min(sum, SGI_TAK_PARENTAL);
+    sgiInput.value = Math.round(autoSgi);
+  }
+
   return {
     baseSalary, selectedYear, selectedMonth, lag, isAuto,
     sickVisible: (totalSickLoss > 0 || sickOBGain > 0), extraSick: 0, totalVABParental: vabD + parentalD, vacationCount, semesterDagar,
@@ -602,7 +528,6 @@ function renderUI(data) {
   const chips = [];
 
   chips.push({ type:'neutral', html: `<div class="detail-chip"><span>Grundlön + Driftformstillägg</span><span>${fc(data.obGroundingBase)} kr</span></div>` });
-
   if (data.allowance > 0) {
     chips.push({ type:'neutral', html: `<div class="detail-chip"><span>R3-tillägg (OB-grundande)</span><span>+${fc(data.allowance)} kr</span></div>` });
   }
@@ -634,12 +559,10 @@ function renderUI(data) {
   if (data.karensDeduction > 0) {
     chips.push({ type:'danger', html: `<div class="detail-chip danger"><span>Karensavdrag</span><span>-${fd(data.karensDeduction,2)} kr</span></div>` });
   }
-
   if (data.sickDeduct100 > 0) {
     chips.push({ type:'danger', html: `<div class="detail-chip danger"><span>Sjukavdrag 100%</span><span>-${fd(data.sickDeduct100,2)} kr</span></div>` });
     chips.push({ type:'success', html: `<div class="detail-chip success"><span>Sjukersättning 80%</span><span>+${fd(data.sickPay80,2)} kr</span></div>` });
   }
-
   if (data.totalSjukOBGain > 0) {
     const totalSickOBHours = data.sickOB1Hours + data.sickOB2Hours + data.sickOB3Hours;
     let sickDetails = '';
@@ -764,11 +687,14 @@ function renderUI(data) {
 
 function autoSaveState() { localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(getCurrentState())); }
 function updateUI() {
-  const data = calculateEverything(); renderUI(data); updateSettingsLabel();
+  const data = calculateEverything();
+  renderUI(data);
+  updateSettingsLabel();
   if (document.getElementById('yearDetails')?.style.display === 'block') {
     updateYearSummary();
   }
-  closeSettingsBoxIfNeeded(); renderOBChart();
+  closeSettingsBoxIfNeeded();
+  renderOBChart();
   const main = document.getElementById('mainContent');
   if (main) {
     const lag = lagSelect.value;
@@ -780,7 +706,6 @@ function closeSettingsBoxIfNeeded() {
   const settingsContent = document.getElementById('settingsContent');
   const arrow = document.getElementById('settingsArrow');
   const profileSelect = document.getElementById('profileSelect');
-
   if (
     settingsContent &&
     settingsContent.classList.contains('open') &&
@@ -811,7 +736,7 @@ function updateYearSummary() {
   const bs = p(salaryInput.value) || 0;
   const isR3 = (lag === 'GUCH' || lag === 'BEAB');
   const allowance = isR3 ? 4000 : 0;
-  const da = f2(bs * DRIFT / 100);
+  const da = trunc2(bs * DRIFT / 100);
   const obBase = f2(bs + allowance + da);
   const o1r = f2(obBase / O1D), o2r = f2(obBase / O2D), o3r = f2(obBase / O3D);
   let totBrutto = 0, totNetto = 0, totSkatt = 0, totFack = 0, totOB = 0, totSemester = 0;
@@ -849,7 +774,7 @@ function renderOBChart() {
   const bs = p(salaryInput.value) || 0;
   const isR3 = (lag === 'GUCH' || lag === 'BEAB');
   const allowance = isR3 ? 4000 : 0;
-  const da = f2(bs * DRIFT / 100);
+  const da = trunc2(bs * DRIFT / 100);
   const obBase = f2(bs + allowance + da);
   const o1r = f2(obBase / O1D), o2r = f2(obBase / O2D), o3r = f2(obBase / O3D);
   const labels = []; const data = [];
@@ -919,7 +844,6 @@ const savedAutosave = localStorage.getItem(AUTOSAVE_KEY);
 if (savedAutosave) { try { applyState(JSON.parse(savedAutosave)); } catch(e) { updateUI(); } }
 else { if (lagSelect.value && lagSelect.value !== 'manual') applyIndustrialVacation(parseInt(yearSelect.value), lagSelect.value); updateUI(); }
 
-// Ladda manuella fält och fromvaro (för aktuell profil) efter autosave
 loadManualInputsFromCurrentPeriod();
 loadFromvaroMap();
 updateUI();
