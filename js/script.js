@@ -29,7 +29,7 @@ const sickDetailMap = new Map();
 window.isLoadingProfile = false;
 let obManuallyEdited = false;
 let monthlyManualInputs = new Map();   // Per-månad/lag sparning av manuella fält
-let monthlyGross = new Map();          // Per arbetsmånad: bruttolön (för auto-SGI)
+let monthlyGross = new Map();          // Per arbetsmånad: bruttolön (för historik)
 
 const MONTHLY_MANUAL_KEY = 'loneprognos_monthly_manual_v1';
 const MONTHLY_GROSS_KEY = 'loneprognos_monthly_gross_v1';
@@ -383,6 +383,7 @@ function openSickPopup(dateStr) {
   };
 }
 
+// ---------- HUVUDBERÄKNING (med auto-SGI från årsöversikten) ----------
 function calculateEverything() {
   const baseSalary = p(salaryInput.value) || 0;
   const selectedYear = parseInt(yearSelect.value);
@@ -391,31 +392,12 @@ function calculateEverything() {
   const isAuto = (lag !== 'manual' && lag !== '');
   const ftpD = parseInt(ftpDays.value);
 
-  // Automatisk SGI från historik?
-  const autoSgiCheckbox = document.getElementById('autoSgiCheckbox');
-  const useAutoSgi = autoSgiCheckbox ? autoSgiCheckbox.checked : false;
-  let sgiVal;
-  if (useAutoSgi) {
-    const prevYear = selectedYear - 1;
-    let sum = 0;
-    for (const [key, val] of monthlyGross.entries()) {
-      if (key.startsWith(prevYear + '-')) sum += val;
-    }
-    sgiVal = Math.min(sum, SGI_TAK_PARENTAL);
-  } else {
-    sgiVal = Math.min(p(sgiInput.value) || 0, SGI_TAK_PARENTAL);
-  }
-
   const isR3 = (lag === 'GUCH' || lag === 'BEAB');
   const allowance = isR3 ? 4000 : 0;
+  const isShiftWorker = ['A','B','C','D','E'].includes(lag);
 
   let obYear = selectedYear, obMonth = selectedMonth - 1;
   if (obMonth === 0) { obMonth = 12; obYear--; }
-  const vabD = countVABDaysInMonth(obYear, obMonth);
-  const parentalD = countParentalDaysInMonth(obYear, obMonth);
-  const vacationCount = countVacationDaysInMonth(obYear, obMonth);
-  const isShiftWorker = ['A','B','C','D','E'].includes(lag);
-  const semesterDagar = isShiftWorker ? vacationCount * SEMESTER_KVOT : vacationCount;
 
   const driftAddition = trunc2(baseSalary * DRIFT / 100);
   const obGroundingBase = f2(baseSalary + allowance + driftAddition);
@@ -427,6 +409,32 @@ function calculateEverything() {
   const sickRate100 = f2(baseSalary / (141 + 2/3));
   const sickRate80  = f2(baseSalary / (177 + 1/12));
   const semesterSupplementPerDay = f2(obGroundingBase / 125);
+
+  // --- Auto-SGI: föregående års totala bruttolön (som i årsöversikten) ---
+  const autoSgiCheckbox = document.getElementById('autoSgiCheckbox');
+  const useAutoSgi = autoSgiCheckbox ? autoSgiCheckbox.checked : false;
+  let sgiVal;
+  if (useAutoSgi) {
+    const prevYear = selectedYear - 1;
+    let sum = 0;
+    for (let m = 1; m <= 12; m++) {
+      const obData = getOBForMonth(prevYear, m, lag);
+      const mOB = f2(obData.ob1 * ob1r + obData.ob2 * ob2r + obData.ob3 * ob3r);
+      const vacDays = countVacationDaysInMonth(prevYear, m);
+      const semesterDagar = isShiftWorker ? vacDays * SEMESTER_KVOT : vacDays;
+      const semTillagg = f2(semesterDagar * f2(obGroundingBase / 125));
+      const monthlyGrossEstimate = Math.round(obGroundingBase + mOB + semTillagg);
+      sum += monthlyGrossEstimate;
+    }
+    sgiVal = Math.min(sum, SGI_TAK_PARENTAL);
+  } else {
+    sgiVal = Math.min(p(sgiInput.value) || 0, SGI_TAK_PARENTAL);
+  }
+
+  const vabD = countVABDaysInMonth(obYear, obMonth);
+  const parentalD = countParentalDaysInMonth(obYear, obMonth);
+  const vacationCount = countVacationDaysInMonth(obYear, obMonth);
+  const semesterDagar = isShiftWorker ? vacationCount * SEMESTER_KVOT : vacationCount;
   const semesterTillagg = f2(semesterDagar * semesterSupplementPerDay);
 
   const vabDeduction = f2(vabD * VAB_HPD * sickRate100);
@@ -479,20 +487,24 @@ function calculateEverything() {
   const netSalaryExact = trunc2(jobbBruttoExact - taxExact - calcUnion(jobbBrutto) + totalErsattningNetto - extraTax);
   const netSalary = Math.round(netSalaryExact);
 
-  // Spara månadsbrutto (arbetsmånad)
+  // Spara månadsbrutto för historik (valfritt)
   const grossKey = `${obYear}-${String(obMonth).padStart(2,'0')}`;
   monthlyGross.set(grossKey, jobbBruttoExact);
   persistMonthlyGross();
 
-  // Om auto SGI, uppdatera sgiInput-fältet
+  // Uppdatera sgiInput-fältet om auto-SGI
   if (useAutoSgi) {
     const prevYear = selectedYear - 1;
     let sum = 0;
-    for (const [key, val] of monthlyGross.entries()) {
-      if (key.startsWith(prevYear + '-')) sum += val;
+    for (let m = 1; m <= 12; m++) {
+      const obData = getOBForMonth(prevYear, m, lag);
+      const mOB = f2(obData.ob1 * ob1r + obData.ob2 * ob2r + obData.ob3 * ob3r);
+      const vacDays = countVacationDaysInMonth(prevYear, m);
+      const semesterDagar = isShiftWorker ? vacDays * SEMESTER_KVOT : vacDays;
+      const semTillagg = f2(semesterDagar * f2(obGroundingBase / 125));
+      sum += Math.round(obGroundingBase + mOB + semTillagg);
     }
-    const autoSgi = Math.min(sum, SGI_TAK_PARENTAL);
-    sgiInput.value = Math.round(autoSgi);
+    sgiInput.value = Math.round(Math.min(sum, SGI_TAK_PARENTAL));
   }
 
   return {
@@ -829,7 +841,8 @@ ob2Hours.addEventListener('input', function() { obManuallyEdited = true; updateU
 ob3Hours.addEventListener('input', function() { obManuallyEdited = true; updateUI(); });
 
 sgiInput.addEventListener('input',updateUI); ftpDays.addEventListener('change',updateUI);
-  const autoSgiCheckbox = document.getElementById('autoSgiCheckbox');
+
+const autoSgiCheckbox = document.getElementById('autoSgiCheckbox');
 if (autoSgiCheckbox) {
   autoSgiCheckbox.addEventListener('change', updateUI);
 }
