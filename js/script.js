@@ -829,6 +829,10 @@ ob2Hours.addEventListener('input', function() { obManuallyEdited = true; updateU
 ob3Hours.addEventListener('input', function() { obManuallyEdited = true; updateUI(); });
 
 sgiInput.addEventListener('input',updateUI); ftpDays.addEventListener('change',updateUI);
+  const autoSgiCheckbox = document.getElementById('autoSgiCheckbox');
+if (autoSgiCheckbox) {
+  autoSgiCheckbox.addEventListener('change', updateUI);
+}
 
 const extraInput = document.getElementById('extraInput');
 if (extraInput) {
