@@ -20,7 +20,7 @@ function getDSTAdjustment(date) {
   return 0;
 }
 
-// ---- Skiftscheman A-E ----
+// ---- Skiftscheman ----
 const startA = new Date(2025, 11, 29);
 const cycleA = [0,0,0,0,2,2,2,0,0,0,1,1,0,0,2,2,0,0,0,1,1,0,0,2,2,0,0,0,1,1,1,0,0,0,0];
 function getShiftA(date) { let d = daysBetween(startA, date); return cycleA[((d % 35) + 35) % 35]; }
@@ -248,10 +248,17 @@ function calcOB(date, shift, lag) {
   return {ob1, ob2, ob3:0};
 }
 
+function localDateKey(date) {
+  return date.getFullYear() + '-' +
+         String(date.getMonth() + 1).padStart(2, '0') + '-' +
+         String(date.getDate()).padStart(2, '0');
+}
+
 function getOBForMonth(year, month, lag) {
   let to1 = 0, to2 = 0, to3 = 0, dim = new Date(year, month, 0).getDate();
   for (let d = 1; d <= dim; d++) {
-    let date = new Date(year, month - 1, d), key = date.toISOString().split('T')[0];
+    let date = new Date(year, month - 1, d);
+    let key = localDateKey(date);   // <-- nu används lokal nyckel
     if (fromvaroMap.has(key)) continue;
     let ob = calcOB(date, getShift(date, lag), lag);
     to1 += ob.ob1; to2 += ob.ob2; to3 += ob.ob3;
