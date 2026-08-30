@@ -128,8 +128,8 @@ window.deleteScenario = function() {
 
 window.resetAll = function() {
   if (confirm('Vill du verkligen nollställa alla fält? Detta går inte att ångra.')) {
-    document.getElementById('salaryInput').value = 37664;
-    document.getElementById('lagSelect').value = 'E';
+    document.getElementById('salaryInput').value = '';
+    document.getElementById('lagSelect').value = '';
     document.getElementById('sgiInput').value = 592000;
     document.getElementById('ftpDays').value = '0';
     document.getElementById('ob1Hours').value = '';
