@@ -493,7 +493,7 @@ function calculateEverything() {
   const semesterDagar = isShiftWorker ? vacationCount * SEMESTER_KVOT : vacationCount;
 
   // Avrunda varje delpost till ören
-  const driftAddition = f2(baseSalary * DRIFT / 100) - 0.01;
+  const driftAddition = f2(baseSalary * DRIFT / 100);
   const obGroundingBase = f2(baseSalary + allowance + driftAddition);
 
   const ob1r = f2(obGroundingBase / O1D);
