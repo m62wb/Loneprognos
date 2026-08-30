@@ -63,9 +63,28 @@
     <div class="card collapsible-section">
         <div class="collapsible-header" onclick="toggleVAB()">VAB & Föräldraledighet <span id="vabArrow">▼</span></div>
         <div class="collapsible-content" id="vabContent">
-            <div class="input-group"><label>SGI (kr/år, max 592 000)</label><input type="text" id="sgiInput" inputmode="decimal" class="numeric-only" placeholder="592000" value="592000"></div>
-            <div class="input-group"><label>FTP-dagar (AFA)</label><select id="ftpDays"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></div>
-            <div class="lön-summary" id="vabSummary" style="display:none;"><span>Nettoeffekt</span><span><strong id="vabInfo"></strong></span></div>
+            <div class="input-group">
+                <label>SGI (kr/år, max 592 000)</label>
+                <input type="text" id="sgiInput" inputmode="decimal" class="numeric-only" placeholder="592000">
+            </div>
+            <div class="input-group" style="display:flex; align-items:center; gap:8px; margin-top:-8px;">
+                <label style="margin-bottom:0;">
+                    <input type="checkbox" id="autoSgiCheckbox" checked> Auto (från historik)
+                </label>
+            </div>
+            <div class="input-group"><label>FTP-dagar (AFA)</label>
+                <select id="ftpDays">
+                    <option value="0">0</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                </select>
+            </div>
+            <div class="lön-summary" id="vabSummary" style="display:none;">
+                <span>Nettoeffekt</span><span><strong id="vabInfo"></strong></span>
+            </div>
         </div>
     </div>
 
