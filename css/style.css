@@ -200,9 +200,8 @@ td select {
 .row-parental td:not(:first-child) {
     background: rgba(137,207,240,0.35) !important;
 }
-   .row-kompflex td:not(:first-child) {
+.row-kompflex td:not(:first-child) {
     background: rgba(128, 128, 128, 0.25) !important;
-}
 }
 
 /* Sjukrader – genomskinlig så att tbody-gradienten syns */
@@ -234,6 +233,13 @@ td.blue-week-cell {
 .schema-table td { font-size: 1.15rem; }
 .schema-table .shift-select,
 .schema-table .fromvaro-select { font-size: 1.15rem !important; width: auto; }
+
+/* Alternativ B: mindre text och fler rader i stationskolumnen */
+.schema-table td:nth-child(7) {
+    font-size: 0.9rem;
+    padding: 4px 2px;
+    line-height: 1.2;
+}
 
 .badge-ikem { background: #d2991d; color: #000; padding: 2px 8px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; }
 .badge-local { background: var(--accent); color: #fff; padding: 2px 8px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; }
