@@ -3,7 +3,7 @@ function p(v){ if(!v) return 0; let n=String(v).replace(',','.'); let x=parseFlo
 function fc(v){ return new Intl.NumberFormat('sv-SE').format(Math.round(v)); }
 function fd(v,d){ return v.toFixed(d).replace('.',','); }
 function f2(n){ return Math.round((n+Number.EPSILON)*100)/100; }
-function trunc2(n){ return Math.trunc(n * 100) / 100; }   // NY: trunkering
+function trunc2(n){ return Math.trunc(n * 100) / 100; }
 
 const DRIFT=4.0, VAB_HPD=12.25, UPCT=0.0165, UMAX=701, UMIN=255;
 const O1D=460, O2D=260, O3D=150, OTD=72, OTENKELD=94, SY=2024, EY=2036;
@@ -245,7 +245,7 @@ function calcParentalDeduction(year, month, lag, baseSalary, sickRate100) {
     }
   }
 
-  return f2(totalDeduction);
+  return totalDeduction; // ingen f2 här
 }
 
 // ----- SJUKAVDRAG OCH SJUK-OB -----
@@ -354,16 +354,17 @@ function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80
     localStorage.removeItem('sickPrevMonth');
   }
 
-  const sickOB1Amount = f2(finalOB1 * f2(ob1r) * 0.8);
-  const sickOB2Amount = f2(finalOB2 * f2(ob2r) * 0.8);
-  const sickOB3Amount = f2(finalOB3 * f2(ob3r) * 0.8);
-  const totalSickOBGain = f2(sickOB1Amount + sickOB2Amount + sickOB3Amount);
+  // Behåll full precision i beräkningarna, trunkera endast på slutet i calculateEverything
+  const sickOB1Amount = finalOB1 * ob1r * 0.8;
+  const sickOB2Amount = finalOB2 * ob2r * 0.8;
+  const sickOB3Amount = finalOB3 * ob3r * 0.8;
+  const totalSickOBGain = sickOB1Amount + sickOB2Amount + sickOB3Amount;
 
-  const karensDeduction = f2(totalKarensHours * sickRate100);
-  const sickDeduct100 = f2(totalSickHours * sickRate100);
-  const sickPay80 = f2(totalSickHours * sickRate80);
-  const sickNetLoss = f2(sickDeduct100 - sickPay80);
-  const totalSickLoss = f2(karensDeduction + sickNetLoss);
+  const karensDeduction = totalKarensHours * sickRate100;
+  const sickDeduct100 = totalSickHours * sickRate100;
+  const sickPay80 = totalSickHours * sickRate80;
+  const sickNetLoss = sickDeduct100 - sickPay80;
+  const totalSickLoss = karensDeduction + sickNetLoss;
   return {
     deduction: totalSickLoss, compensation: sickPay80, sickOBGain: totalSickOBGain,
     karensDeduction, sickDeduct100, sickPay80,
@@ -491,40 +492,41 @@ function calculateEverything() {
   const isShiftWorker = ['A','B','C','D','E'].includes(lag);
   const semesterDagar = isShiftWorker ? vacationCount * SEMESTER_KVOT : vacationCount;
 
-  const driftAddition = f2(baseSalary * DRIFT / 100);
-  const obGroundingBase = f2(baseSalary + allowance + driftAddition);
+  // Full precision på alla delposter
+  const driftAddition = baseSalary * DRIFT / 100;
+  const obGroundingBase = baseSalary + allowance + driftAddition;
 
-  const ob1r = f2(obGroundingBase / O1D);
-  const ob2r = f2(obGroundingBase / O2D);
-  const ob3r = f2(obGroundingBase / O3D);
-  const otRate = f2(obGroundingBase / OTD);
-  const otEnkelRate = f2(obGroundingBase / OTENKELD);
+  const ob1r = obGroundingBase / O1D;
+  const ob2r = obGroundingBase / O2D;
+  const ob3r = obGroundingBase / O3D;
+  const otRate = obGroundingBase / OTD;
+  const otEnkelRate = obGroundingBase / OTENKELD;
 
-  const sickRate100 = f2(baseSalary / (141 + 2/3));
-  const sickRate80  = f2(baseSalary / (177 + 1/12));
+  const sickRate100 = baseSalary / (141 + 2/3);
+  const sickRate80  = baseSalary / (177 + 1/12);
 
-  const semesterSupplementPerDay = f2(obGroundingBase / 125);
-  const semesterTillagg = f2(semesterDagar * semesterSupplementPerDay);
+  const semesterSupplementPerDay = obGroundingBase / 125;
+  const semesterTillagg = semesterDagar * semesterSupplementPerDay;
 
-  const vabDeduction = f2(vabD * VAB_HPD * sickRate100);
+  const vabDeduction = vabD * VAB_HPD * sickRate100;
   const parentalDeduction = calcParentalDeduction(obYear, obMonth, lag, baseSalary, sickRate100);
-  const vabParentalDeduction = f2(vabDeduction + parentalDeduction);
+  const vabParentalDeduction = vabDeduction + parentalDeduction;
 
   const sickResult = calcSickDeduction(obYear, obMonth, lag, baseSalary, sickRate100, sickRate80, ob1r, ob2r, ob3r);
   const totalSickLoss = sickResult.deduction;
   const sickOBGain = sickResult.sickOBGain;
 
   const sgiVab = Math.min(sgiVal, SGI_TAK_VAB);
-  const sgiVabDay = f2(sgiVab / 365 * 0.8);
-  const fkVabTotal = f2(vabD * sgiVabDay);
+  const sgiVabDay = sgiVab / 365 * 0.8;
+  const fkVabTotal = vabD * sgiVabDay;
   const sgiPar = Math.min(sgiVal, SGI_TAK_PARENTAL);
-  const fpDayAmt = f2(Math.min(1259, sgiPar / 365 * 0.776));
-  const fkFpTotal = f2(parentalD * fpDayAmt);
-  const fptDayAmt = f2(baseSalary / 30 * 0.10);
-  const fkFptTotal = f2(ftpD * fptDayAmt);
-  const fkVabTax = f2(fkVabTotal * FK_SKATT), fkFpTax = f2(fkFpTotal * FK_SKATT), fkFptTax = f2(fkFptTotal * FK_SKATT);
-  const fkVabNet = f2(fkVabTotal - fkVabTax), fkFpNet = f2(fkFpTotal - fkFpTax), fkFptNet = f2(fkFptTotal - fkFptTax);
-  const totalErsattningNetto = f2(fkVabNet + fkFpNet + fkFptNet);
+  const fpDayAmt = Math.min(1259, sgiPar / 365 * 0.776);
+  const fkFpTotal = parentalD * fpDayAmt;
+  const fptDayAmt = baseSalary / 30 * 0.10;
+  const fkFptTotal = ftpD * fptDayAmt;
+  const fkVabTax = fkVabTotal * FK_SKATT, fkFpTax = fkFpTotal * FK_SKATT, fkFptTax = fkFptTotal * FK_SKATT;
+  const fkVabNet = fkVabTotal - fkVabTax, fkFpNet = fkFpTotal - fkFpTax, fkFptNet = fkFptTotal - fkFptTax;
+  const totalErsattningNetto = fkVabNet + fkFpNet + fkFptNet;
 
   let autoOB = null;
   if (isAuto) { autoOB = getOBForMonth(obYear, obMonth, lag); }
@@ -545,19 +547,19 @@ function calculateEverything() {
   const otH = p(otHours.value), otEnkelH = p(otEnkelHours.value);
   const extra = p(document.getElementById('extraInput')?.value || 0);
   const extraTax = p(document.getElementById('extraTaxInput')?.value || 0);
-  const ob1Amt = f2(obData.ob1 * ob1r);
-  const ob2Amt = f2(obData.ob2 * ob2r);
-  const ob3Amt = f2(obData.ob3 * ob3r);
-  const otAmt = f2(otH * otRate);
-  const otEnkelAmt = f2(otEnkelH * otEnkelRate);
-  const totalOBOnly = f2(ob1Amt + ob2Amt + ob3Amt);
-  const totalOB = f2(totalOBOnly + otAmt + otEnkelAmt);
+  const ob1Amt = obData.ob1 * ob1r;
+  const ob2Amt = obData.ob2 * ob2r;
+  const ob3Amt = obData.ob3 * ob3r;
+  const otAmt = otH * otRate;
+  const otEnkelAmt = otEnkelH * otEnkelRate;
+  const totalOBOnly = ob1Amt + ob2Amt + ob3Amt;
+  const totalOB = totalOBOnly + otAmt + otEnkelAmt;
 
-  const totalBeforeDeductions = f2(obGroundingBase + totalOB + semesterTillagg + extra);
+  const totalBeforeDeductions = obGroundingBase + totalOB + semesterTillagg + extra;
   const jobbBruttoExact = trunc2(totalBeforeDeductions - totalSickLoss + sickOBGain - vabParentalDeduction);
   const jobbBrutto = Math.round(jobbBruttoExact);
   const taxExact = taxFromTable33Col1(jobbBruttoExact, selectedYear);
-  const tax = f2(taxExact);
+  const tax = taxExact;
   const netSalaryExact = trunc2(jobbBruttoExact - taxExact - calcUnion(jobbBrutto) + totalErsattningNetto - extraTax);
   const netSalary = Math.round(netSalaryExact);
   return {
@@ -576,8 +578,8 @@ function calculateEverything() {
     totalSjukOBGain: sickOBGain,
     sickOB1Hours: sickResult.sickOB1Hours, sickOB2Hours: sickResult.sickOB2Hours, sickOB3Hours: sickResult.sickOB3Hours,
     sickOB1Amount: sickResult.sickOB1Amount, sickOB2Amount: sickResult.sickOB2Amount, sickOB3Amount: sickResult.sickOB3Amount,
-    jobbBrutto, jobbBruttoExact, tax, netBeforeFack: f2(jobbBrutto - tax),
-    unionFee: calcUnion(jobbBrutto), jobbNetto: f2(jobbBrutto - tax - calcUnion(jobbBrutto)),
+    jobbBrutto, jobbBruttoExact, tax, netBeforeFack: jobbBrutto - tax,
+    unionFee: calcUnion(jobbBrutto), jobbNetto: jobbBrutto - tax - calcUnion(jobbBrutto),
     netSalary, netSalaryExact, utjämning: trunc2(netSalary - netSalaryExact)
   };
 }
@@ -808,18 +810,18 @@ function updateYearSummary() {
   const bs = p(salaryInput.value) || 0;
   const isR3 = (lag === 'GUCH' || lag === 'BEAB');
   const allowance = isR3 ? 4000 : 0;
-  const da = f2(bs * DRIFT / 100);
-  const obBase = f2(bs + allowance + da);
-  const o1r = f2(obBase / O1D), o2r = f2(obBase / O2D), o3r = f2(obBase / O3D);
+  const da = bs * DRIFT / 100;
+  const obBase = bs + allowance + da;
+  const o1r = obBase / O1D, o2r = obBase / O2D, o3r = obBase / O3D;
   let totBrutto = 0, totNetto = 0, totSkatt = 0, totFack = 0, totOB = 0, totSemester = 0;
   for (let m = 1; m <= 12; m++) {
     let obMonth = m - 1, obYear = y; if (obMonth === 0) { obMonth = 12; obYear--; }
     const obData = getOBForMonth(obYear, obMonth, lag);
-    const mOB = f2(obData.ob1 * o1r + obData.ob2 * o2r + obData.ob3 * o3r); totOB += mOB;
+    const mOB = obData.ob1 * o1r + obData.ob2 * o2r + obData.ob3 * o3r; totOB += mOB;
     const vacDays = countVacationDaysInMonth(obYear, obMonth);
     const isShiftWorker = ['A','B','C','D','E'].includes(lag);
     const semesterDagar = isShiftWorker ? vacDays * SEMESTER_KVOT : vacDays;
-    const semTillagg = f2(semesterDagar * f2(obBase / 125)); totSemester += semTillagg;
+    const semTillagg = semesterDagar * (obBase / 125); totSemester += semTillagg;
     const jb = Math.round(obBase + mOB + semTillagg);
     const tax = taxFromTable33Col1(jb, y); const uf = calcUnion(jb); const net = jb - tax - uf;
     totBrutto += jb; totNetto += net; totSkatt += tax; totFack += uf;
@@ -846,13 +848,13 @@ function renderOBChart() {
   const bs = p(salaryInput.value) || 0;
   const isR3 = (lag === 'GUCH' || lag === 'BEAB');
   const allowance = isR3 ? 4000 : 0;
-  const da = f2(bs * DRIFT / 100);
-  const obBase = f2(bs + allowance + da);
-  const o1r = f2(obBase / O1D), o2r = f2(obBase / O2D), o3r = f2(obBase / O3D);
+  const da = bs * DRIFT / 100;
+  const obBase = bs + allowance + da;
+  const o1r = obBase / O1D, o2r = obBase / O2D, o3r = obBase / O3D;
   const labels = []; const data = [];
   for (let m = 1; m <= 12; m++) {
     const obData = getOBForMonth(year, m, lag);
-    labels.push(MONTHS[m-1]); data.push(f2(obData.ob1 * o1r + obData.ob2 * o2r + obData.ob3 * o3r));
+    labels.push(MONTHS[m-1]); data.push(obData.ob1 * o1r + obData.ob2 * o2r + obData.ob3 * o3r);
   }
   const ctx = document.getElementById('obChart'); if (!ctx) return;
   if (window.obChartInstance) window.obChartInstance.destroy();
