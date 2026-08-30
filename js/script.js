@@ -354,7 +354,7 @@ function calcSickDeduction(year, month, lag, baseSalary, sickRate100, sickRate80
     localStorage.removeItem('sickPrevMonth');
   }
 
-  // Behåll full precision i beräkningarna, trunkera endast på slutet i calculateEverything
+  // Full precision i beräkningarna
   const sickOB1Amount = finalOB1 * ob1r * 0.8;
   const sickOB2Amount = finalOB2 * ob2r * 0.8;
   const sickOB3Amount = finalOB3 * ob3r * 0.8;
@@ -560,7 +560,7 @@ function calculateEverything() {
   const jobbBrutto = Math.round(jobbBruttoExact);
   const taxExact = taxFromTable33Col1(jobbBruttoExact, selectedYear);
   const tax = taxExact;
-  const netSalaryExact = trunc2(jobbBruttoExact - taxExact - calcUnion(jobbBrutto) + totalErsattningNetto - extraTax);
+  const netSalaryExact = jobbBruttoExact - taxExact - calcUnion(jobbBrutto) + totalErsattningNetto - extraTax; // full precision
   const netSalary = Math.round(netSalaryExact);
   return {
     baseSalary, selectedYear, selectedMonth, lag, isAuto,
