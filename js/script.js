@@ -396,8 +396,11 @@ function calculateEverything() {
   const useAutoSgi = autoSgiCheckbox ? autoSgiCheckbox.checked : false;
   let sgiVal;
   if (useAutoSgi) {
+    const prevYear = selectedYear - 1;
     let sum = 0;
-    for (const [key, val] of monthlyGross.entries()) sum += val;
+    for (const [key, val] of monthlyGross.entries()) {
+      if (key.startsWith(prevYear + '-')) sum += val;
+    }
     sgiVal = Math.min(sum, SGI_TAK_PARENTAL);
   } else {
     sgiVal = Math.min(p(sgiInput.value) || 0, SGI_TAK_PARENTAL);
@@ -483,8 +486,11 @@ function calculateEverything() {
 
   // Om auto SGI, uppdatera sgiInput-fältet
   if (useAutoSgi) {
+    const prevYear = selectedYear - 1;
     let sum = 0;
-    for (const [key, val] of monthlyGross.entries()) sum += val;
+    for (const [key, val] of monthlyGross.entries()) {
+      if (key.startsWith(prevYear + '-')) sum += val;
+    }
     const autoSgi = Math.min(sum, SGI_TAK_PARENTAL);
     sgiInput.value = Math.round(autoSgi);
   }
