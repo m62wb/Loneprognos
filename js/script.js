@@ -179,18 +179,19 @@ function countParentalDaysInMonth(year, month) {
   return cnt;
 }
 
-// ---- FÖRÄLDRALEDIGHET (5-dagarsregel, korrigerad för månadsgränser och tidszon) ----
+// ---- FÖRÄLDRALEDIGHET (5-dagarsregel) ----
 function calcParentalDeduction(year, month, lag, baseSalary, sickRate100) {
-  // Samla alla FL-datum (värde 3) med lokala nycklar
+  // Samla alla FL-datum (värde 3)
   const flKeys = [];
   for (const [key, value] of fromvaroMap.entries()) {
     if (value === 3) flKeys.push(key);
   }
   if (flKeys.length === 0) return 0;
-  flKeys.sort();
 
+  flKeys.sort();
   const flDates = flKeys.map(key => new Date(key + 'T00:00:00'));
 
+  // Bygg perioder – startar på en FL-dag och avslutas vid en arbetsdag utan FL.
   const periods = [];
   let currentStart = null;
   let currentEnd = null;
