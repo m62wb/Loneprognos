@@ -181,7 +181,6 @@ function countParentalDaysInMonth(year, month) {
 
 // ---- FÖRÄLDRALEDIGHET (5-dagarsregel) ----
 function calcParentalDeduction(year, month, lag, baseSalary, sickRate100) {
-  // Samla alla FL-datum (värde 3)
   const flKeys = [];
   for (const [key, value] of fromvaroMap.entries()) {
     if (value === 3) flKeys.push(key);
@@ -191,7 +190,6 @@ function calcParentalDeduction(year, month, lag, baseSalary, sickRate100) {
   flKeys.sort();
   const flDates = flKeys.map(key => new Date(key + 'T00:00:00'));
 
-  // Bygg perioder – startar på en FL-dag och avslutas vid en arbetsdag utan FL.
   const periods = [];
   let currentStart = null;
   let currentEnd = null;
@@ -387,12 +385,12 @@ function setFromvaro(dateStr, value){
   updateUI();
   saveFromvaroMap();
 }
+
 function resetSchema(){
-  // Rensa endast frånvaro för den arbetsmånad som visas i schemat
   const year = parseInt(yearSelect.value);
   const month = parseInt(monthSelect.value);
   let obYear = year;
-  let obMonth = month - 1; // arbetsmånaden är löneperiod minus 1
+  let obMonth = month - 1;
   if (obMonth === 0) {
     obMonth = 12;
     obYear--;
@@ -405,16 +403,15 @@ function resetSchema(){
     vacationOverrideMap.delete(key);
     sickDetailMap.delete(key);
   }
-
   updateUI();
   saveFromvaroMap();
 }
-  function resetAllShifts(){
-  // Rensa endast passöverstyrningar för den arbetsmånad som visas
+
+function resetAllShifts(){
   const year = parseInt(yearSelect.value);
   const month = parseInt(monthSelect.value);
   let obYear = year;
-  let obMonth = month - 1; // arbetsmånad = löneperiod - 1
+  let obMonth = month - 1;
   if (obMonth === 0) {
     obMonth = 12;
     obYear--;
@@ -425,7 +422,17 @@ function resetSchema(){
     const key = localDateKey(new Date(obYear, obMonth - 1, d));
     shiftOverrideMap.delete(key);
   }
+  updateUI();
+}
 
+function changeShift(dateStr, val, lag){
+  let nv = parseInt(val, 10);
+  if (nv === 0) {
+    shiftOverrideMap.delete(dateStr);
+    fromvaroMap.delete(dateStr);
+  } else {
+    shiftOverrideMap.set(dateStr, nv);
+  }
   updateUI();
 }
 
