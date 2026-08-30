@@ -409,6 +409,25 @@ function resetSchema(){
   updateUI();
   saveFromvaroMap();
 }
+  function resetAllShifts(){
+  // Rensa endast passöverstyrningar för den arbetsmånad som visas
+  const year = parseInt(yearSelect.value);
+  const month = parseInt(monthSelect.value);
+  let obYear = year;
+  let obMonth = month - 1; // arbetsmånad = löneperiod - 1
+  if (obMonth === 0) {
+    obMonth = 12;
+    obYear--;
+  }
+
+  const daysInMonth = new Date(obYear, obMonth, 0).getDate();
+  for (let d = 1; d <= daysInMonth; d++) {
+    const key = localDateKey(new Date(obYear, obMonth - 1, d));
+    shiftOverrideMap.delete(key);
+  }
+
+  updateUI();
+}
 
 function openSickPopup(dateStr) {
   const overlay = document.getElementById('sickPopupOverlay');
