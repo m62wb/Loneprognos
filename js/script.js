@@ -929,6 +929,7 @@ window.toggleTheme = toggleTheme; window.toggleSettings = toggleSettings;
 window.toggleVAB = toggleVAB; window.toggleOB = toggleOB; window.toggleOverview = toggleOverview;
 window.toggleYearSummary = toggleYearSummary; window.updateUI = updateUI;
 window.resetOB = resetOB;
+window.calculateEverything = calculateEverything;
 
 document.querySelectorAll('.numeric-only').forEach(field => {
   field.addEventListener('input', function() {
