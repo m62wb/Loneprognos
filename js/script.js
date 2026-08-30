@@ -3,6 +3,7 @@ function p(v){ if(!v) return 0; let n=String(v).replace(',','.'); let x=parseFlo
 function fc(v){ return new Intl.NumberFormat('sv-SE').format(Math.round(v)); }
 function fd(v,d){ return v.toFixed(d).replace('.',','); }
 function f2(n){ return Math.round((n+Number.EPSILON)*100)/100; }
+function trunc2(n){ return Math.trunc(n * 100) / 100; }   // NY: trunkering
 
 const DRIFT=4.0, VAB_HPD=12.25, UPCT=0.0165, UMAX=701, UMIN=255;
 const O1D=460, O2D=260, O3D=150, OTD=72, OTENKELD=94, SY=2024, EY=2036;
@@ -525,11 +526,8 @@ function calculateEverything() {
   const fkVabNet = f2(fkVabTotal - fkVabTax), fkFpNet = f2(fkFpTotal - fkFpTax), fkFptNet = f2(fkFptTotal - fkFptTax);
   const totalErsattningNetto = f2(fkVabNet + fkFpNet + fkFptNet);
 
-  // Hämta autoOB för arbetsmånaden – den tar redan hänsyn till frånvaro
   let autoOB = null;
-  if (isAuto) {
-    autoOB = getOBForMonth(obYear, obMonth, lag);
-  }
+  if (isAuto) { autoOB = getOBForMonth(obYear, obMonth, lag); }
 
   if (autoOB && !obManuallyEdited) {
     ob1Hours.value = fd(autoOB.ob1, 2);
@@ -556,11 +554,11 @@ function calculateEverything() {
   const totalOB = f2(totalOBOnly + otAmt + otEnkelAmt);
 
   const totalBeforeDeductions = f2(obGroundingBase + totalOB + semesterTillagg + extra);
-  const jobbBruttoExact = f2(totalBeforeDeductions - totalSickLoss + sickOBGain - vabParentalDeduction);
+  const jobbBruttoExact = trunc2(totalBeforeDeductions - totalSickLoss + sickOBGain - vabParentalDeduction);
   const jobbBrutto = Math.round(jobbBruttoExact);
   const taxExact = taxFromTable33Col1(jobbBruttoExact, selectedYear);
   const tax = f2(taxExact);
-  const netSalaryExact = f2(jobbBruttoExact - taxExact - calcUnion(jobbBrutto) + totalErsattningNetto - extraTax);
+  const netSalaryExact = trunc2(jobbBruttoExact - taxExact - calcUnion(jobbBrutto) + totalErsattningNetto - extraTax);
   const netSalary = Math.round(netSalaryExact);
   return {
     baseSalary, selectedYear, selectedMonth, lag, isAuto,
@@ -580,7 +578,7 @@ function calculateEverything() {
     sickOB1Amount: sickResult.sickOB1Amount, sickOB2Amount: sickResult.sickOB2Amount, sickOB3Amount: sickResult.sickOB3Amount,
     jobbBrutto, jobbBruttoExact, tax, netBeforeFack: f2(jobbBrutto - tax),
     unionFee: calcUnion(jobbBrutto), jobbNetto: f2(jobbBrutto - tax - calcUnion(jobbBrutto)),
-    netSalary, netSalaryExact, utjämning: f2(netSalary - netSalaryExact)
+    netSalary, netSalaryExact, utjämning: trunc2(netSalary - netSalaryExact)
   };
 }
 
