@@ -387,12 +387,27 @@ function setFromvaro(dateStr, value){
   updateUI();
   saveFromvaroMap();
 }
-function resetSchema(){ fromvaroMap.clear(); vacationOverrideMap.clear(); sickDetailMap.clear(); updateUI(); saveFromvaroMap(); }
-function resetAllShifts(){ shiftOverrideMap.clear(); updateUI(); }
-function changeShift(dateStr,val,lag){
-  let nv = parseInt(val, 10); shiftOverrideMap.set(dateStr, nv);
-  if(nv === 0) { fromvaroMap.delete(dateStr); saveFromvaroMap(); }
+function resetSchema(){
+  // Rensa endast frånvaro för den arbetsmånad som visas i schemat
+  const year = parseInt(yearSelect.value);
+  const month = parseInt(monthSelect.value);
+  let obYear = year;
+  let obMonth = month - 1; // arbetsmånaden är löneperiod minus 1
+  if (obMonth === 0) {
+    obMonth = 12;
+    obYear--;
+  }
+
+  const daysInMonth = new Date(obYear, obMonth, 0).getDate();
+  for (let d = 1; d <= daysInMonth; d++) {
+    const key = localDateKey(new Date(obYear, obMonth - 1, d));
+    fromvaroMap.delete(key);
+    vacationOverrideMap.delete(key);
+    sickDetailMap.delete(key);
+  }
+
   updateUI();
+  saveFromvaroMap();
 }
 
 function openSickPopup(dateStr) {
