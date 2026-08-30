@@ -258,7 +258,8 @@ function getOBForMonth(year, month, lag) {
   let to1 = 0, to2 = 0, to3 = 0, dim = new Date(year, month, 0).getDate();
   for (let d = 1; d <= dim; d++) {
     let date = new Date(year, month - 1, d);
-    let key = localDateKey(date);   // <-- nu används lokal nyckel
+    let key = localDateKey(date);
+    // Sjukdagar (värde 4) ska INTE exkluderas från ordinarie OB
     if (fromvaroMap.has(key) && fromvaroMap.get(key) !== 4) continue;
     let ob = calcOB(date, getShift(date, lag), lag);
     to1 += ob.ob1; to2 += ob.ob2; to3 += ob.ob3;
@@ -280,11 +281,30 @@ function countWorkShiftsUntil(date, lag) {
   }
   return cnt;
 }
+
+// NY: Stationsbaserad städning – Spray på lördag dag, Dian på söndag dag
 function getStationE(date, shift, lag) {
   if (shift === 0 || isPermissionDay(date, lag)) return '-';
-  let ws = countWorkShiftsUntil(date, lag), idx = ((ws % 3) + 3) % 3, yidx = (idx + 1) % 3, midx = (idx + 2) % 3;
-  let bp = stationsE[idx] + '(' + initials[0] + ')', yp = stationsE[yidx] + '(' + initials[1] + ')', mp = stationsE[midx] + '(' + initials[2] + ')';
-  let day = date.getDay();
-  if ((day === 6 && shift === 1 && idx === 2) || (day === 0 && shift === 1 && idx === 1)) bp += '🧹';
-  return bp + ' ' + yp + ' ' + mp;
+  let ws = countWorkShiftsUntil(date, lag);
+  let idx = ((ws % 3) + 3) % 3;
+  let yidx = (idx + 1) % 3;
+  let midx = (idx + 2) % 3;
+
+  // Bygg array med station och initial i rotationsordning
+  const stationEntries = [
+    { station: stationsE[idx], initial: initials[0] },
+    { station: stationsE[yidx], initial: initials[1] },
+    { station: stationsE[midx], initial: initials[2] }
+  ];
+
+  const day = date.getDay();
+  // Lägg städemoji på rätt station baserat på veckodag och pass
+  for (let entry of stationEntries) {
+    if ((day === 6 && shift === 1 && entry.station === 'Spray') ||
+        (day === 0 && shift === 1 && entry.station === 'Dian')) {
+      entry.station += '🧹';
+    }
+  }
+
+  return stationEntries.map(e => e.station + '(' + e.initial + ')').join(' ');
 }
