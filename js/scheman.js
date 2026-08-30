@@ -224,11 +224,13 @@ function calcOB(date, shift, lag) {
   const w = date.getDay(), isWeekend = (w === 0 || w === 6);
   let ob1 = 0, ob2 = 0;
 
+  // Grund-OB
   if (shift === 1) { if (isWeekend) ob2 = 12.25; else ob2 = 1.25; }
   else if (shift === 2) { if (isWeekend) ob2 = 12.25; else { ob1 = 6; ob2 = 6; } }
   let dst = getDSTAdjustment(date);
   if (dst !== 0 && shift === 2) { if (ob2 >= 6) ob2 += dst; else if (ob1 >= 6) ob1 += dst; }
 
+  // Röd dag → hela passet OB2
   if (isHoliday(date)) {
     ob2 = 12.25;
     ob1 = 0;
@@ -236,12 +238,42 @@ function calcOB(date, shift, lag) {
 
   const ob3 = Math.round(getOB3Hours(date, shift) * 100) / 100;
   if (ob3 > 0) {
-    let remaining = ob3;
-    const fromOB1 = Math.min(ob1, remaining);
-    ob1 -= fromOB1;
-    remaining -= fromOB1;
-    const fromOB2 = Math.min(ob2, remaining);
-    ob2 -= fromOB2;
+    // Bygg tidsintervall för OB1/OB2
+    const intervals = [];
+    if (shift === 1) {
+      const passStart = new Date(date); passStart.setHours(5,45,0,0);
+      if (isHoliday(date) || isWeekend) {
+        const passEnd = new Date(date); passEnd.setHours(18,0,0,0);
+        intervals.push({ type: 'ob2', start: new Date(passStart), end: passEnd });
+      } else {
+        const ob2End = new Date(date); ob2End.setHours(7,0,0,0);
+        intervals.push({ type: 'ob2', start: new Date(passStart), end: ob2End });
+      }
+    } else { // Nattpass
+      if (isHoliday(date) || isWeekend) {
+        const passStart = new Date(date); passStart.setHours(17,45,0,0);
+        const passEnd = new Date(date); passEnd.setDate(passEnd.getDate()+1); passEnd.setHours(6,0,0,0);
+        intervals.push({ type: 'ob2', start: passStart, end: passEnd });
+      } else {
+        const ob1Start = new Date(date); ob1Start.setHours(18,0,0,0);
+        const ob1End = new Date(date); ob1End.setHours(24,0,0,0);
+        intervals.push({ type: 'ob1', start: ob1Start, end: ob1End });
+        const ob2Start = new Date(date); ob2Start.setDate(ob2Start.getDate()+1); ob2Start.setHours(0,0,0,0);
+        const ob2End = new Date(date); ob2End.setDate(ob2End.getDate()+1); ob2End.setHours(6,0,0,0);
+        intervals.push({ type: 'ob2', start: ob2Start, end: ob2End });
+      }
+    }
+
+    // Subtrahera endast överlappande OB3-tid
+    for (const iv of intervals) {
+      const overlap = getOB3OverlapForInterval(iv.start, iv.end, date);
+      if (iv.type === 'ob1') {
+        ob1 -= Math.min(ob1, overlap);
+      } else {
+        ob2 -= Math.min(ob2, overlap);
+      }
+    }
+
     return {ob1, ob2, ob3};
   }
 
@@ -282,7 +314,6 @@ function countWorkShiftsUntil(date, lag) {
   return cnt;
 }
 
-// NY: Stationsbaserad städning – Spray på lördag dag, Dian på söndag dag
 function getStationE(date, shift, lag) {
   if (shift === 0 || isPermissionDay(date, lag)) return '-';
   let ws = countWorkShiftsUntil(date, lag);
@@ -290,7 +321,6 @@ function getStationE(date, shift, lag) {
   let yidx = (idx + 1) % 3;
   let midx = (idx + 2) % 3;
 
-  // Bygg array med station och initial i rotationsordning
   const stationEntries = [
     { station: stationsE[idx], initial: initials[0] },
     { station: stationsE[yidx], initial: initials[1] },
@@ -298,7 +328,6 @@ function getStationE(date, shift, lag) {
   ];
 
   const day = date.getDay();
-  // Lägg städemoji på rätt station baserat på veckodag och pass
   for (let entry of stationEntries) {
     if ((day === 6 && shift === 1 && entry.station === 'Spray') ||
         (day === 0 && shift === 1 && entry.station === 'Dian')) {
