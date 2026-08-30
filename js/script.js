@@ -29,7 +29,7 @@ const sickDetailMap = new Map();
 window.isLoadingProfile = false;
 let obManuallyEdited = false;
 let monthlyManualInputs = new Map();   // Per-månad/lag sparning av manuella fält
-let monthlyGross = new Map();          // Per arbetsmånad: bruttolön (för historik)
+let monthlyGross = new Map();          // Per arbetsmånad: bruttolön (för auto-SGI)
 
 const MONTHLY_MANUAL_KEY = 'loneprognos_monthly_manual_v1';
 const MONTHLY_GROSS_KEY = 'loneprognos_monthly_gross_v1';
@@ -529,6 +529,7 @@ function calculateEverything() {
   };
 }
 
+// ---------- RENDER UI (med dolda OB för lediga dagar) ----------
 function renderUI(data) {
   const lagName = {A:'Lag A',B:'Lag B',C:'Lag C',D:'Lag D',E:'Lag E', GUCH:'GUCH', BEAB:'BEAB'}[data.lag] || 'Manuell';
   vabSummary.style.display = data.totalVABParental > 0 ? 'flex' : 'none';
@@ -642,6 +643,7 @@ function renderUI(data) {
       let ob = calcOB(date, shift, data.lag);
       let isPerm = isPermissionDay(date, data.lag);
       if (fromvaroVal !== 0) ob = {ob1:0, ob2:0, ob3:0};
+      let showOB = (shift !== 0 && !isPerm); // dölj OB om ledig eller permission
       let dayName = ['Sön','Mån','Tis','Ons','Tor','Fre','Lör'][date.getDay()];
       let weekNum = getWeekNumber(date);
       let weekLabel = '';
@@ -683,7 +685,16 @@ function renderUI(data) {
       let dayCellContent = `${d} ${dayName}${weekLabel}`;
       if (emoji) dayCellContent += `<span class="day-emoji">${emoji}</span>`;
 
-      tbody += `<tr class="${rowClass}"><td class="${weekCellClass}">${dayCellContent}</td><td>${shiftText}</td><td>${fd(ob.ob1,2)}h</td><td>${fd(ob.ob2,2)}h</td><td>${fd(ob.ob3,2)}h</td><td>${fromvaroCell}</td><td>${station}</td><td>${passSelect}</td></tr>`;
+      tbody += `<tr class="${rowClass}">
+        <td class="${weekCellClass}">${dayCellContent}</td>
+        <td>${shiftText}</td>
+        <td>${showOB ? fd(ob.ob1,2)+'h' : ''}</td>
+        <td>${showOB ? fd(ob.ob2,2)+'h' : ''}</td>
+        <td>${showOB ? fd(ob.ob3,2)+'h' : ''}</td>
+        <td>${fromvaroCell}</td>
+        <td>${station}</td>
+        <td>${passSelect}</td>
+      </tr>`;
     }
     tableBody.innerHTML = tbody;
 
