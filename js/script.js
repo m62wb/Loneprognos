@@ -533,13 +533,14 @@ function calculateEverything() {
     for (let d = 1; d <= daysInMonth; d++) {
       const date = new Date(obYear, obMonth - 1, d);
       const key = localDateKey(date);
-      if (fromvaroMap.get(key) === 4 || fromvaroMap.get(key) === 5) {
-  const shift = getShift(date, lag);
-  if (shift > 0 && !isPermissionDay(date, lag)) {
-    const ob = calcOB(date, shift, lag);
-    autoOB.ob1 += ob.ob1;
-    autoOB.ob2 += ob.ob2;
-    autoOB.ob3 += ob.ob3;
+      const fromvaroVal = fromvaroMap.get(key) || 0;
+      if (fromvaroVal === 0) {   // Bara dagar utan frånvaro bidrar med OB
+        const shift = getShift(date, lag);
+        if (shift > 0 && !isPermissionDay(date, lag)) {
+          const ob = calcOB(date, shift, lag);
+          autoOB.ob1 += ob.ob1;
+          autoOB.ob2 += ob.ob2;
+          autoOB.ob3 += ob.ob3;
         }
       }
     }
