@@ -259,7 +259,7 @@ function getOBForMonth(year, month, lag) {
   for (let d = 1; d <= dim; d++) {
     let date = new Date(year, month - 1, d);
     let key = localDateKey(date);   // <-- nu används lokal nyckel
-    if (fromvaroMap.has(key)) continue;
+    if (fromvaroMap.has(key) && fromvaroMap.get(key) !== 4) continue;
     let ob = calcOB(date, getShift(date, lag), lag);
     to1 += ob.ob1; to2 += ob.ob2; to3 += ob.ob3;
   }
