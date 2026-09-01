@@ -62,6 +62,11 @@ function saveFromvaroMap() {
   localStorage.setItem(getFromvaroKey(), JSON.stringify(Array.from(fromvaroMap.entries())));
 }
 function loadFromvaroMap() {
+  const profileSelect = document.getElementById('profileSelect');
+  if (profileSelect && profileSelect.value === '') {
+    fromvaroMap.clear();
+    return;
+  }
   const saved = localStorage.getItem(getFromvaroKey());
   fromvaroMap.clear();
   if (saved) {
@@ -923,6 +928,7 @@ window.toggleVAB = toggleVAB; window.toggleOB = toggleOB; window.toggleOverview 
 window.toggleYearSummary = toggleYearSummary; window.updateUI = updateUI;
 window.resetOB = resetOB;
 window.calculateEverything = calculateEverything;
+window.loadFromvaroMap = loadFromvaroMap;
 
 document.querySelectorAll('.numeric-only').forEach(field => {
   field.addEventListener('input', function() {
