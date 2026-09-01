@@ -20,6 +20,12 @@ function getDSTAdjustment(date) {
   return 0;
 }
 
+function localDateKey(date) {
+  return date.getFullYear() + '-' +
+         String(date.getMonth() + 1).padStart(2, '0') + '-' +
+         String(date.getDate()).padStart(2, '0');
+}
+
 // ---- Skiftscheman ----
 const startA = new Date(2025, 11, 29);
 const cycleA = [0,0,0,0,2,2,2,0,0,0,1,1,0,0,2,2,0,0,0,1,1,0,0,2,2,0,0,0,1,1,1,0,0,0,0];
@@ -37,9 +43,8 @@ const startE = new Date(2026, 0, 1);
 const cycleE = [0,0,0,0,0,0,0,0,2,2,2,0,0,0,1,1,0,0,2,2,0,0,0,1,1,0,0,2,2,0,0,0,1,1,1];
 function getShiftE(date) { let d = daysBetween(startE, date); return cycleE[((d % 35) + 35) % 35]; }
 
-// ---- R3: GUCH & BEAB ----
+// R3
 const startR3 = new Date(2025, 11, 29);
-
 function getShiftGUCH(date) {
   if (isHoliday(date)) return 0;
   const weekIndex = Math.floor(daysBetween(startR3, date) / 7);
@@ -48,7 +53,6 @@ function getShiftGUCH(date) {
   if (isFiveDayWeek) return (day >= 1 && day <= 5) ? 1 : 0;
   else return (day >= 1 && day <= 4) ? 1 : 0;
 }
-
 function getShiftBEAB(date) {
   if (isHoliday(date)) return 0;
   const weekIndex = Math.floor(daysBetween(startR3, date) / 7);
@@ -70,7 +74,7 @@ function getOrdinaryShift(date, lag) {
 }
 
 function getShift(date, lag) {
-  let key = date.toISOString().split('T')[0];
+  const key = localDateKey(date);  // lokal nyckel
   if (shiftOverrideMap.has(key)) {
     if ((lag === 'GUCH' || lag === 'BEAB') && isHoliday(date)) return 0;
     return shiftOverrideMap.get(key);
@@ -78,7 +82,7 @@ function getShift(date, lag) {
   return getOrdinaryShift(date, lag);
 }
 
-// ---- Helgdagar ----
+// Helgdagar
 function getEaster(year) {
   let a = year % 19, b = Math.floor(year / 100), c = year % 100,
       d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25),
@@ -88,11 +92,9 @@ function getEaster(year) {
       day = ((h + l - 7 * m + 114) % 31) + 1;
   return new Date(year, month - 1, day);
 }
-
 function getMidsummer(year) { let d = new Date(year, 5, 20); while (d.getDay() !== 6) d.setDate(d.getDate() + 1); return d; }
 function getAllHelgons(year) { let d = new Date(year, 9, 31); while (d.getDay() !== 6) d.setDate(d.getDate() + 1); return d; }
 
-// Alla svenska röda dagar
 function isHoliday(date) {
   const y = date.getFullYear(), m = date.getMonth(), d = date.getDate();
   if (m === 0 && d === 1)  return true;
@@ -103,7 +105,6 @@ function isHoliday(date) {
   if (m === 11 && d === 25) return true;
   if (m === 11 && d === 26) return true;
   if (m === 11 && d === 31) return true;
-
   const easter = getEaster(y);
   const et = easter.getTime();
   const dates = [
@@ -117,7 +118,6 @@ function isHoliday(date) {
   dates.push(new Date(mid.getTime() - 1*86400000));
   dates.push(mid);
   dates.push(getAllHelgons(y));
-
   const ds = date.toDateString();
   for (const hd of dates) if (hd.toDateString() === ds) return true;
   return false;
@@ -136,60 +136,33 @@ function isPermissionDay(date, lag) {
   return false;
 }
 
-// Global overlapHours
 function overlapHours(ps, pe, s, e) {
   const oS = ps > s ? ps : s, oE = pe < e ? pe : e;
   return Math.max(0, (oE - oS) / (1000 * 60 * 60));
 }
 
-// Lista alla OB3-perioder
 function getOB3Periods(year) {
   const easter = getEaster(year);
   const periods = [];
-
   const skartorsdag = new Date(easter); skartorsdag.setDate(easter.getDate()-3);
   const tisdagEfter = new Date(easter); tisdagEfter.setDate(easter.getDate()+2);
-  periods.push({
-    start: new Date(skartorsdag.getFullYear(), skartorsdag.getMonth(), skartorsdag.getDate(), 18),
-    end: new Date(tisdagEfter.getFullYear(), tisdagEfter.getMonth(), tisdagEfter.getDate(), 0)
-  });
-
+  periods.push({start:new Date(skartorsdag.getFullYear(),skartorsdag.getMonth(),skartorsdag.getDate(),18), end:new Date(tisdagEfter.getFullYear(),tisdagEfter.getMonth(),tisdagEfter.getDate(),0)});
   let maj = new Date(year,4,1), vmaj = new Date(maj); vmaj.setDate(vmaj.getDate()+1); while (vmaj.getDay()===0||vmaj.getDay()===6) vmaj.setDate(vmaj.getDate()+1);
-  periods.push({
-    start: new Date(maj.getFullYear(), maj.getMonth(), maj.getDate(), 7),
-    end: new Date(vmaj.getFullYear(), vmaj.getMonth(), vmaj.getDate(), 0)
-  });
-
+  periods.push({start:new Date(maj.getFullYear(),maj.getMonth(),maj.getDate(),7), end:new Date(vmaj.getFullYear(),vmaj.getMonth(),vmaj.getDate(),0)});
   let nat = new Date(year,5,6);
   let ob3Start = new Date(nat);
-  if (nat.getDay() === 6) ob3Start.setDate(nat.getDate()-1);
-  else if (nat.getDay() === 0) ob3Start.setDate(nat.getDate()-1);
+  if (nat.getDay()===6) ob3Start.setDate(nat.getDate()-1);
+  else if (nat.getDay()===0) ob3Start.setDate(nat.getDate()-1);
   ob3Start.setHours(7,0,0,0);
   let vnat = new Date(nat); vnat.setDate(vnat.getDate()+1); while (vnat.getDay()===0||vnat.getDay()===6) vnat.setDate(vnat.getDate()+1);
-  periods.push({
-    start: ob3Start,
-    end: new Date(vnat.getFullYear(), vnat.getMonth(), vnat.getDate(), 0)
-  });
-
+  periods.push({start:ob3Start, end:new Date(vnat.getFullYear(),vnat.getMonth(),vnat.getDate(),0)});
   let mid = getMidsummer(year), ma = new Date(mid); ma.setDate(ma.getDate()-1);
   let sd = new Date(mid); sd.setDate(sd.getDate()+2); sd.setHours(0,0,0,0);
-  periods.push({
-    start: new Date(ma.getFullYear(), ma.getMonth(), ma.getDate(), 7),
-    end: sd
-  });
-
+  periods.push({start:new Date(ma.getFullYear(),ma.getMonth(),ma.getDate(),7), end:sd});
   let jul = new Date(year,11,24), vjul = new Date(year,11,27); while (vjul.getDay()===0||vjul.getDay()===6) vjul.setDate(vjul.getDate()+1);
-  periods.push({
-    start: new Date(jul.getFullYear(), jul.getMonth(), jul.getDate(), 7),
-    end: new Date(vjul.getFullYear(), vjul.getMonth(), vjul.getDate(), 0)
-  });
-
+  periods.push({start:new Date(jul.getFullYear(),jul.getMonth(),jul.getDate(),7), end:new Date(vjul.getFullYear(),vjul.getMonth(),vjul.getDate(),0)});
   let ny = new Date(year,11,31), vny = new Date(year+1,0,2); while (vny.getDay()===0||vny.getDay()===6) vny.setDate(vny.getDate()+1);
-  periods.push({
-    start: new Date(ny.getFullYear(), ny.getMonth(), ny.getDate(), 7),
-    end: new Date(vny.getFullYear(), vny.getMonth(), vny.getDate(), 0)
-  });
-
+  periods.push({start:new Date(ny.getFullYear(),ny.getMonth(),ny.getDate(),7), end:new Date(vny.getFullYear(),vny.getMonth(),vny.getDate(),0)});
   return periods;
 }
 
@@ -199,7 +172,6 @@ function getOB3Hours(date, shift) {
   let passStart, passEnd;
   if (shift === 1) { passStart = new Date(date); passStart.setHours(5,45,0,0); passEnd = new Date(date); passEnd.setHours(18,0,0,0); }
   else { passStart = new Date(date); passStart.setHours(17,45,0,0); passEnd = new Date(date); passEnd.setDate(passEnd.getDate()+1); passEnd.setHours(6,0,0,0); }
-
   const periods = getOB3Periods(y);
   for (const p of periods) {
     const h = overlapHours(passStart, passEnd, p.start, p.end);
@@ -220,120 +192,55 @@ function getOB3OverlapForInterval(intervalStart, intervalEnd, shiftDate) {
 
 function calcOB(date, shift, lag) {
   if (isPermissionDay(date, lag) || shift === 0) return {ob1:0, ob2:0, ob3:0};
-
-  const w = date.getDay(), isWeekend = (w === 0 || w === 6);
-  let ob1 = 0, ob2 = 0;
-
-  // Grund-OB
-  if (shift === 1) { if (isWeekend) ob2 = 12.25; else ob2 = 1.25; }
-  else if (shift === 2) { if (isWeekend) ob2 = 12.25; else { ob1 = 6; ob2 = 6; } }
+  const w = date.getDay(), isWeekend = (w===0||w===6);
+  let ob1=0, ob2=0;
+  if (shift===1) { if (isWeekend) ob2=12.25; else ob2=1.25; }
+  else if (shift===2) { if (isWeekend) ob2=12.25; else {ob1=6; ob2=6;} }
   let dst = getDSTAdjustment(date);
-  if (dst !== 0 && shift === 2) { if (ob2 >= 6) ob2 += dst; else if (ob1 >= 6) ob1 += dst; }
-
-  // Röd dag → hela passet OB2
-  if (isHoliday(date)) {
-    ob2 = 12.25;
-    ob1 = 0;
-  }
-
-  const ob3 = Math.round(getOB3Hours(date, shift) * 100) / 100;
-  if (ob3 > 0) {
-    // Bygg tidsintervall för OB1/OB2
-    const intervals = [];
-    if (shift === 1) {
-      const passStart = new Date(date); passStart.setHours(5,45,0,0);
-      if (isHoliday(date) || isWeekend) {
-        const passEnd = new Date(date); passEnd.setHours(18,0,0,0);
-        intervals.push({ type: 'ob2', start: new Date(passStart), end: passEnd });
-      } else {
-        const ob2End = new Date(date); ob2End.setHours(7,0,0,0);
-        intervals.push({ type: 'ob2', start: new Date(passStart), end: ob2End });
-      }
-    } else { // Nattpass
-      if (isHoliday(date) || isWeekend) {
-        const passStart = new Date(date); passStart.setHours(17,45,0,0);
-        const passEnd = new Date(date); passEnd.setDate(passEnd.getDate()+1); passEnd.setHours(6,0,0,0);
-        intervals.push({ type: 'ob2', start: passStart, end: passEnd });
-      } else {
-        const ob1Start = new Date(date); ob1Start.setHours(18,0,0,0);
-        const ob1End = new Date(date); ob1End.setHours(24,0,0,0);
-        intervals.push({ type: 'ob1', start: ob1Start, end: ob1End });
-        const ob2Start = new Date(date); ob2Start.setDate(ob2Start.getDate()+1); ob2Start.setHours(0,0,0,0);
-        const ob2End = new Date(date); ob2End.setDate(ob2End.getDate()+1); ob2End.setHours(6,0,0,0);
-        intervals.push({ type: 'ob2', start: ob2Start, end: ob2End });
-      }
-    }
-
-    // Subtrahera endast överlappande OB3-tid
-    for (const iv of intervals) {
-      const overlap = getOB3OverlapForInterval(iv.start, iv.end, date);
-      if (iv.type === 'ob1') {
-        ob1 -= Math.min(ob1, overlap);
-      } else {
-        ob2 -= Math.min(ob2, overlap);
-      }
-    }
-
+  if (dst!==0 && shift===2) { if (ob2>=6) ob2+=dst; else if (ob1>=6) ob1+=dst; }
+  if (isHoliday(date)) { ob2=12.25; ob1=0; }
+  const ob3 = Math.round(getOB3Hours(date, shift)*100)/100;
+  if (ob3>0) {
+    let remaining=ob3;
+    const fromOB1=Math.min(ob1,remaining); ob1-=fromOB1; remaining-=fromOB1;
+    const fromOB2=Math.min(ob2,remaining); ob2-=fromOB2;
     return {ob1, ob2, ob3};
   }
-
   return {ob1, ob2, ob3:0};
 }
 
-function localDateKey(date) {
-  return date.getFullYear() + '-' +
-         String(date.getMonth() + 1).padStart(2, '0') + '-' +
-         String(date.getDate()).padStart(2, '0');
-}
-
 function getOBForMonth(year, month, lag) {
-  let to1 = 0, to2 = 0, to3 = 0, dim = new Date(year, month, 0).getDate();
-  for (let d = 1; d <= dim; d++) {
-    let date = new Date(year, month - 1, d);
-    let key = localDateKey(date);
-    // Sjukdagar (värde 4) ska INTE exkluderas från ordinarie OB
-    if (fromvaroMap.has(key) && fromvaroMap.get(key) !== 4) continue;
-    let ob = calcOB(date, getShift(date, lag), lag);
-    to1 += ob.ob1; to2 += ob.ob2; to3 += ob.ob3;
+  let to1=0,to2=0,to3=0, dim=new Date(year,month,0).getDate();
+  for (let d=1; d<=dim; d++) {
+    const date = new Date(year, month-1, d);
+    const key = localDateKey(date);
+    // sjukdagar (4) exkluderas inte från OB
+    if (fromvaroMap.has(key) && fromvaroMap.get(key)!==4) continue;
+    const ob = calcOB(date, getShift(date, lag), lag);
+    to1+=ob.ob1; to2+=ob.ob2; to3+=ob.ob3;
   }
   return {ob1:to1, ob2:to2, ob3:to3};
 }
 
-// ---- Stationer Lag E ----
-const stationsE = ['Reaktorn', 'Dian', 'Spray'], initials = ['B', 'Y', 'M'], refStation = new Date(2026, 5, 9);
+// Stationer lag E
+const stationsE = ['Reaktorn','Dian','Spray'], initials=['B','Y','M'], refStation=new Date(2026,5,9);
 function countWorkShiftsUntil(date, lag) {
-  let cnt = 0;
-  if (date >= refStation) {
-    let d = new Date(refStation);
-    while (daysBetween(d, date) > 0) { let sh = getShift(d, lag); if (sh > 0 && !isPermissionDay(d, lag)) cnt++; d.setDate(d.getDate()+1); }
+  let cnt=0;
+  if (date>=refStation) {
+    let d=new Date(refStation);
+    while (daysBetween(d,date)>0) { let sh=getShift(d,lag); if (sh>0 && !isPermissionDay(d,lag)) cnt++; d.setDate(d.getDate()+1); }
   } else {
-    let d = new Date(refStation); d.setDate(d.getDate()-1);
-    while (daysBetween(date, d) > 0) { let sh = getShift(d, lag); if (sh > 0 && !isPermissionDay(d, lag)) cnt++; d.setDate(d.getDate()-1); }
-    cnt = -cnt;
+    let d=new Date(refStation); d.setDate(d.getDate()-1);
+    while (daysBetween(date,d)>0) { let sh=getShift(d,lag); if (sh>0 && !isPermissionDay(d,lag)) cnt++; d.setDate(d.getDate()-1); }
+    cnt=-cnt;
   }
   return cnt;
 }
-
 function getStationE(date, shift, lag) {
-  if (shift === 0 || isPermissionDay(date, lag)) return '-';
-  let ws = countWorkShiftsUntil(date, lag);
-  let idx = ((ws % 3) + 3) % 3;
-  let yidx = (idx + 1) % 3;
-  let midx = (idx + 2) % 3;
-
-  const stationEntries = [
-    { station: stationsE[idx], initial: initials[0] },
-    { station: stationsE[yidx], initial: initials[1] },
-    { station: stationsE[midx], initial: initials[2] }
-  ];
-
-  const day = date.getDay();
-  for (let entry of stationEntries) {
-    if ((day === 6 && shift === 1 && entry.station === 'Spray') ||
-        (day === 0 && shift === 1 && entry.station === 'Dian')) {
-      entry.station += '🧹';
-    }
-  }
-
-  return stationEntries.map(e => e.station + '(' + e.initial + ')').join(' ');
+  if (shift===0 || isPermissionDay(date,lag)) return '-';
+  let ws=countWorkShiftsUntil(date,lag), idx=((ws%3)+3)%3, yidx=(idx+1)%3, midx=(idx+2)%3;
+  let bp=stationsE[idx]+'('+initials[0]+')', yp=stationsE[yidx]+'('+initials[1]+')', mp=stationsE[midx]+'('+initials[2]+')';
+  let day=date.getDay();
+  if ((day===6&&shift===1&&idx===2)||(day===0&&shift===1&&idx===1)) bp+='🧹';
+  return bp+' '+yp+' '+mp;
 }
