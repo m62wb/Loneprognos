@@ -179,13 +179,11 @@ window.loadScenario = function() {
   applyState(state);
 
   // Ladda rätt fromvaro för den valda profilen
-  if (typeof window.loadFromvaroMap === 'function') {
-    window.loadFromvaroMap();
-  } else if (typeof loadFromvaroMap === 'function') {
+  if (typeof loadFromvaroMap === 'function') {
     loadFromvaroMap();
   }
 
-  // Uppdatera gränssnittet igen för att visa den nya fromvaron direkt
+  // Uppdatera gränssnittet igen så att ledigheterna syns direkt
   if (typeof updateUI === 'function') {
     updateUI();
   }
