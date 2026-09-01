@@ -28,8 +28,8 @@ function getMondayOfISOWeek(w, year) {
 const sickDetailMap = new Map();
 window.isLoadingProfile = false;
 let obManuallyEdited = false;
-let monthlyManualInputs = new Map();
-let monthlyGross = new Map();
+let monthlyManualInputs = new Map();   // Per-månad/lag sparning av manuella fält
+let monthlyGross = new Map();          // Per arbetsmånad: bruttolön (för auto-SGI)
 
 const MONTHLY_MANUAL_KEY = 'loneprognos_monthly_manual_v1';
 const MONTHLY_GROSS_KEY = 'loneprognos_monthly_gross_v1';
@@ -54,34 +54,30 @@ function loadMonthlyGross() {
 }
 
 // --- Profilmedveten fromvaro-sparning ---
+function getFromvaroKey() {
+  const profile = document.getElementById('profileSelect')?.value || '';
+  return profile ? `loneprognos_fromvaro_${profile}` : 'loneprognos_fromvaro_default';
+}
+function saveFromvaroMap() {
+  localStorage.setItem(getFromvaroKey(), JSON.stringify(Array.from(fromvaroMap.entries())));
+}
 function loadFromvaroMap() {
-  const profileSelect = document.getElementById('profileSelect');
-  // Om ingen profil är vald – töm kartan och avbryt
-  if (!profileSelect || profileSelect.value === '') {
-    fromvaroMap.clear();
-    return;
-  }
-
   const saved = localStorage.getItem(getFromvaroKey());
   fromvaroMap.clear();
   if (saved) {
     try {
       const entries = JSON.parse(saved);
       for (const [k, v] of entries) {
-        const d = new Date(k + 'T00:00:00');
-        const newKey = localDateKey(d);
-        fromvaroMap.set(newKey, v);
+        fromvaroMap.set(k, v);
       }
     } catch(e) {
       fromvaroMap.clear();
     }
   }
-  saveFromvaroMap();
 }
+
 function localDateKey(date) {
-  return date.getFullYear() + '-' +
-         String(date.getMonth() + 1).padStart(2, '0') + '-' +
-         String(date.getDate()).padStart(2, '0');
+  return date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0') + '-' + String(date.getDate()).padStart(2,'0');
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -327,8 +323,8 @@ function setFromvaro(dateStr, value){
   else if(value==="VAB") fromvaroMap.set(dateStr,2);
   else if(value==="F-ledig") fromvaroMap.set(dateStr,3);
   else if(value==="Komp/Flex") fromvaroMap.set(dateStr,5);
-  updateUI();
   saveFromvaroMap();
+  updateUI();
 }
 
 function resetSchema(){
@@ -340,7 +336,8 @@ function resetSchema(){
     const key = localDateKey(new Date(obYear, obMonth-1, d));
     fromvaroMap.delete(key); vacationOverrideMap.delete(key); sickDetailMap.delete(key);
   }
-  updateUI(); saveFromvaroMap();
+  saveFromvaroMap();
+  updateUI();
 }
 
 function resetAllShifts(){
@@ -367,7 +364,7 @@ function openSickPopup(dateStr) {
   document.getElementById('sickTimeInput').value = '';
   document.getElementById('sickFullDayBtn').onclick = function() {
     fromvaroMap.set(dateStr, 4); sickDetailMap.set(dateStr, {type:'full'});
-    overlay.style.display = 'none'; updateUI(); saveFromvaroMap();
+    overlay.style.display = 'none'; saveFromvaroMap(); updateUI();
   };
   document.getElementById('sickPartialBtn').onclick = function() {
     document.getElementById('sickPartialInput').style.display = 'block';
@@ -383,11 +380,11 @@ function openSickPopup(dateStr) {
     hoursMissed = Math.min(Math.max(hoursMissed, 0), 12.25);
     fromvaroMap.set(dateStr, 4);
     sickDetailMap.set(dateStr, {type:'partial', hoursMissed: f2(hoursMissed)});
-    overlay.style.display = 'none'; updateUI(); saveFromvaroMap();
+    overlay.style.display = 'none'; saveFromvaroMap(); updateUI();
   };
   document.getElementById('sickCancelBtn').onclick = function() {
     fromvaroMap.delete(dateStr); sickDetailMap.delete(dateStr);
-    overlay.style.display = 'none'; updateUI(); saveFromvaroMap();
+    overlay.style.display = 'none'; saveFromvaroMap(); updateUI();
   };
 }
 
@@ -554,7 +551,7 @@ function calculateEverything() {
   };
 }
 
-// ---------- RENDER UI (med dolda OB för lediga dagar) ----------
+// ---------- RENDER UI ----------
 function renderUI(data) {
   const lagName = {A:'Lag A',B:'Lag B',C:'Lag C',D:'Lag D',E:'Lag E', GUCH:'GUCH', BEAB:'BEAB'}[data.lag] || 'Manuell';
   vabSummary.style.display = data.totalVABParental > 0 ? 'flex' : 'none';
@@ -668,7 +665,7 @@ function renderUI(data) {
       let ob = calcOB(date, shift, data.lag);
       let isPerm = isPermissionDay(date, data.lag);
       if (fromvaroVal !== 0) ob = {ob1:0, ob2:0, ob3:0};
-      let showOB = (shift !== 0 && !isPerm); // dölj OB om ledig eller permission
+      let showOB = (shift !== 0 && !isPerm);
       let dayName = ['Sön','Mån','Tis','Ons','Tor','Fre','Lör'][date.getDay()];
       let weekNum = getWeekNumber(date);
       let weekLabel = '';
@@ -805,7 +802,6 @@ function updateYearSummary() {
     const semesterDagar = isShiftWorker ? vacDays * SEMESTER_KVOT : vacDays;
     const semTillagg = f2(semesterDagar * f2(obBase / 125)); totSemester += semTillagg;
 
-    // Hämta manuella fält för denna löneperiod
     const periodKey = `${y}-${String(m).padStart(2, '0')}-${lag}`;
     const manual = monthlyManualInputs.get(periodKey);
     const otH = p(manual?.ot || 0);
