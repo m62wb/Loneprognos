@@ -569,6 +569,17 @@ function renderUI(data) {
   selectedPeriod.innerText = MONTHS[data.selectedMonth-1] + ' ' + data.selectedYear + ' · ' + lagName;
   tableMonthLabel.innerText = data.isAuto ? MONTHS[data.obMonth-1] + ' ' + data.obYear : '—';
   finalNetSalary.innerText = fc(data.netSalary) + ' kr';
+   // Nya resultatfält
+  const jobNetDisplay = document.getElementById('jobNetDisplay');
+  if (jobNetDisplay) jobNetDisplay.innerText = fc(data.jobbNetto) + ' kr';
+
+  const fkNetDisplay = document.getElementById('fkNetDisplay');
+  if (fkNetDisplay) fkNetDisplay.innerText = fc(data.totalErsattningNetto) + ' kr';
+
+  const fkNetRow = document.getElementById('fkNetRow');
+  if (fkNetRow) {
+    fkNetRow.style.display = data.totalErsattningNetto > 0 ? 'flex' : 'none';
+  }
   overviewTotalNet.innerText = fc(data.netSalary) + ' kr';
 
   const chips = [];
