@@ -54,7 +54,7 @@ function loadMonthlyGross() {
 }
 
 // --- Profilmedveten fromvaro-sparning ---
-ffunction loadFromvaroMap() {
+function loadFromvaroMap() {
   const profileSelect = document.getElementById('profileSelect');
   // Om ingen profil är vald – töm kartan och avbryt
   if (!profileSelect || profileSelect.value === '') {
