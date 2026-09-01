@@ -49,14 +49,79 @@ function updateProfileList() {
   for (const name of Object.keys(profiles)) {
     const opt = document.createElement('option'); opt.value = name; opt.textContent = name; select.appendChild(opt);
   }
-
-  // Automatiskt välja första profilen om det finns
-  const names = Object.keys(profiles);
-  if (names.length > 0) {
-    select.value = names[0];
-    if (typeof loadScenario === 'function') loadScenario();
-  }
 }
+
+// --- Export / Import ---
+window.exportProfile = function() {
+  const select = document.getElementById('profileSelect');
+  const name = select.value;
+  if (!name) { alert('Välj en profil att exportera.'); return; }
+  const profiles = getAllProfiles();
+  if (!profiles[name]) { alert('Profilen kunde inte hittas.'); return; }
+
+  // Hämta profilens sparade frånvaro
+  const fromvaroKey = `loneprognos_fromvaro_${name}`;
+  const fromvaroData = localStorage.getItem(fromvaroKey);
+  const fromvaro = fromvaroData ? JSON.parse(fromvaroData) : [];
+
+  const data = {
+    type: 'loneprognos-profile',
+    version: 1,
+    name: name,
+    profile: profiles[name],
+    fromvaro: fromvaro
+  };
+
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `profil-${name}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+window.importProfile = function(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.type !== 'loneprognos-profile' || !data.profile) {
+        alert('Filen är inte en giltig profilexport.');
+        return;
+      }
+
+      const profiles = getAllProfiles();
+      let name = data.name || file.name.replace(/\.json$/i, '');
+
+      // Fråga om namn om det redan finns
+      if (profiles[name]) {
+        name = prompt(`Profilen "${name}" finns redan. Ange ett nytt namn:`, name);
+        if (!name) return;
+      }
+
+      profiles[name] = data.profile;
+      saveAllProfiles(profiles);
+
+      // Importera frånvaro om den finns
+      if (data.fromvaro) {
+        const fromvaroKey = `loneprognos_fromvaro_${name}`;
+        localStorage.setItem(fromvaroKey, JSON.stringify(data.fromvaro));
+      }
+
+      updateProfileList();
+      document.getElementById('profileSelect').value = name;
+      if (typeof loadScenario === 'function') loadScenario();
+      alert('Profil importerad.');
+    } catch(err) {
+      alert('Kunde inte läsa filen: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+};
 
 window.saveProfilePopup = function() {
   const dialog = document.getElementById('profileDialog');
@@ -128,8 +193,8 @@ window.deleteScenario = function() {
 
 window.resetAll = function() {
   if (confirm('Vill du verkligen nollställa alla fält? Detta går inte att ångra.')) {
-    document.getElementById('salaryInput').value = '';
-    document.getElementById('lagSelect').value = '';
+    document.getElementById('salaryInput').value = 37664;
+    document.getElementById('lagSelect').value = 'E';
     document.getElementById('sgiInput').value = 592000;
     document.getElementById('ftpDays').value = '0';
     document.getElementById('ob1Hours').value = '';
