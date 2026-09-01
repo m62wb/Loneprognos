@@ -54,30 +54,30 @@ function loadMonthlyGross() {
 }
 
 // --- Profilmedveten fromvaro-sparning ---
-function getFromvaroKey() {
-  const profile = document.getElementById('profileSelect')?.value || '';
-  return profile ? `loneprognos_fromvaro_${profile}` : 'loneprognos_fromvaro_default';
-}
-function saveFromvaroMap() {
-  localStorage.setItem(getFromvaroKey(), JSON.stringify(Array.from(fromvaroMap.entries())));
-}
-function loadFromvaroMap() {
+ffunction loadFromvaroMap() {
+  const profileSelect = document.getElementById('profileSelect');
+  // Om ingen profil är vald – töm kartan och avbryt
+  if (!profileSelect || profileSelect.value === '') {
+    fromvaroMap.clear();
+    return;
+  }
+
   const saved = localStorage.getItem(getFromvaroKey());
   fromvaroMap.clear();
   if (saved) {
     try {
       const entries = JSON.parse(saved);
-      // migrera eventuella gamla nycklar till lokal tid
       for (const [k, v] of entries) {
         const d = new Date(k + 'T00:00:00');
         const newKey = localDateKey(d);
         fromvaroMap.set(newKey, v);
       }
-    } catch(e) { fromvaroMap.clear(); }
+    } catch(e) {
+      fromvaroMap.clear();
+    }
   }
   saveFromvaroMap();
 }
-
 function localDateKey(date) {
   return date.getFullYear() + '-' +
          String(date.getMonth() + 1).padStart(2, '0') + '-' +
