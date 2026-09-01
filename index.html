@@ -34,6 +34,9 @@
                 <button class="reset-btn" onclick="saveProfilePopup()">Ny profil</button>
                 <button class="reset-btn" onclick="deleteScenario()">Ta bort</button>
                 <button class="reset-btn" onclick="resetAll()">Nollställ allt</button>
+                <button class="reset-btn" onclick="exportProfile()">Exportera</button>
+                <button class="reset-btn" onclick="document.getElementById('importFileInput').click()">Importera</button>
+                <input type="file" id="importFileInput" accept=".json" style="display:none;" onchange="importProfile(this)">
             </div>
             <div class="card-title">Lagval</div>
             <select id="lagSelect">
