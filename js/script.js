@@ -410,7 +410,7 @@ function calculateEverything() {
   const sickRate80  = f2(baseSalary / (177 + 1/12));
   const semesterSupplementPerDay = f2(obGroundingBase / 125);
 
-  // Auto-SGI: se till att alla månader för föregående år finns i monthlyGross
+  // Auto-SGI: fyll i saknade månader med historik + övertid + övrigt
   const autoSgiCheckbox = document.getElementById('autoSgiCheckbox');
   const useAutoSgi = autoSgiCheckbox ? autoSgiCheckbox.checked : false;
 
@@ -419,12 +419,22 @@ function calculateEverything() {
     for (let m = 1; m <= 12; m++) {
       const key = `${prevYear}-${String(m).padStart(2, '0')}`;
       if (!monthlyGross.has(key)) {
+        const periodKey = `${prevYear}-${String(m).padStart(2, '0')}-${lag}`;
+        const manual = monthlyManualInputs.get(periodKey);
+        const otH = p(manual?.ot || 0);
+        const otEnkelH = p(manual?.otEnkel || 0);
+        const extraAmount = p(manual?.extra || 0);
+
         const obData = getOBForMonth(prevYear, m, lag);
         const mOB = f2(obData.ob1 * ob1r + obData.ob2 * ob2r + obData.ob3 * ob3r);
         const vacDays = countVacationDaysInMonth(prevYear, m);
         const semesterDagar = isShiftWorker ? vacDays * SEMESTER_KVOT : vacDays;
         const semTillagg = f2(semesterDagar * (obGroundingBase / 125));
-        const gross = Math.round(obGroundingBase + mOB + semTillagg);
+
+        const otAmt = f2(otH * otRate);
+        const otEnkelAmt = f2(otEnkelH * otEnkelRate);
+
+        const gross = Math.round(obGroundingBase + mOB + semTillagg + otAmt + otEnkelAmt + extraAmount);
         monthlyGross.set(key, gross);
       }
     }
@@ -504,7 +514,7 @@ function calculateEverything() {
   monthlyGross.set(grossKey, jobbBruttoExact);
   persistMonthlyGross();
 
-  // Uppdatera SGI-fältet om auto-SGI
+  // Uppdatera sgiInput-fältet om auto-SGI
   if (useAutoSgi) {
     const prevYear = selectedYear - 1;
     let sum = 0;
@@ -775,6 +785,8 @@ function updateYearSummary() {
   const da = trunc2(bs * DRIFT / 100);
   const obBase = f2(bs + allowance + da);
   const o1r = f2(obBase / O1D), o2r = f2(obBase / O2D), o3r = f2(obBase / O3D);
+  const otRate = f2(obBase / OTD);
+  const otEnkelRate = f2(obBase / OTENKELD);
   let totBrutto = 0, totNetto = 0, totSkatt = 0, totFack = 0, totOB = 0, totSemester = 0;
   for (let m = 1; m <= 12; m++) {
     let obMonth = m - 1, obYear = y; if (obMonth === 0) { obMonth = 12; obYear--; }
@@ -784,7 +796,18 @@ function updateYearSummary() {
     const isShiftWorker = ['A','B','C','D','E'].includes(lag);
     const semesterDagar = isShiftWorker ? vacDays * SEMESTER_KVOT : vacDays;
     const semTillagg = f2(semesterDagar * f2(obBase / 125)); totSemester += semTillagg;
-    const jb = Math.round(obBase + mOB + semTillagg);
+
+    // Hämta manuella fält för denna löneperiod
+    const periodKey = `${y}-${String(m).padStart(2, '0')}-${lag}`;
+    const manual = monthlyManualInputs.get(periodKey);
+    const otH = p(manual?.ot || 0);
+    const otEnkelH = p(manual?.otEnkel || 0);
+    const extraAmount = p(manual?.extra || 0);
+
+    const otAmt = f2(otH * otRate);
+    const otEnkelAmt = f2(otEnkelH * otEnkelRate);
+
+    const jb = Math.round(obBase + mOB + semTillagg + otAmt + otEnkelAmt + extraAmount);
     const tax = taxFromTable33Col1(jb, y); const uf = calcUnion(jb); const net = jb - tax - uf;
     totBrutto += jb; totNetto += net; totSkatt += tax; totFack += uf;
   }
