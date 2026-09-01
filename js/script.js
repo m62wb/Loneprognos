@@ -578,7 +578,7 @@ function renderUI(data) {
 
   const fkNetRow = document.getElementById('fkNetRow');
   if (fkNetRow) {
-    fkNetRow.style.display = data.totalErsattningNetto > 0 ? 'flex' : 'none';
+    fkNetRow.style.display = data.totalErsattningNetto > 0 ? 'grid' : 'none';
   }
   overviewTotalNet.innerText = fc(data.netSalary) + ' kr';
 
