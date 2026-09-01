@@ -75,6 +75,7 @@ function loadFromvaroMap() {
       }
     } catch(e) { fromvaroMap.clear(); }
   }
+  saveFromvaroMap();
 }
 
 function localDateKey(date) {
