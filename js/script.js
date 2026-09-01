@@ -28,8 +28,8 @@ function getMondayOfISOWeek(w, year) {
 const sickDetailMap = new Map();
 window.isLoadingProfile = false;
 let obManuallyEdited = false;
-let monthlyManualInputs = new Map();   // Per-månad/lag sparning av manuella fält
-let monthlyGross = new Map();          // Per arbetsmånad: bruttolön (för auto-SGI)
+let monthlyManualInputs = new Map();
+let monthlyGross = new Map();
 
 const MONTHLY_MANUAL_KEY = 'loneprognos_monthly_manual_v1';
 const MONTHLY_GROSS_KEY = 'loneprognos_monthly_gross_v1';
@@ -63,17 +63,24 @@ function saveFromvaroMap() {
 }
 function loadFromvaroMap() {
   const saved = localStorage.getItem(getFromvaroKey());
+  fromvaroMap.clear();
   if (saved) {
     try {
       const entries = JSON.parse(saved);
-      fromvaroMap.clear();
-      for (const [k,v] of entries) fromvaroMap.set(k,v);
+      // migrera eventuella gamla nycklar till lokal tid
+      for (const [k, v] of entries) {
+        const d = new Date(k + 'T00:00:00');
+        const newKey = localDateKey(d);
+        fromvaroMap.set(newKey, v);
+      }
     } catch(e) { fromvaroMap.clear(); }
-  } else { fromvaroMap.clear(); }
+  }
 }
 
 function localDateKey(date) {
-  return date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0') + '-' + String(date.getDate()).padStart(2,'0');
+  return date.getFullYear() + '-' +
+         String(date.getMonth() + 1).padStart(2, '0') + '-' +
+         String(date.getDate()).padStart(2, '0');
 }
 
 document.addEventListener('DOMContentLoaded', function() {
