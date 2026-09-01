@@ -120,7 +120,21 @@
     </div>
 
     <div class="card"><div class="card-title">Löneperiod</div><select id="monthSelect"></select><select id="yearSelect"></select></div>
-    <div class="result-card"><div id="selectedPeriod">Februari 2026</div><div class="result-amount" id="finalNetSalary">0 kr</div><div>Totalt netto (jobb + bidrag)</div></div>
+    
+    <!-- Resultatkort med tre rader -->
+    <div class="result-card">
+        <div id="selectedPeriod">Februari 2026</div>
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:20px; font-size:1.2rem; margin:8px 0;">
+            <span>Nettolön jobb</span>
+            <strong id="jobNetDisplay">0 kr</strong>
+        </div>
+        <div id="fkNetRow" style="display:none; justify-content:space-between; align-items:center; gap:20px; font-size:1.2rem; margin:8px 0;">
+            <span>Nettolön FK</span>
+            <strong id="fkNetDisplay">0 kr</strong>
+        </div>
+        <div class="result-amount" id="finalNetSalary">0 kr</div>
+        <div>Totalt netto (jobb + FK)</div>
+    </div>
 
     <div class="card"><div class="card-title">Översikt: <strong id="overviewTotalNet">0 kr</strong> <span onclick="toggleOverview()" style="cursor:pointer;">▼</span></div><div id="overviewContent" style="display:none;"><div class="detail-grid" id="detailGrid"></div></div></div>
 
