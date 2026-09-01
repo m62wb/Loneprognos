@@ -177,7 +177,18 @@ window.loadScenario = function() {
   const state = profiles[name];
   if (!state) { alert('Profilen kunde inte hittas.'); return; }
   applyState(state);
-  if (typeof loadFromvaroMap === 'function') loadFromvaroMap();
+
+  // Ladda rätt fromvaro för den valda profilen
+  if (typeof window.loadFromvaroMap === 'function') {
+    window.loadFromvaroMap();
+  } else if (typeof loadFromvaroMap === 'function') {
+    loadFromvaroMap();
+  }
+
+  // Uppdatera gränssnittet igen för att visa den nya fromvaron direkt
+  if (typeof updateUI === 'function') {
+    updateUI();
+  }
 };
 
 window.deleteScenario = function() {
