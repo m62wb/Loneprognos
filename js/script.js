@@ -573,6 +573,11 @@ function renderUI(data) {
   const jobNetDisplay = document.getElementById('jobNetDisplay');
   if (jobNetDisplay) jobNetDisplay.innerText = fc(data.jobbNetto) + ' kr';
 
+  const jobNetRow = document.getElementById('jobNetRow');
+  if (jobNetRow) {
+    jobNetRow.style.display = data.totalErsattningNetto > 0 ? 'grid' : 'none';
+  }
+
   const fkNetDisplay = document.getElementById('fkNetDisplay');
   if (fkNetDisplay) fkNetDisplay.innerText = fc(data.totalErsattningNetto) + ' kr';
 
