@@ -593,6 +593,12 @@ function renderUI(data) {
     fkNetRow.style.display = data.totalErsattningNetto > 0 ? 'grid' : 'none';
   }
   overviewTotalNet.innerText = fc(data.netSalary) + ' kr';
+    const totalNetLabel = document.getElementById('totalNetLabel');
+  if (totalNetLabel) {
+    totalNetLabel.innerText = data.totalErsattningNetto > 0
+      ? 'Totalt netto (jobb + FK)'
+      : 'Totalt netto';
+  }
 
   const chips = [];
 
