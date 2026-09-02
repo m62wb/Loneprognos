@@ -956,6 +956,7 @@ window.toggleYearSummary = toggleYearSummary; window.updateUI = updateUI;
 window.resetOB = resetOB;
 window.calculateEverything = calculateEverything;
 window.loadFromvaroMap = loadFromvaroMap;
+window.loadManualInputsFromCurrentPeriod = loadManualInputsFromCurrentPeriod;
 
 document.querySelectorAll('.numeric-only').forEach(field => {
   field.addEventListener('input', function() {
