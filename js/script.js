@@ -484,18 +484,21 @@ function calculateEverything() {
   const sickOBGain = f2(sickResult.sickOBGain);
 
   const sgiVab = Math.min(sgiVal, SGI_TAK_VAB);
-  const sgiVabDay = f2(sgiVab / 365 * 0.8);
-  const fkVabTotal = f2(vabD * sgiVabDay);
-  const sgiPar = Math.min(sgiVal, SGI_TAK_PARENTAL);
-  const fpDayAmt = f2(Math.min(1259, sgiPar / 365 * 0.776));
-  const fkFpTotal = f2(parentalD * fpDayAmt);
-  const fptDayAmt = f2(baseSalary / 30 * 0.10);
-  // FTP (AFA) ska bara betalas ut när det finns föräldraledighet (FL)
-  const effectiveFtpD = parentalD > 0 ? ftpD : 0;
-  const fkFptTotal = f2(effectiveFtpD * fptDayAmt);
-  const fkVabTax = f2(fkVabTotal * FK_SKATT), fkFpTax = f2(fkFpTotal * FK_SKATT), fkFptTax = f2(fkFptTotal * FK_SKATT);
-  const fkVabNet = f2(fkVabTotal - fkVabTax), fkFpNet = f2(fkFpTotal - fkFpTax), fkFptNet = f2(fkFptTotal - fkFptTax);
-  const totalErsattningNetto = f2(fkVabNet + fkFpNet + fkFptNet);
+const sgiVabDay = f2(sgiVab / 365 * 0.8);
+const fkVabTotal = f2(vabD * sgiVabDay);
+const sgiPar = Math.min(sgiVal, SGI_TAK_PARENTAL);
+const fpDayAmt = f2(Math.min(1259, sgiPar / 365 * 0.776));
+const fkFpTotal = f2(parentalD * fpDayAmt);
+
+// FTP (AFA) – inkomsttak 49 300 kr/mån och endast vid FL
+const ftpBaseSalary = Math.min(baseSalary, FTP_INKOMSTTAK_MANAD);
+const fptDayAmt = f2(ftpBaseSalary / 30 * 0.10);
+const effectiveFtpD = parentalD > 0 ? ftpD : 0;
+const fkFptTotal = f2(effectiveFtpD * fptDayAmt);
+
+const fkVabTax = f2(fkVabTotal * FK_SKATT), fkFpTax = f2(fkFpTotal * FK_SKATT), fkFptTax = f2(fkFptTotal * FK_SKATT);
+const fkVabNet = f2(fkVabTotal - fkVabTax), fkFpNet = f2(fkFpTotal - fkFpTax), fkFptNet = f2(fkFptTotal - fkFptTax);
+const totalErsattningNetto = f2(fkVabNet + fkFpNet + fkFptNet);
 
   let autoOB = null;
   if (isAuto) autoOB = getOBForMonth(obYear, obMonth, lag);
