@@ -10,6 +10,7 @@ const O1D=460, O2D=260, O3D=150, OTD=72, OTENKELD=94, SY=2024, EY=2036;
 const PBB=59200, SGI_TAK_PARENTAL=10*PBB, SGI_TAK_VAB=7.5*PBB, FK_SKATT=0.30;
 const MONTHS = ['Januari','Februari','Mars','April','Maj','Juni','Juli','Augusti','September','Oktober','November','December'];
 const SEMESTER_KVOT = 1.78;
+const FTP_INKOMSTTAK_MANAD = 49300; // 10 PBB / 12, enligt AFA
 
 function calcUnion(s){ let f=Math.round(s*UPCT); if(f<UMIN) return UMIN; if(f>UMAX) return UMAX; return f; }
 function getWeekNumber(date) {
@@ -401,6 +402,12 @@ function calculateEverything() {
   const lag = lagSelect.value;
   const isAuto = (lag !== 'manual' && lag !== '');
   const ftpD = parseInt(ftpDays.value);
+  // Inkomsttak för FTP (AFA): 49 300 kr/mån
+  const ftpBaseSalary = Math.min(baseSalary, FTP_INKOMSTTAK_MANAD);
+  const fptDayAmt = f2(ftpBaseSalary / 30 * 0.10);
+  // FTP betalas bara vid föräldraledighet (FL)
+  const effectiveFtpD = parentalD > 0 ? ftpD : 0;
+  const fkFptTotal = f2(effectiveFtpD * fptDayAmt);
 
   const isR3 = (lag === 'GUCH' || lag === 'BEAB');
   const allowance = isR3 ? 4000 : 0;
