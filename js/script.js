@@ -928,6 +928,8 @@ const savedAutosave = localStorage.getItem(AUTOSAVE_KEY);
 if (savedAutosave) { try { applyState(JSON.parse(savedAutosave)); } catch(e) { updateUI(); } }
 else { if (lagSelect.value && lagSelect.value !== 'manual') applyIndustrialVacation(parseInt(yearSelect.value), lagSelect.value); updateUI(); }
 
+  // Tvinga inget lag förvalt vid start
+lagSelect.value = '';
 loadManualInputsFromCurrentPeriod();
 loadFromvaroMap();
 updateUI();
