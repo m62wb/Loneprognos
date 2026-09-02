@@ -178,12 +178,17 @@ window.loadScenario = function() {
   if (!state) { alert('Profilen kunde inte hittas.'); return; }
   applyState(state);
 
-  // Ladda rätt fromvaro för den valda profilen
+  // Ladda rätt fromvaro
   if (typeof loadFromvaroMap === 'function') {
     loadFromvaroMap();
   }
 
-  // Uppdatera gränssnittet igen så att ledigheterna syns direkt
+  // Ladda rätt manuella fält för den valda profilen
+  if (typeof loadManualInputsFromCurrentPeriod === 'function') {
+    loadManualInputsFromCurrentPeriod();
+  }
+
+  // Uppdatera gränssnittet direkt
   if (typeof updateUI === 'function') {
     updateUI();
   }
