@@ -483,7 +483,9 @@ function calculateEverything() {
   const fpDayAmt = f2(Math.min(1259, sgiPar / 365 * 0.776));
   const fkFpTotal = f2(parentalD * fpDayAmt);
   const fptDayAmt = f2(baseSalary / 30 * 0.10);
-  const fkFptTotal = f2(ftpD * fptDayAmt);
+  // FTP (AFA) ska bara betalas ut när det finns föräldraledighet (FL)
+  const effectiveFtpD = parentalD > 0 ? ftpD : 0;
+  const fkFptTotal = f2(effectiveFtpD * fptDayAmt);
   const fkVabTax = f2(fkVabTotal * FK_SKATT), fkFpTax = f2(fkFpTotal * FK_SKATT), fkFptTax = f2(fkFptTotal * FK_SKATT);
   const fkVabNet = f2(fkVabTotal - fkVabTax), fkFpNet = f2(fkFpTotal - fkFpTax), fkFptNet = f2(fkFptTotal - fkFptTax);
   const totalErsattningNetto = f2(fkVabNet + fkFpNet + fkFptNet);
