@@ -402,12 +402,7 @@ function calculateEverything() {
   const lag = lagSelect.value;
   const isAuto = (lag !== 'manual' && lag !== '');
   const ftpD = parseInt(ftpDays.value);
-  // Inkomsttak för FTP (AFA): 49 300 kr/mån
-  const ftpBaseSalary = Math.min(baseSalary, FTP_INKOMSTTAK_MANAD);
-  const fptDayAmt = f2(ftpBaseSalary / 30 * 0.10);
-  // FTP betalas bara vid föräldraledighet (FL)
-  const effectiveFtpD = parentalD > 0 ? ftpD : 0;
-  const fkFptTotal = f2(effectiveFtpD * fptDayAmt);
+  
 
   const isR3 = (lag === 'GUCH' || lag === 'BEAB');
   const allowance = isR3 ? 4000 : 0;
