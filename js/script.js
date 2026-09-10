@@ -497,6 +497,25 @@ const totalErsattningNetto = f2(fkVabNet + fkFpNet + fkFptNet);
 
   let autoOB = null;
   if (isAuto) autoOB = getOBForMonth(obYear, obMonth, lag);
+
+  // Lägg tillbaka OB för sjukdagar – kaka på kaka enligt lönespecen
+  if (autoOB && lag !== 'manual') {
+    const daysInMonth = new Date(obYear, obMonth, 0).getDate();
+    for (let d = 1; d <= daysInMonth; d++) {
+      const date = new Date(obYear, obMonth - 1, d);
+      const key = localDateKey(date);
+      if (fromvaroMap.get(key) === 4) {
+        const shift = getShift(date, lag);
+        if (shift > 0 && !isPermissionDay(date, lag)) {
+          const ob = calcOB(date, shift, lag);
+          autoOB.ob1 += ob.ob1;
+          autoOB.ob2 += ob.ob2;
+          autoOB.ob3 += ob.ob3;
+        }
+      }
+    }
+  }
+
   if (autoOB && !obManuallyEdited) {
     ob1Hours.value = fd(autoOB.ob1, 2);
     ob2Hours.value = fd(autoOB.ob2, 2);
