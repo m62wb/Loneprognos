@@ -609,7 +609,7 @@ function renderUI(data) {
 
   const fkNetRow = document.getElementById('fkNetRow');
   if (fkNetRow) {
-    fkNetRow.style.display = data.totalErsattningNetto > 0 ? 'grid' : 'none';
+    fkNetRow.style.display = data.totalErsattningNetto > 0 ? 'flex' : 'none';
   }
   overviewTotalNet.innerText = fc(data.netSalary) + ' kr';
     const totalNetLabel = document.getElementById('totalNetLabel');
