@@ -116,22 +116,27 @@
                     <input type="text" id="extraTaxInput" inputmode="decimal" class="numeric-only" placeholder="0">
                 </div>
             </div>
+            <!-- Utrymme till statlig skatt -->
+            <div class="lön-summary" style="margin-top: 12px;">
+                <span>Utrymme till statlig skatt</span>
+                <span>
+                    <strong id="taxHeadroomAmount">0 kr</strong>
+                    <span id="taxHeadroomHours" style="margin-left: 8px;">(≈ 0 h övertid)</span>
+                </span>
+            </div>
         </div>
     </div>
 
     <div class="card"><div class="card-title">Löneperiod</div><select id="monthSelect"></select><select id="yearSelect"></select></div>
-    
-    <!-- Resultatkort med tre rader -->
+
+    <!-- Resultatkort -->
     <div class="result-card">
         <div id="selectedPeriod">Februari 2026</div>
-               <div id="jobNetRow" style="display:none; justify-content:space-between; gap:8px; font-size:1.2rem; margin:8px 0;">
-    <span>Nettolön jobb</span>
-    <strong id="jobNetDisplay">0 kr</strong>
-</div>
-<div id="fkNetRow" style="display:none; justify-content:space-between; gap:8px; font-size:1.2rem; margin:8px 0;">
-    <span>Nettolön FK</span>
-    <strong id="fkNetDisplay">0 kr</strong>
-</div>
+        <div id="jobNetRow" style="display:none; justify-content:space-between; gap:8px; font-size:1.2rem; margin:8px 0;">
+            <span>Nettolön jobb</span>
+            <strong id="jobNetDisplay">0 kr</strong>
+        </div>
+        <div id="fkNetRow" style="display:none; justify-content:space-between; gap:8px; font-size:1.2rem; margin:8px 0;">
             <span>Nettolön FK</span>
             <strong id="fkNetDisplay">0 kr</strong>
         </div>
