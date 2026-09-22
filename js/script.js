@@ -650,7 +650,7 @@ function renderUI(data) {
   if (jobNetDisplay) jobNetDisplay.innerText = fc(data.jobbNetto) + ' kr';
   if (fkNetDisplay) fkNetDisplay.innerText = fc(data.totalErsattningNetto) + ' kr';
 
-  const showFk = data.totalErsattningNetto > 0;
+ const showFk = data.totalErsattningNetto > 0;
   if (jobNetRow) jobNetRow.style.display = showFk ? 'flex' : 'none';
   if (fkNetRow)  fkNetRow.style.display  = showFk ? 'flex' : 'none';
 
