@@ -273,11 +273,32 @@ td.blue-week-cell {
     50%  { background-color: rgba(88,166,255,0.1); }
     100% { background-color: transparent; }
 }
-@media (max-width: 600px) {
-    .detail-grid {
-        grid-template-columns: 1fr;
-    }
-}
+
 .highlight { animation: highlightPulse 0.6s ease; }
 
 canvas#obChart { width: 100% !important; height: auto !important; max-height: 300px; }
+/* Android-säker layout för resultatkortet */
+.result-card #jobNetRow,
+.result-card #fkNetRow {
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* Översikten – en kolumn på smala skärmar */
+@media (max-width: 700px) {
+    .detail-grid {
+        grid-template-columns: 1fr !important;
+    }
+    .detail-chip,
+    .expandable-chip {
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+}
+
+/* Säkerställ att chips inte klipps */
+.detail-chip,
+.expandable-chip {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
