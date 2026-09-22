@@ -601,7 +601,7 @@ function renderUI(data) {
 
   const jobNetRow = document.getElementById('jobNetRow');
   if (jobNetRow) {
-    jobNetRow.style.display = data.totalErsattningNetto > 0 ? 'grid' : 'none';
+    fkNetRow.style.display = data.totalErsattningNetto > 0 ? 'flex' : 'none';
   }
 
   const fkNetDisplay = document.getElementById('fkNetDisplay');
