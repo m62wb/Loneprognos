@@ -11,6 +11,7 @@ const PBB=59200, SGI_TAK_PARENTAL=10*PBB, SGI_TAK_VAB=7.5*PBB, FK_SKATT=0.30;
 const MONTHS = ['Januari','Februari','Mars','April','Maj','Juni','Juli','Augusti','September','Oktober','November','December'];
 const SEMESTER_KVOT = 1.78;
 const FTP_INKOMSTTAK_MANAD = 49300; // 10 PBB / 12, enligt AFA
+const STATLIG_SKATT_GRANS_MANAD = 53600; // 2026 – uppdatera vid behov
 
 function calcUnion(s){ let f=Math.round(s*UPCT); if(f<UMIN) return UMIN; if(f>UMAX) return UMAX; return f; }
 function getWeekNumber(date) {
@@ -31,9 +32,11 @@ window.isLoadingProfile = false;
 let obManuallyEdited = false;
 let monthlyManualInputs = new Map();   // Per-månad/lag sparning av manuella fält
 let monthlyGross = new Map();          // Per arbetsmånad: bruttolön (för auto-SGI)
+let monthlySalary = new Map();         // Per månad: månadslön
 
 const MONTHLY_MANUAL_KEY = 'loneprognos_monthly_manual_v1';
 const MONTHLY_GROSS_KEY = 'loneprognos_monthly_gross_v1';
+const MONTHLY_SALARY_KEY = 'loneprognos_monthly_salary_v1';
 
 function persistMonthlyManualInputs() {
   localStorage.setItem(MONTHLY_MANUAL_KEY, JSON.stringify(Array.from(monthlyManualInputs.entries())));
@@ -51,6 +54,15 @@ function loadMonthlyGross() {
   const saved = localStorage.getItem(MONTHLY_GROSS_KEY);
   if (saved) {
     try { monthlyGross = new Map(JSON.parse(saved)); } catch(e) { monthlyGross = new Map(); }
+  }
+}
+function persistMonthlySalary() {
+  localStorage.setItem(MONTHLY_SALARY_KEY, JSON.stringify(Array.from(monthlySalary.entries())));
+}
+function loadMonthlySalary() {
+  const saved = localStorage.getItem(MONTHLY_SALARY_KEY);
+  if (saved) {
+    try { monthlySalary = new Map(JSON.parse(saved)); } catch(e) { monthlySalary = new Map(); }
   }
 }
 
@@ -90,6 +102,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 loadMonthlyManualInputs();
 loadMonthlyGross();
+loadMonthlySalary();
 loadFromvaroMap();
 
 function toggleSettings() {
@@ -137,6 +150,24 @@ function loadManualInputsFromCurrentPeriod() {
     const extraTaxInput = document.getElementById('extraTaxInput');
     if (extraTaxInput) extraTaxInput.value = '';
   }
+}
+
+// --- Per-månads månadslön ---
+function getSalaryPeriodKey() {
+  return `${yearSelect.value}-${String(monthSelect.value).padStart(2,'0')}`;
+}
+function saveSalaryForCurrentPeriod() {
+  const key = getSalaryPeriodKey();
+  const val = p(salaryInput.value) || 0;
+  if (val > 0) {
+    monthlySalary.set(key, val);
+    persistMonthlySalary();
+  }
+}
+function loadSalaryForCurrentPeriod() {
+  const key = getSalaryPeriodKey();
+  const saved = monthlySalary.get(key);
+  if (saved) salaryInput.value = saved;
 }
 
 function applyIndustrialVacation(year, lag) {
@@ -402,7 +433,6 @@ function calculateEverything() {
   const lag = lagSelect.value;
   const isAuto = (lag !== 'manual' && lag !== '');
   const ftpD = parseInt(ftpDays.value);
-  
 
   const isR3 = (lag === 'GUCH' || lag === 'BEAB');
   const allowance = isR3 ? 4000 : 0;
@@ -431,6 +461,15 @@ function calculateEverything() {
     for (let m = 1; m <= 12; m++) {
       const key = `${prevYear}-${String(m).padStart(2, '0')}`;
       if (!monthlyGross.has(key)) {
+        const monthSalary = monthlySalary.get(key) || baseSalary;
+        const monthDrift = trunc2(monthSalary * DRIFT / 100);
+        const monthObBase = f2(monthSalary + allowance + monthDrift);
+        const mO1r = f2(monthObBase / O1D);
+        const mO2r = f2(monthObBase / O2D);
+        const mO3r = f2(monthObBase / O3D);
+        const mOtRate = f2(monthObBase / OTD);
+        const mOtEnkelRate = f2(monthObBase / OTENKELD);
+
         const periodKey = `${prevYear}-${String(m).padStart(2, '0')}-${lag}`;
         const manual = monthlyManualInputs.get(periodKey);
         const otH = p(manual?.ot || 0);
@@ -438,15 +477,15 @@ function calculateEverything() {
         const extraAmount = p(manual?.extra || 0);
 
         const obData = getOBForMonth(prevYear, m, lag);
-        const mOB = f2(obData.ob1 * ob1r + obData.ob2 * ob2r + obData.ob3 * ob3r);
+        const mOB = f2(obData.ob1 * mO1r + obData.ob2 * mO2r + obData.ob3 * mO3r);
         const vacDays = countVacationDaysInMonth(prevYear, m);
         const semesterDagar = isShiftWorker ? vacDays * SEMESTER_KVOT : vacDays;
-        const semTillagg = f2(semesterDagar * (obGroundingBase / 125));
+        const semTillagg = f2(semesterDagar * (monthObBase / 125));
 
-        const otAmt = f2(otH * otRate);
-        const otEnkelAmt = f2(otEnkelH * otEnkelRate);
+        const otAmt = f2(otH * mOtRate);
+        const otEnkelAmt = f2(otEnkelH * mOtEnkelRate);
 
-        const gross = Math.round(obGroundingBase + mOB + semTillagg + otAmt + otEnkelAmt + extraAmount);
+        const gross = Math.round(monthObBase + mOB + semTillagg + otAmt + otEnkelAmt + extraAmount);
         monthlyGross.set(key, gross);
       }
     }
@@ -479,21 +518,21 @@ function calculateEverything() {
   const sickOBGain = f2(sickResult.sickOBGain);
 
   const sgiVab = Math.min(sgiVal, SGI_TAK_VAB);
-const sgiVabDay = f2(sgiVab / 365 * 0.8);
-const fkVabTotal = f2(vabD * sgiVabDay);
-const sgiPar = Math.min(sgiVal, SGI_TAK_PARENTAL);
-const fpDayAmt = f2(Math.min(1259, sgiPar / 365 * 0.776));
-const fkFpTotal = f2(parentalD * fpDayAmt);
+  const sgiVabDay = f2(sgiVab / 365 * 0.8);
+  const fkVabTotal = f2(vabD * sgiVabDay);
+  const sgiPar = Math.min(sgiVal, SGI_TAK_PARENTAL);
+  const fpDayAmt = f2(Math.min(1259, sgiPar / 365 * 0.776));
+  const fkFpTotal = f2(parentalD * fpDayAmt);
 
-// FTP (AFA) – inkomsttak 49 300 kr/mån och endast vid FL
-const ftpBaseSalary = Math.min(baseSalary, FTP_INKOMSTTAK_MANAD);
-const fptDayAmt = f2(ftpBaseSalary / 30 * 0.10);
-const effectiveFtpD = parentalD > 0 ? ftpD : 0;
-const fkFptTotal = f2(effectiveFtpD * fptDayAmt);
+  // FTP (AFA) – inkomsttak 49 300 kr/mån och endast vid FL
+  const ftpBaseSalary = Math.min(baseSalary, FTP_INKOMSTTAK_MANAD);
+  const fptDayAmt = f2(ftpBaseSalary / 30 * 0.10);
+  const effectiveFtpD = parentalD > 0 ? ftpD : 0;
+  const fkFptTotal = f2(effectiveFtpD * fptDayAmt);
 
-const fkVabTax = f2(fkVabTotal * FK_SKATT), fkFpTax = f2(fkFpTotal * FK_SKATT), fkFptTax = f2(fkFptTotal * FK_SKATT);
-const fkVabNet = f2(fkVabTotal - fkVabTax), fkFpNet = f2(fkFpTotal - fkFpTax), fkFptNet = f2(fkFptTotal - fkFptTax);
-const totalErsattningNetto = f2(fkVabNet + fkFpNet + fkFptNet);
+  const fkVabTax = f2(fkVabTotal * FK_SKATT), fkFpTax = f2(fkFpTotal * FK_SKATT), fkFptTax = f2(fkFptTotal * FK_SKATT);
+  const fkVabNet = f2(fkVabTotal - fkVabTax), fkFpNet = f2(fkFpTotal - fkFpTax), fkFptNet = f2(fkFptTotal - fkFptTax);
+  const totalErsattningNetto = f2(fkVabNet + fkFpNet + fkFptNet);
 
   let autoOB = null;
   if (isAuto) autoOB = getOBForMonth(obYear, obMonth, lag);
@@ -545,6 +584,10 @@ const totalErsattningNetto = f2(fkVabNet + fkFpNet + fkFptNet);
   const netSalaryExact = trunc2(jobbBruttoExact - taxExact - calcUnion(jobbBrutto) + totalErsattningNetto - extraTax);
   const netSalary = Math.round(netSalaryExact);
 
+  // Utrymme till statlig skatt
+  const utrymmeStatlig = STATLIG_SKATT_GRANS_MANAD - jobbBruttoExact;
+  const utrymmeOtTimmar = utrymmeStatlig > 0 ? utrymmeStatlig / otRate : 0;
+
   // Spara aktuell månads bruttolön i historiken
   const grossKey = `${obYear}-${String(obMonth).padStart(2,'0')}`;
   monthlyGross.set(grossKey, jobbBruttoExact);
@@ -578,7 +621,8 @@ const totalErsattningNetto = f2(fkVabNet + fkFpNet + fkFptNet);
     sickOB1Amount: sickResult.sickOB1Amount, sickOB2Amount: sickResult.sickOB2Amount, sickOB3Amount: sickResult.sickOB3Amount,
     jobbBrutto, jobbBruttoExact, tax, netBeforeFack: f2(jobbBrutto - tax),
     unionFee: calcUnion(jobbBrutto), jobbNetto: f2(jobbBrutto - tax - calcUnion(jobbBrutto)),
-    netSalary, netSalaryExact, utjämning: trunc2(netSalary - netSalaryExact)
+    netSalary, netSalaryExact, utjämning: trunc2(netSalary - netSalaryExact),
+    utrymmeStatlig, utrymmeOtTimmar
   };
 }
 
@@ -594,10 +638,10 @@ function renderUI(data) {
   otEnkelRate.innerText = '/94 = ' + fd(data.otEnkelRatePerHour,2) + ' kr/h';
   selectedPeriod.innerText = MONTHS[data.selectedMonth-1] + ' ' + data.selectedYear + ' · ' + lagName;
   tableMonthLabel.innerText = data.isAuto ? MONTHS[data.obMonth-1] + ' ' + data.obYear : '—';
-    finalNetSalary.innerText = fc(data.netSalary) + ' kr';
+  finalNetSalary.innerText = fc(data.netSalary) + ' kr';
   overviewTotalNet.innerText = fc(data.netSalary) + ' kr';
 
-  // Nya resultatfält
+  // Resultatfält för jobb och FK
   const jobNetDisplay = document.getElementById('jobNetDisplay');
   const jobNetRow = document.getElementById('jobNetRow');
   const fkNetDisplay = document.getElementById('fkNetDisplay');
@@ -610,17 +654,26 @@ function renderUI(data) {
   if (jobNetRow) jobNetRow.style.display = showFk ? 'flex' : 'none';
   if (fkNetRow)  fkNetRow.style.display  = showFk ? 'flex' : 'none';
 
-  overviewTotalNet.innerText = fc(data.netSalary) + ' kr';
-
-  if (fkNetRow) {
-    fkNetRow.style.display = data.totalErsattningNetto > 0 ? 'flex' : 'none';
-  }
-  overviewTotalNet.innerText = fc(data.netSalary) + ' kr';
-    const totalNetLabel = document.getElementById('totalNetLabel');
+  const totalNetLabel = document.getElementById('totalNetLabel');
   if (totalNetLabel) {
-    totalNetLabel.innerText = data.totalErsattningNetto > 0
-      ? 'Totalt netto (jobb + FK)'
-      : 'Totalt netto';
+    totalNetLabel.innerText = showFk ? 'Totalt netto (jobb + FK)' : 'Totalt netto';
+  }
+
+  // Utrymme till statlig skatt
+  const headroomAmount = document.getElementById('taxHeadroomAmount');
+  const headroomHours = document.getElementById('taxHeadroomHours');
+  if (headroomAmount && headroomHours) {
+    if (data.utrymmeStatlig > 0) {
+      headroomAmount.innerText = fc(data.utrymmeStatlig) + ' kr';
+      headroomHours.innerText = '(≈ ' + fd(data.utrymmeOtTimmar, 1) + ' h övertid)';
+      headroomAmount.style.color = '';
+      headroomHours.style.color = '';
+    } else {
+      headroomAmount.innerText = fc(Math.abs(data.utrymmeStatlig)) + ' kr över gränsen';
+      headroomHours.innerText = '';
+      headroomAmount.style.color = 'var(--danger)';
+      headroomHours.style.color = 'var(--danger)';
+    }
   }
 
   const chips = [];
@@ -932,9 +985,9 @@ let lagSelect=document.getElementById('lagSelect'), salaryInput=document.getElem
     overviewTotalNet=document.getElementById('overviewTotalNet');
 
 lagSelect.addEventListener('change', function() { obManuallyEdited = false; loadManualInputsFromCurrentPeriod(); updateUI(); });
-salaryInput.addEventListener('input',updateUI);
-yearSelect.addEventListener('change', function() { obManuallyEdited = false; loadManualInputsFromCurrentPeriod(); updateUI(); });
-monthSelect.addEventListener('change', function() { obManuallyEdited = false; loadManualInputsFromCurrentPeriod(); updateUI(); });
+salaryInput.addEventListener('input', function() { saveSalaryForCurrentPeriod(); updateUI(); });
+yearSelect.addEventListener('change', function() { obManuallyEdited = false; loadSalaryForCurrentPeriod(); loadManualInputsFromCurrentPeriod(); updateUI(); });
+monthSelect.addEventListener('change', function() { obManuallyEdited = false; loadSalaryForCurrentPeriod(); loadManualInputsFromCurrentPeriod(); updateUI(); });
 otHours.addEventListener('input', function() { saveManualInputsToCurrentPeriod(); updateUI(); });
 otEnkelHours.addEventListener('input', function() { saveManualInputsToCurrentPeriod(); updateUI(); });
 
@@ -969,8 +1022,9 @@ const savedAutosave = localStorage.getItem(AUTOSAVE_KEY);
 if (savedAutosave) { try { applyState(JSON.parse(savedAutosave)); } catch(e) { updateUI(); } }
 else { if (lagSelect.value && lagSelect.value !== 'manual') applyIndustrialVacation(parseInt(yearSelect.value), lagSelect.value); updateUI(); }
 
-  // Tvinga inget lag förvalt vid start
+// Tvinga inget lag förvalt vid start
 lagSelect.value = '';
+loadSalaryForCurrentPeriod();
 loadManualInputsFromCurrentPeriod();
 loadFromvaroMap();
 updateUI();
@@ -984,6 +1038,7 @@ window.resetOB = resetOB;
 window.calculateEverything = calculateEverything;
 window.loadFromvaroMap = loadFromvaroMap;
 window.loadManualInputsFromCurrentPeriod = loadManualInputsFromCurrentPeriod;
+window.loadSalaryForCurrentPeriod = loadSalaryForCurrentPeriod;
 
 document.querySelectorAll('.numeric-only').forEach(field => {
   field.addEventListener('input', function() {
