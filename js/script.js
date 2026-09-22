@@ -595,17 +595,20 @@ function renderUI(data) {
   selectedPeriod.innerText = MONTHS[data.selectedMonth-1] + ' ' + data.selectedYear + ' · ' + lagName;
   tableMonthLabel.innerText = data.isAuto ? MONTHS[data.obMonth-1] + ' ' + data.obYear : '—';
   finalNetSalary.innerText = fc(data.netSalary) + ' kr';
-   // Nya resultatfält
+  // Nya resultatfält
   const jobNetDisplay = document.getElementById('jobNetDisplay');
-  if (jobNetDisplay) jobNetDisplay.innerText = fc(data.jobbNetto) + ' kr';
-
   const jobNetRow = document.getElementById('jobNetRow');
-  if (jobNetRow) {
-    fkNetRow.style.display = data.totalErsattningNetto > 0 ? 'flex' : 'none';
-  }
-
   const fkNetDisplay = document.getElementById('fkNetDisplay');
+  const fkNetRow = document.getElementById('fkNetRow');
+
+  if (jobNetDisplay) jobNetDisplay.innerText = fc(data.jobbNetto) + ' kr';
   if (fkNetDisplay) fkNetDisplay.innerText = fc(data.totalErsattningNetto) + ' kr';
+
+  const showFk = data.totalErsattningNetto > 0;
+  if (jobNetRow) jobNetRow.style.display = showFk ? 'flex' : 'none';
+  if (fkNetRow)  fkNetRow.style.display  = showFk ? 'flex' : 'none';
+
+  overviewTotalNet.innerText = fc(data.netSalary) + ' kr';
 
   const fkNetRow = document.getElementById('fkNetRow');
   if (fkNetRow) {
