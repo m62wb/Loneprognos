@@ -594,7 +594,9 @@ function renderUI(data) {
   otEnkelRate.innerText = '/94 = ' + fd(data.otEnkelRatePerHour,2) + ' kr/h';
   selectedPeriod.innerText = MONTHS[data.selectedMonth-1] + ' ' + data.selectedYear + ' · ' + lagName;
   tableMonthLabel.innerText = data.isAuto ? MONTHS[data.obMonth-1] + ' ' + data.obYear : '—';
-  finalNetSalary.innerText = fc(data.netSalary) + ' kr';
+    finalNetSalary.innerText = fc(data.netSalary) + ' kr';
+  overviewTotalNet.innerText = fc(data.netSalary) + ' kr';
+
   // Nya resultatfält
   const jobNetDisplay = document.getElementById('jobNetDisplay');
   const jobNetRow = document.getElementById('jobNetRow');
@@ -610,7 +612,6 @@ function renderUI(data) {
 
   overviewTotalNet.innerText = fc(data.netSalary) + ' kr';
 
-  const fkNetRow = document.getElementById('fkNetRow');
   if (fkNetRow) {
     fkNetRow.style.display = data.totalErsattningNetto > 0 ? 'flex' : 'none';
   }
