@@ -13,7 +13,12 @@ const SEMESTER_KVOT = 1.78;
 const FTP_INKOMSTTAK_MANAD = 49300; // 10 PBB / 12, enligt AFA
 const STATLIG_SKATT_GRANS_MANAD = 53600; // 2026 – uppdatera vid behov
 
-function calcUnion(s){ let f=Math.round(s*UPCT); if(f<UMIN) return UMIN; if(f>UMAX) return UMAX; return f; }
+function calcUnion(s){
+  let f = Math.round(s * UPCT * 100) / 100;
+  if (f < UMIN) return UMIN;
+  if (f > UMAX) return UMAX;
+  return f;
+}
 function getWeekNumber(date) {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
   const dayNum = d.getUTCDay() || 7; d.setUTCDate(d.getUTCDate() + 4 - dayNum);
