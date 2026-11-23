@@ -1,4 +1,4 @@
-# Löneprognos 2024–2036 – IKEM Lokalt Avtal (Recipharm, Uppsala)
+# Löneprognos 2024–2036 – IKEM Lokalt Avtal
 
 Webbaserad lönekalkylator för skiftarbetare med IKEM:s lokala avtal.
 Beräknar bruttolön, OB, övertid, sjukavdrag, föräldraledighet, VAB,
