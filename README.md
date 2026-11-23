@@ -21,7 +21,7 @@ FK-ersättning (VAB, FP, FTP).
 - O1D=460, O2D=260, O3D=150, OTD=72, OTENKELD=94
 - PBB = 59200 (2026), SGI_TAK_PARENTAL = 10*PBB, SGI_TAK_VAB = 7.5*PBB
 - FK_SKATT = 0.30
-- UPCT=0.0165, UMAX=701, UMIN=255 (fackavgift IF Metall)
+- UPCT=0.016, UMAX=701, UMIN=255 (fackavgift IF Metall)
 - SEMESTER_KVOT = 1.78 (endast för skiftarbetare A–E)
 - FTP_INKOMSTTAK_MANAD = 49300 (10 PBB / 12, enligt AFA)
 - STATLIG_SKATT_GRANS_MANAD = 53600 (2026, uppdateras årligen)
