@@ -5,7 +5,7 @@ function fd(v,d){ return v.toFixed(d).replace('.',','); }
 function f2(n){ return Math.round((n+Number.EPSILON)*100)/100; }
 function trunc2(n){ return Math.trunc(n * 100) / 100; }
 
-const DRIFT=4.0, VAB_HPD=12.25, UPCT=0.0165, UMAX=701, UMIN=255;
+const DRIFT=4.0, VAB_HPD=12.25, UPCT=0.016, UMAX=701, UMIN=255;
 const O1D=460, O2D=260, O3D=150, OTD=72, OTENKELD=94, SY=2024, EY=2036;
 const PBB=59200, SGI_TAK_PARENTAL=10*PBB, SGI_TAK_VAB=7.5*PBB, FK_SKATT=0.30;
 const MONTHS = ['Januari','Februari','Mars','April','Maj','Juni','Juli','Augusti','September','Oktober','November','December'];
